@@ -1,0 +1,2 @@
+lxml  # Fast XML and HTML parsing with XPath support
+pyyaml  # YAML parsing and serialization
