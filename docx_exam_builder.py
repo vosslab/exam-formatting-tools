@@ -15,9 +15,6 @@ import yaml
 import docx
 import docx.shared
 import docx.enum.text
-import docx.enum.style
-import docx.oxml.ns
-import docx.oxml
 
 # Local Repo Modules
 import ef_tools.layout
@@ -25,6 +22,7 @@ import ef_tools.text_utils
 import ef_tools.style_loader
 import ef_tools.exam_defaults
 import ef_tools.question_utils
+import ef_tools.docx_builder
 
 
 #============================================
@@ -47,346 +45,6 @@ def parse_args() -> argparse.Namespace:
 	)
 	args = parser.parse_args()
 	return args
-
-
-#============================================
-def _set_font_with_fallback(style, primary: str, fallback: str) -> None:
-	"""Set font name on a style with a fallback font via XML.
-
-	python-docx only supports a single font name. This sets the primary
-	font and adds the fallback as hAnsi/cs font for cross-platform
-	compatibility (Liberation Sans on Linux, Arial on Windows/Mac).
-
-	Args:
-		style: A python-docx paragraph or character style.
-		primary: Primary font name (e.g., 'Liberation Sans').
-		fallback: Fallback font name (e.g., 'Arial').
-	"""
-	style.font.name = primary
-	# set the fallback font on the underlying XML for non-ascii/hAnsi
-	rpr = style.element.get_or_add_rPr()
-	rfonts_tag = docx.oxml.ns.qn('w:rFonts')
-	rfonts = rpr.find(rfonts_tag)
-	if rfonts is None:
-		rfonts = docx.oxml.OxmlElement('w:rFonts')
-		rpr.insert(0, rfonts)
-	rfonts.set(docx.oxml.ns.qn('w:ascii'), primary)
-	rfonts.set(docx.oxml.ns.qn('w:hAnsi'), fallback)
-	rfonts.set(docx.oxml.ns.qn('w:cs'), fallback)
-
-
-#============================================
-def _parse_hex_color(hex_str: str) -> docx.shared.RGBColor:
-	"""Parse a hex color string like '#6600CC' into an RGBColor.
-
-	Args:
-		hex_str: Color string with leading '#'.
-
-	Returns:
-		RGBColor object.
-	"""
-	hex_str = hex_str.lstrip('#')
-	r = int(hex_str[0:2], 16)
-	g = int(hex_str[2:4], 16)
-	b = int(hex_str[4:6], 16)
-	color = docx.shared.RGBColor(r, g, b)
-	return color
-
-
-#============================================
-def setup_styles(doc: docx.Document, styles: dict) -> None:
-	"""Create all named exam styles in the document.
-
-	Reads font, size, color, and spacing values from the styles dict
-	(loaded from styles/exam_styles.yaml).
-
-	Args:
-		doc: The Document to add styles to.
-		styles: Style definitions dict from YAML.
-	"""
-	fonts = styles['fonts']
-	sizes = styles['sizes']
-	colors = styles['colors']
-	spacing = styles['spacing']
-
-	# modify the built-in Normal style as our base
-	normal = doc.styles['Normal']
-	normal.font.size = docx.shared.Pt(sizes['normal'])
-	normal.paragraph_format.space_after = docx.shared.Pt(spacing['normal_space_after_pt'])
-	normal.paragraph_format.space_before = docx.shared.Pt(0)
-	normal.paragraph_format.line_spacing = spacing['normal_line_spacing']
-	_set_font_with_fallback(normal, fonts['primary'], fonts['fallback'])
-
-	# customize built-in Heading 1: bold, keep-with-next
-	h1 = doc.styles['Heading 1']
-	h1.font.size = docx.shared.Pt(sizes['heading_1'])
-	h1.font.bold = True
-	h1.font.italic = False
-	h1.font.color.rgb = docx.shared.RGBColor(0x00, 0x00, 0x00)
-	h1.paragraph_format.space_before = docx.shared.Inches(spacing['heading_space_before'])
-	h1.paragraph_format.space_after = docx.shared.Inches(spacing['heading_space_after'])
-	h1.paragraph_format.keep_with_next = True
-	h1.paragraph_format.alignment = docx.enum.text.WD_PARAGRAPH_ALIGNMENT.CENTER
-	_set_font_with_fallback(h1, fonts['primary'], fonts['fallback'])
-
-	# Question Heading: bold italic, hanging indent, keep-with-next
-	qh = doc.styles.add_style('Question Heading', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
-	qh.base_style = normal
-	qh.font.bold = True
-	qh.font.italic = True
-	qh.font.size = docx.shared.Pt(sizes['question'])
-	qh.paragraph_format.left_indent = docx.shared.Inches(spacing['question_indent'])
-	qh.paragraph_format.first_line_indent = docx.shared.Inches(spacing['question_hanging'])
-	qh.paragraph_format.space_before = docx.shared.Inches(spacing['question_heading_space_before'])
-	qh.paragraph_format.space_after = docx.shared.Inches(spacing['question_space_after'])
-	qh.paragraph_format.keep_with_next = True
-
-	# Question Follow: same as Question Heading but no space above
-	qf = doc.styles.add_style('Question Follow', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
-	qf.base_style = normal
-	qf.font.bold = True
-	qf.font.italic = True
-	qf.font.size = docx.shared.Pt(sizes['question'])
-	qf.paragraph_format.left_indent = docx.shared.Inches(spacing['question_indent'])
-	qf.paragraph_format.first_line_indent = docx.shared.Inches(spacing['question_hanging'])
-	qf.paragraph_format.space_before = docx.shared.Pt(0)
-	qf.paragraph_format.space_after = docx.shared.Inches(spacing['question_space_after'])
-	qf.paragraph_format.keep_with_next = True
-
-	# Chapter Heading: bold, dark purple, keep-with-next
-	ch = doc.styles.add_style('Chapter Heading', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
-	ch.base_style = normal
-	ch.font.size = docx.shared.Pt(sizes['chapter_heading'])
-	_set_font_with_fallback(ch, fonts['primary'], fonts['fallback'])
-	ch.font.bold = True
-	ch.font.color.rgb = _parse_hex_color(colors['chapter_heading'])
-	ch.paragraph_format.space_before = docx.shared.Pt(spacing['chapter_space_before_pt'])
-	ch.paragraph_format.space_after = docx.shared.Pt(spacing['chapter_space_after_pt'])
-	ch.paragraph_format.keep_with_next = True
-
-	# Heading 2: bold italic, for major section labels
-	h2 = doc.styles.add_style('Exam Heading 2', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
-	h2.base_style = normal
-	h2.font.size = docx.shared.Pt(sizes['heading_2'])
-	_set_font_with_fallback(h2, fonts['primary'], fonts['fallback'])
-	h2.font.bold = True
-	h2.font.italic = True
-	h2.paragraph_format.space_before = docx.shared.Pt(spacing['chapter_space_before_pt'])
-	h2.paragraph_format.space_after = docx.shared.Pt(spacing['chapter_space_after_pt'])
-	h2.paragraph_format.keep_with_next = True
-
-	# Choice: base style for all choice layouts
-	choice_base = doc.styles.add_style('Choice', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
-	choice_base.base_style = normal
-	choice_base.font.size = docx.shared.Pt(sizes['choice'])
-	choice_base.paragraph_format.left_indent = docx.shared.Inches(spacing['choice_indent'])
-	choice_first_line = spacing['choice_first_line_indent']
-	if choice_first_line != 0:
-		choice_base.paragraph_format.first_line_indent = docx.shared.Inches(choice_first_line)
-	choice_base.paragraph_format.space_before = docx.shared.Pt(0)
-	choice_base.paragraph_format.space_after = docx.shared.Pt(spacing['normal_space_after_pt'])
-
-	# Header: small font for page headers with center and right tab stops
-	hdr = doc.styles.add_style('Header', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
-	hdr.base_style = normal
-	hdr.font.size = docx.shared.Pt(sizes['header'])
-	hdr.paragraph_format.tab_stops.add_tab_stop(
-		docx.shared.Inches(styles['page']['header_center_tab']),
-		docx.enum.text.WD_TAB_ALIGNMENT.CENTER
-	)
-	hdr.paragraph_format.tab_stops.add_tab_stop(
-		docx.shared.Inches(styles['page']['header_right_tab']),
-		docx.enum.text.WD_TAB_ALIGNMENT.RIGHT
-	)
-
-	# Choices 2 through 5: inherit from Choice, with tab stops on the style
-	for n in range(2, 6):
-		style = doc.styles.add_style(f'Choices {n}', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
-		style.base_style = choice_base
-		# add tab stops so switching styles in Word preserves column alignment
-		for pos in ef_tools.layout.CHOICES_TAB_STOPS[n]:
-			style.paragraph_format.tab_stops.add_tab_stop(docx.shared.Inches(pos))
-
-
-#============================================
-def add_page_number_field(paragraph) -> None:
-	"""Add 'Page X of Y' field codes to a paragraph using raw XML.
-
-	python-docx does not have native page number field support,
-	so we insert the Word XML field elements directly.
-
-	Args:
-		paragraph: The paragraph to add page numbers to.
-	"""
-	# "Page " text (font size inherited from paragraph style)
-	paragraph.add_run("Page ")
-	# PAGE field
-	run1 = paragraph.add_run()
-	fld_simple_page = docx.oxml.OxmlElement('w:fldSimple')
-	fld_simple_page.set(docx.oxml.ns.qn('w:instr'), ' PAGE ')
-	run1._element.addnext(fld_simple_page)
-	# " of " text
-	paragraph.add_run(" of ")
-	# NUMPAGES field
-	run2 = paragraph.add_run()
-	fld_simple_total = docx.oxml.OxmlElement('w:fldSimple')
-	fld_simple_total.set(docx.oxml.ns.qn('w:instr'), ' NUMPAGES ')
-	run2._element.addnext(fld_simple_total)
-
-
-#============================================
-def setup_header(doc: docx.Document, section, date_str: str) -> None:
-	"""Configure page header on body pages with page number, date, and name.
-
-	Sets up different first page header (empty) and body page header with
-	'Page X of Y | date | First Name:___' layout. Font size and tab stops
-	come from the Header style.
-
-	Args:
-		doc: The Document (needed to access Header style).
-		section: The document section to configure.
-		date_str: Date string to display in header center.
-	"""
-	# enable different first page header (empty on page 1)
-	section.different_first_page_header_footer = True
-
-	# body page header: "Page X of Y [tab] date [tab] First Name:___"
-	header = section.header
-	header.is_linked_to_previous = False
-	header_para = header.paragraphs[0]
-	# apply Header style (font size and tab stops defined on style)
-	header_para.style = doc.styles['Header']
-	# add page number fields
-	add_page_number_field(header_para)
-	# tab to center, add date
-	header_para.add_run("\t")
-	if date_str:
-		header_para.add_run(date_str)
-	# tab to right, add name line
-	header_para.add_run("\t")
-	header_para.add_run("First Name:_____________________________")
-
-	# first page header is empty (just clear it)
-	first_header = section.first_page_header
-	# clear any default content
-	for p in first_header.paragraphs:
-		p.text = ""
-
-
-#============================================
-def add_rich_text_runs(para, text: str) -> None:
-	"""Add styled runs to a paragraph, parsing inline HTML tags.
-
-	Handles <sub>, <sup>, <b>, <strong>, <i>, <em> tags by creating
-	separate runs with appropriate font properties. HTML entities are
-	decoded first, then rich text tags are parsed.
-
-	Font size, base bold, and base italic come from the paragraph style.
-	Only rich text tags add run-level overrides.
-
-	Args:
-		para: The paragraph to add runs to.
-		text: Text that may contain HTML entities and inline tags.
-	"""
-	# decode HTML entities first, then parse rich text tags
-	decoded = ef_tools.text_utils.decode_html_entities(text)
-	segments = ef_tools.text_utils.parse_rich_text(decoded)
-	for segment_text, tags in segments:
-		run = para.add_run(segment_text)
-		# only set run-level overrides for rich text tags
-		if 'b' in tags:
-			run.font.bold = True
-		if 'i' in tags:
-			run.font.italic = True
-		if 'sub' in tags:
-			run.font.subscript = True
-		if 'sup' in tags:
-			run.font.superscript = True
-
-
-#============================================
-def add_choices_paragraph(doc: docx.Document, choices: list,
-	tab_style: int, items_per_row: int) -> None:
-	"""Add a tab-separated choices paragraph with bold letter prefixes.
-
-	Creates a paragraph with (A) (B) (C) format, using tab characters
-	to align columns. The tab_style selects tab stop positions (3, 4, 5)
-	and items_per_row controls how many choices per line.
-
-	Args:
-		doc: The Document to add the paragraph to.
-		choices: List of choice text strings (no letter prefixes).
-		tab_style: Tab stop layout (3, 4, or 5) from CHOICES_TAB_STOPS.
-		items_per_row: Number of choices per line (may differ from tab_style).
-	"""
-	para = doc.add_paragraph()
-	# select the appropriate style (tab stops are defined on the style)
-	style_name = ef_tools.layout.CHOICES_STYLE_NAME[tab_style]
-	para.style = doc.styles[style_name]
-	# vertical stack: one choice per line, no tabs
-	if items_per_row <= 1:
-		for i, choice_text in enumerate(choices):
-			if i > 0:
-				run_br = para.add_run()
-				run_br.add_break()
-			letter = chr(ord('A') + i)
-			# bold letter prefix (only run-level override needed)
-			bold_run = para.add_run(f"({letter}) ")
-			bold_run.bold = True
-			# choice text inherits font size from style
-			add_rich_text_runs(para, choice_text)
-		return
-	# multi-column layout
-	for i, choice_text in enumerate(choices):
-		letter = chr(ord('A') + i)
-		# line break before new rows (after first row)
-		if i > 0 and i % items_per_row == 0:
-			run_br = para.add_run()
-			run_br.add_break()
-		# tab before this choice (except first in each row)
-		if i > 0 and i % items_per_row != 0:
-			para.add_run("\t")
-		# bold letter prefix (only run-level override needed)
-		bold_run = para.add_run(f"({letter}) ")
-		bold_run.bold = True
-		# choice text inherits font size from style
-		add_rich_text_runs(para, choice_text)
-
-
-#============================================
-def add_table(doc: docx.Document, columns: list, rows: list,
-	header_bg: str = 'F2F2F2') -> None:
-	"""Add a table with a styled header row.
-
-	The header row uses bold centered text with a light gray background.
-
-	Args:
-		doc: The Document to add the table to.
-		columns: List of column header strings.
-		rows: List of row data (each row is a list of cell strings).
-		header_bg: Hex color for header background (no '#' prefix).
-	"""
-	num_rows = len(rows) + 1
-	num_cols = len(columns)
-	table = doc.add_table(rows=num_rows, cols=num_cols)
-	table.style = 'Table Grid'
-	# header row
-	for ci, col_text in enumerate(columns):
-		cell = table.rows[0].cells[ci]
-		# use rich text for header cells (bold base)
-		cell_para = cell.paragraphs[0]
-		add_rich_text_runs(cell_para, col_text, base_bold=True)
-		cell_para.alignment = docx.enum.text.WD_PARAGRAPH_ALIGNMENT.CENTER
-		# light gray background via XML shading
-		shading = docx.oxml.OxmlElement('w:shd')
-		shading.set(docx.oxml.ns.qn('w:fill'), header_bg)
-		shading.set(docx.oxml.ns.qn('w:val'), 'clear')
-		cell._element.get_or_add_tcPr().append(shading)
-	# data rows
-	for ri, row_data in enumerate(rows):
-		for ci, cell_text in enumerate(row_data):
-			cell_para = table.rows[ri + 1].cells[ci].paragraphs[0]
-			add_rich_text_runs(cell_para, cell_text)
 
 
 #============================================
@@ -413,7 +71,7 @@ def build_document(exam_data: dict, output_path: str) -> None:
 	styles = ef_tools.style_loader.load_styles()
 
 	# setup styles from YAML definitions
-	setup_styles(doc, styles)
+	ef_tools.docx_builder.setup_styles(doc, styles)
 
 	# page layout: margins from YAML
 	page_margin = styles['page']['margin']
@@ -425,7 +83,7 @@ def build_document(exam_data: dict, output_path: str) -> None:
 
 	# setup page header (empty on first page, name/date on body pages)
 	date_str = exam_data.get('date', '')
-	setup_header(doc, section, date_str)
+	ef_tools.docx_builder.setup_header(doc, section, date_str, styles)
 
 	# --- first page boilerplate ---
 	boilerplate_tab = styles['page']['boilerplate_tab']
@@ -435,7 +93,7 @@ def build_document(exam_data: dict, output_path: str) -> None:
 	title = exam_data.get('title', 'Exam')
 	title_para = doc.add_paragraph()
 	title_para.style = doc.styles['Heading 1']
-	add_rich_text_runs(title_para, title)
+	ef_tools.docx_builder.add_rich_text_runs(title_para, title)
 
 	# name line shifted right with tab
 	name_line = exam_data.get('student_line', ef_tools.exam_defaults.DEFAULT_NAME_LINE)
@@ -458,6 +116,13 @@ def build_document(exam_data: dict, output_path: str) -> None:
 		docx.shared.Inches(boilerplate_tab), docx.enum.text.WD_TAB_ALIGNMENT.LEFT
 	)
 
+	# load image max width from styles
+	image_max_width = styles['page']['image_max_width']
+	# load layout limits for choice auto-sizing
+	layout_limits = styles.get('layout_limits', None)
+	# load style flags for table header alignment
+	flags = styles['style_flags']
+
 	# --- sections and questions ---
 	question_counter = 1
 	prev_element = 'chapter'
@@ -467,14 +132,14 @@ def build_document(exam_data: dict, output_path: str) -> None:
 		if heading:
 			para = doc.add_paragraph()
 			para.style = doc.styles['Exam Heading 2']
-			add_rich_text_runs(para, heading)
+			ef_tools.docx_builder.add_rich_text_runs(para, heading)
 			prev_element = 'chapter'
 		# chapter heading (purple, level 3)
 		chapter = section_data.get('chapter', '')
 		if chapter:
 			para = doc.add_paragraph()
 			para.style = doc.styles['Chapter Heading']
-			add_rich_text_runs(para, chapter)
+			ef_tools.docx_builder.add_rich_text_runs(para, chapter)
 			prev_element = 'chapter'
 		# questions
 		questions = section_data.get('questions', [])
@@ -495,22 +160,24 @@ def build_document(exam_data: dict, output_path: str) -> None:
 				# add number prefix (bold+italic inherited from style)
 				para.add_run(f"{question_number}. ")
 				# add statement text with rich text support
-				add_rich_text_runs(para, stripped)
+				ef_tools.docx_builder.add_rich_text_runs(para, stripped)
 				prev_element = 'question'
 			# image (before choices, after question text)
 			image_path = question.get('image', None)
 			if image_path is not None and os.path.isfile(image_path):
-				# add image with auto aspect ratio, max 5in wide
-				doc.add_picture(image_path, width=docx.shared.Inches(5))
+				# add image with auto aspect ratio, max width from styles
+				doc.add_picture(image_path, width=docx.shared.Inches(image_max_width))
 				prev_element = 'image'
 			# table
 			table_data = question.get('table', None)
 			if table_data is not None:
 				columns = table_data['columns']
 				rows = table_data['rows']
-				# pass table header background color from styles
+				# pass table header background color and alignment from styles
 				table_bg = styles['colors']['table_header_bg'].lstrip('#')
-				add_table(doc, columns, rows, header_bg=table_bg)
+				center_header = flags['table_header_centered']
+				ef_tools.docx_builder.add_table(doc, columns, rows,
+					header_bg=table_bg, center_header=center_header)
 				prev_element = 'table'
 			# choices
 			choices = question.get('choices', None)
@@ -521,9 +188,11 @@ def build_document(exam_data: dict, output_path: str) -> None:
 					tab_style = layout_override
 					items_per_row = layout_override
 				else:
-					# auto-determine layout
-					tab_style, items_per_row = ef_tools.layout.auto_layout_for_choices(choices)
-				add_choices_paragraph(doc, choices, tab_style, items_per_row)
+					# auto-determine layout with YAML limits
+					tab_style, items_per_row = ef_tools.layout.auto_layout_for_choices(
+						choices, layout_limits=layout_limits)
+				ef_tools.docx_builder.add_choices_paragraph(
+					doc, choices, tab_style, items_per_row)
 				prev_element = 'choices'
 			# increment question counter
 			question_counter += 1

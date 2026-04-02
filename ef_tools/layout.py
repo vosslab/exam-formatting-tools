@@ -5,14 +5,14 @@ and text length, avoiding orphan rows.
 """
 
 
-# character limits for auto-layout, empirically measured at 10pt
+# default character limits for auto-layout, empirically measured at 10pt
 # Liberation Sans with bold "(A) " prefix, minus 1 safety margin
-MAX_CHARS_5 = 17
-MAX_CHARS_4 = 23
-MAX_CHARS_3 = 30
-MAX_CHARS_2 = 49
+DEFAULT_MAX_CHARS_5 = 17
+DEFAULT_MAX_CHARS_4 = 23
+DEFAULT_MAX_CHARS_3 = 30
+DEFAULT_MAX_CHARS_2 = 49
 
-# tab stop positions for each choices layout (in inches)
+# default tab stop positions for each choices layout (in inches)
 CHOICES_TAB_STOPS = {
 	1: [],
 	2: [3.65],
@@ -32,7 +32,7 @@ CHOICES_STYLE_NAME = {
 
 
 #============================================
-def auto_layout_for_choices(choices: list) -> tuple:
+def auto_layout_for_choices(choices: list, layout_limits: dict = None) -> tuple:
 	"""Determine the best layout for choices based on count and text length.
 
 	Returns a (tab_style, items_per_row) tuple. The tab_style selects which
@@ -50,10 +50,24 @@ def auto_layout_for_choices(choices: list) -> tuple:
 
 	Args:
 		choices: List of choice text strings.
+		layout_limits: Optional dict with max_chars_5/4/3/2 keys from YAML.
+			Falls back to built-in defaults if None.
 
 	Returns:
 		Tuple of (tab_style, items_per_row).
 	"""
+	# load character limits from YAML dict or use defaults
+	if layout_limits is not None:
+		max_chars_5 = layout_limits['max_chars_5']
+		max_chars_4 = layout_limits['max_chars_4']
+		max_chars_3 = layout_limits['max_chars_3']
+		max_chars_2 = layout_limits['max_chars_2']
+	else:
+		max_chars_5 = DEFAULT_MAX_CHARS_5
+		max_chars_4 = DEFAULT_MAX_CHARS_4
+		max_chars_3 = DEFAULT_MAX_CHARS_3
+		max_chars_2 = DEFAULT_MAX_CHARS_2
+
 	count = len(choices)
 	if count < 1:
 		return (5, 5)
@@ -61,36 +75,36 @@ def auto_layout_for_choices(choices: list) -> tuple:
 
 	if count == 2:
 		# 2 items: dedicated Choices 2 layout
-		if max_len <= MAX_CHARS_2:
+		if max_len <= max_chars_2:
 			return (2, 2)
 		# very long: vertical stack
 		return (1, 1)
 
 	if count == 3:
 		# prefer all 3 on one row
-		if max_len <= MAX_CHARS_3:
+		if max_len <= max_chars_3:
 			return (3, 3)
 		# too long: vertical stack
 		return (1, 1)
 
 	if count == 4:
 		# prefer 4 on one row
-		if max_len <= MAX_CHARS_4:
+		if max_len <= max_chars_4:
 			return (4, 4)
 		# doesn't fit 4/row: use 2+2 layout (NOT Choices 3 which gives 3+1 orphan)
-		if max_len <= MAX_CHARS_2:
+		if max_len <= max_chars_2:
 			return (2, 2)
 		# very long: vertical stack
 		return (1, 1)
 
 	# 5+ choices
-	if max_len <= MAX_CHARS_5:
+	if max_len <= max_chars_5:
 		# all 5 on one row
 		return (5, 5)
-	if max_len <= MAX_CHARS_3:
+	if max_len <= max_chars_3:
 		# Choices 3 gives 3+2 (no orphan) -- skip Choices 4 which gives 4+1 orphan
 		return (3, 3)
-	if max_len <= MAX_CHARS_2:
+	if max_len <= max_chars_2:
 		# long text: still use 3+2 with Choices 3 columns
 		return (3, 3)
 	# very long: vertical stack

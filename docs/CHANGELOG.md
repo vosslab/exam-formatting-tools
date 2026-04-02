@@ -4,6 +4,22 @@
 
 ### Additions and New Features
 
+- Created `ef_tools/docx_builder.py` -- moved all DOCX rendering helpers out of `docx_exam_builder.py`: style setup, font fallback XML, hex color parsing, rich text runs, choice paragraph layout, table building, page header configuration, and page number fields.
+- Added `style_flags` section to `styles/exam_styles.yaml` -- bold, italic, centered flags for Heading 1, Question, Chapter Heading, Heading 2, and table headers are now YAML-configurable instead of hardcoded.
+- Added `colors.heading_1`, `page.image_max_width`, `layout_tab_stops`, `fonts.header_primary`/`header_fallback`, and `spacing.header_space_after_pt` to `styles/exam_styles.yaml`.
+- Page header now uses Liberation Sans Narrow / Arial Narrow at 8pt with a small gap before content.
+
+### Behavior or Interface Changes
+
+- `docx_exam_builder.py` reduced from ~550 lines to ~180 lines; all DOCX rendering delegated to `ef_tools/docx_builder.py`.
+- `ef_tools/layout.py` `auto_layout_for_choices()` now accepts an optional `layout_limits` dict parameter to load character limits from YAML instead of using hardcoded defaults.
+- Choice tab stop positions now loaded from `layout_tab_stops` in YAML rather than hardcoded in `layout.py`.
+
+### Fixes and Maintenance
+
+- Fixed crash: `setup_styles()` tried to create a new 'Header' style but python-docx already has a built-in one. Now modifies the existing 'Header' style in place.
+- Fixed inconsistent top margins between first and body pages by setting a fixed `header_distance` (0.5in) on the section, configurable via `page.header_distance` in YAML.
+
 - Created `ef_tools/` package with shared exam formatting modules:
   - `ef_tools/text_utils.py` -- HTML entity decoding, number prefix stripping, rich text parsing for `<sub>`, `<sup>`, `<b>`, `<strong>`, `<i>`, `<em>` tags.
   - `ef_tools/layout.py` -- auto-layout algorithm for multiple choice column formatting, tab stop positions, style name mapping.
