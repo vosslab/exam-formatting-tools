@@ -5,21 +5,12 @@ import os
 import zipfile
 
 # Pip Modules
-import pytest
 import lxml.etree
 
 # Local Repo Modules
-import git_file_utils
 import odt_utils
+import odt_exam_builder
 import extract_odt_styles
-
-REPO_ROOT = git_file_utils.get_repo_root()
-ARTIFACTS_DIR = os.path.join(REPO_ROOT, "ARTIFACTS")
-HAS_ARTIFACTS = os.path.isdir(ARTIFACTS_DIR)
-skip_no_artifacts = pytest.mark.skipif(
-	not HAS_ARTIFACTS, reason="ARTIFACTS directory not available"
-)
-SAMPLE_ODT_2025 = "2025_genetics_final_exam2.odt"
 
 
 #============================================
@@ -264,15 +255,19 @@ def test_write_template_odt(tmp_path):
 
 
 #============================================
-@skip_no_artifacts
-def test_extract_real_exam():
-	"""Extract styles from real artifact and verify known names present."""
-	odt_path = os.path.join(ARTIFACTS_DIR, SAMPLE_ODT_2025)
-	if not os.path.isfile(odt_path):
-		pytest.skip(f"Artifact file not found: {SAMPLE_ODT_2025}")
+def test_extract_generated_exam(tmp_path):
+	"""Extract styles from a generated ODT and verify known names present."""
+	exam_data = {
+		'title': 'Test',
+		'sections': [{'chapter': 'Ch1', 'questions': [
+			{'statement': 'Q?', 'choices': ['A', 'B']},
+		]}],
+	}
+	odt_path = str(tmp_path / 'generated.odt')
+	odt_exam_builder.assemble_odt(exam_data, odt_path)
 	odt_data = odt_utils.read_odt(odt_path)
 	result = extract_odt_styles.extract_styles(odt_data, None)
-	# check for known style names from docs/ODT_EXAM_STYLES.md
+	# check for known style names
 	assert 'paragraph' in result['styles']
 	para_names = [s['style:name'] for s in result['styles']['paragraph']]
 	assert 'Standard' in para_names

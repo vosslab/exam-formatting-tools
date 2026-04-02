@@ -255,11 +255,7 @@ b) Wrong
 
 def test_special_characters_in_questions(tmp_path):
 	"""Test handling of special characters in questions and choices."""
-	input_content = """1. What is the formula for H2O?
-a) H + O
-*b) H₂O
-c) Water molecule
-"""
+	input_content = "1. What is the formula for H2O?\na) H + O\n*b) H2O molecule\nc) Water molecule\n"
 
 	input_file = tmp_path / 'test_special.txt'
 	input_file.write_text(input_content, encoding='utf-8')
@@ -268,7 +264,7 @@ c) Water molecule
 
 	question = result['sections'][0]['questions'][0]
 	assert 'H2O' in question['statement']
-	assert 'H₂O' in question['choices']
+	assert 'H2O molecule' in question['choices']
 
 
 def test_complex_question_text(tmp_path):

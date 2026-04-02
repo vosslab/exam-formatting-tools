@@ -1,41 +1,69 @@
 # YAML exam format
 
-Exams are authored in YAML using a simple, human-readable format that emphasizes sensible defaults over configuration.
+Version 1.0 -- exam-formatting-tools
+
+This document specifies the YAML exam format used by [odt_exam_builder.py](../odt_exam_builder.py) and compatible tools. It serves as the canonical reference for both human authors and machine readers/writers, including qti-package-maker engines.
+
+## Overview
+
+The format describes a printable exam document with sections, questions, choices, images, and tables. It uses sensible defaults (auto-numbering, auto-layout) so minimal YAML produces a complete exam.
 
 ## Top-level fields
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `title` | string | yes | Exam title (rendered in header) |
-| `date` | ISO 8601 | yes | Date in YYYY-MM-DD format; rendered as "Mon DD, YYYY" in output |
-| `total_points` | integer | no | Total exam points; defaults to number of questions |
-| `sections` | list | yes | One or more section objects (chapters) |
+| Field | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `title` | string | yes | -- | Exam title rendered on the first page |
+| `date` | string | yes | -- | ISO 8601 `YYYY-MM-DD`; rendered as "Mon DD, YYYY" in page headers |
+| `total_points` | integer | no | question count | Total exam points for the score line |
+| `student_line` | string | no | "Full Name: \_\_\_\_\_\_\_" | Name line on the first page |
+| `scoring_sections` | integer | no | 4 | Number of \_\_\_\_ blanks in the score line |
+| `sections` | list | yes | -- | One or more section objects |
 
 ## Sections
 
-Each section object groups questions under a chapter heading.
+Each section groups questions under an optional heading. A section may have a major heading, a chapter heading, or both.
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `chapter` | string | yes | Section heading text; uses "Chapter Heading" style |
-| `questions` | list | yes | One or more question objects |
+| Field | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `heading` | string | no | -- | Major section label (e.g., "Multiple Choice"); rendered with Heading 2 style (14pt bold italic, bottom border) |
+| `chapter` | string | no | -- | Chapter heading (e.g., "Chapter 1 -- Thermodynamics"); rendered with Chapter Heading style (14pt bold, dark purple #6600cc) |
+| `questions` | list | yes | -- | One or more question objects |
+
+### When to use `heading` vs `chapter`
+
+- Use `heading` for top-level exam divisions like "Multiple Choice", "Short Answer", or "Part A". These are structural labels, not content topics.
+- Use `chapter` for content-topic labels like "Chapter 1 -- Thermodynamics" or "Enzymes and Kinetics". These identify the subject matter.
+- A section may have both: a `heading` followed by a `chapter`.
+- A section may have neither, in which case questions follow directly from the previous section.
 
 ## Questions
 
 Each question object represents a single exam item.
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `statement` | string | yes | Question stem/body text |
-| `number` | integer | no | Numeric override (does not change "##." format); auto-numbered if omitted |
-| `choices` | list | no | Plain list of choice text strings (no letter prefixes) |
-| `layout` | integer | no | Choices style override (3, 4, or 5); auto-determined if omitted |
-| `image` | string | no | Path to image file (relative to document root) |
-| `table` | object | no | Table with `columns` (list) and `rows` (list of lists) |
+| Field | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `statement` | string | yes | -- | Question stem/body text |
+| `number` | integer | no | auto | Numeric override; does not change the "##." format |
+| `choices` | list of strings | no | -- | Answer choices (plain text, no letter prefixes) |
+| `layout` | integer | no | auto | Choices column layout: 3, 4, or 5 |
+| `image` | string | no | -- | Relative path to an image file |
+| `table` | object | no | -- | Data table (see below) |
 
-## Choice formatting
+### Statement text
 
-Choices are plain text strings without letter prefixes. The builder automatically generates bold **(A) (B) (C)** format during document generation.
+The `statement` field contains the full question stem. It may include an existing number prefix (e.g., "22) Which of the following...") which the builder strips before re-numbering.
+
+HTML entities are supported for special characters: `&Delta;`, `&alpha;`, `&beta;`, `&deg;`, `&prime;`, `&rarr;`, `&micro;`.
+
+### Question numbering
+
+Questions are auto-numbered sequentially starting at 1, across all sections. The format is always `##. Question text` (period after number).
+
+The `number` field overrides the counter value only. Example: `number: 15` makes the next question "15." and continues from there. It does not change the period format.
+
+### Choices
+
+Choices are plain text strings. The builder generates bold **(A) (B) (C) (D) (E)** letter prefixes during rendering.
 
 ```yaml
 choices:
@@ -44,73 +72,96 @@ choices:
   - "Release of heat"
 ```
 
-Output:
+Rendered output: **(A)** Loss of atoms, **(B)** Change in molecular identity, **(C)** Release of heat
+
+### Auto-layout algorithm
+
+When `layout` is omitted, the builder selects a Choices style based on the longest choice text:
+
+| Layout | Items per row | Max chars per choice | Column width |
+| --- | --- | --- | --- |
+| Choices5 | 5 | 18 | 1.40in |
+| Choices4 | 4 | 24 | 1.75in |
+| Choices3 | 3 | 31 | 2.33in |
+| Choices4 (2-item) | 2 | 50 | 3.50in (two columns) |
+
+Character limits are empirically measured at 10pt Liberation Sans with bold "(A) " prefix. When the longest choice exceeds the limit, the next wider layout is selected.
+
+For 2 choices, Choices4 is used because `4 % 2 == 0` gives even column spacing.
+
+Override with an explicit `layout` value when needed:
+
+```yaml
+- statement: "A thermodynamically unfavorable reaction:"
+  choices:
+    - "Occurs spontaneously"
+    - "Requires energy input"
+  layout: 3
 ```
-**(A)** Loss of atoms
-**(B)** Change in molecular identity
-**(C)** Release of heat
-```
 
-## Auto-layout algorithm
-
-When `layout` is omitted, the builder auto-selects a Choices style based on choice count and text length:
-
-- **5 short choices** (max ~15 chars): Choices5
-- **5 long choices**: Choices4 with overflow (2 rows)
-- **3 choices**: Choices3
-- **2 choices**: Choices4 (fills row with extra tabs for spacing)
-- **4 choices**: Choices4
-- **Custom override**: set `layout: 3` or `layout: 4` or `layout: 5` explicitly
-
-## Question numbering
-
-Questions are automatically numbered sequentially starting at 1. The format is always "##. Question text" with a period, never parentheses.
-
-Set `number: 15` to restart numbering mid-exam. This affects only the numeric value; the "##." format remains unchanged.
-
-## Images
-
-Include an optional image reference:
+### Images
 
 ```yaml
 - statement: "What type of reaction is shown?"
+  image: images/exam_figure_01.png
   choices:
     - "Oxidation"
     - "Reduction"
-  image: images/exam_figure_01.png
 ```
 
-The image path is relative to the document root.
+Images are embedded in the ODT with their original aspect ratio preserved. The image path is relative to the working directory.
 
-## Tables
-
-Include an optional table (e.g., data table for analysis questions):
+### Tables
 
 ```yaml
-- statement: "Using the table below, what is the most likely enzyme?"
-  choices:
-    - "Enzyme A"
-    - "Enzyme B"
-    - "Enzyme C"
+- statement: "Using the data below, determine Km:"
   table:
     columns:
-      - "Temperature (C)"
-      - "pH"
-      - "Activity (%)"
+      - "[S] (mM)"
+      - "v (&micro;mol/min)"
     rows:
-      - ["25", "5.0", "45"]
-      - ["37", "7.0", "95"]
-      - ["50", "8.5", "30"]
+      - ["1", "10"]
+      - ["2", "17"]
+      - ["5", "25"]
+  choices:
+    - "2 mM"
+    - "5 mM"
 ```
+
+Table cells are always strings. The header row uses bold centered text with a light gray background.
+
+## Style rendering
+
+The builder applies these named paragraph styles automatically:
+
+| Style name | When applied |
+| --- | --- |
+| Heading 1 | Exam title on the first page |
+| Heading 2 | Major section headings (`heading` field) -- 14pt bold italic |
+| Chapter Heading | Chapter headings (`chapter` field) -- 14pt bold, dark purple #6600cc |
+| Question Heading | Questions following other questions or choices (normal flow) |
+| Question Follow | Questions following an image, table, or heading (after a visual break) |
+| Choices3 / Choices4 / Choices5 | Multiple choice answer rows |
+| Standard | Default body text |
+
+Style selection between "Question Heading" and "Question Follow" is automatic based on the preceding element.
+
+## Date handling
+
+The `date` field must be ISO 8601 `YYYY-MM-DD`. The builder renders it as "Mon DD, YYYY" in the page header on body pages (e.g., "Apr 02, 2026"). The builder warns on past dates but does not error.
+
+## Total points
+
+If `total_points` is omitted, it defaults to the total number of questions (1 point per question). The score line reads: "Final Score \_\_\_\_ / \_\_\_\_ / \_\_\_\_ / \_\_\_\_ / {total} pts"
 
 ## Complete example
 
 ```yaml
-title: "Spring 2026 Exam 2"
-date: "2026-04-15"
-total_points: 50
+title: "Spring 2026 Exam 2 (100 points)"
+date: "2026-04-02"
+student_line: "Name:_____________________________"
 sections:
-  - chapter: "Chapter 1 -- Thermodynamics"
+  - heading: "Multiple Choice"
     questions:
       - statement: "Which feature is essential for any chemical reaction to occur?"
         choices:
@@ -119,30 +170,21 @@ sections:
           - "Release of heat"
           - "Decrease in entropy"
           - "Occurrence outside living systems"
-      - statement: "A negative delta-G indicates:"
+      - statement: "A negative &Delta;G indicates:"
         choices:
           - "Energy must be added"
           - "The reaction proceeds spontaneously"
-        layout: 3
-      - statement: "Formation of macromolecules via dehydration synthesis:"
+      - statement: "What type of enzymatic reaction is this:"
+        image: images/exam_image_01.png
         choices:
-          - "Requires energy input"
-          - "Releases energy"
-      - statement: "At pH 7.5 and 25 oC, which enzyme is most active?"
-        choices:
-          - "Enzyme A"
-          - "Enzyme B"
-          - "Enzyme C"
-          - "Enzyme D"
-        image: images/exam_figure_01.png
+          - "Hydrolase"
+          - "Lyase"
+          - "Ligase"
+          - "Oxidoreductase"
+          - "Isomerase"
   - chapter: "Chapter 2 -- Kinetics"
     questions:
       - statement: "Use the table below to determine Km:"
-        choices:
-          - "2 mM"
-          - "5 mM"
-          - "10 mM"
-          - "20 mM"
         table:
           columns:
             - "[S] (mM)"
@@ -151,29 +193,83 @@ sections:
             - ["1", "10"]
             - ["2", "17"]
             - ["5", "25"]
-            - ["10", "28"]
+        choices:
+          - "2 mM"
+          - "5 mM"
+          - "10 mM"
+          - "20 mM"
 ```
 
-## Conventions
+## qti-package-maker compatibility
 
-- Use YAML string syntax for titles and statements that contain special characters (colons, hyphens, etc.)
-- Choice text should be concise but complete
-- Image paths use forward slashes (e.g., `images/exam_figure_01.png`)
-- Table cell values are strings (e.g., `"25"` not `25`)
-- ISO date format is strict: `YYYY-MM-DD` (e.g., `2026-04-15`, not `04/15/26`)
+This section defines how to map between exam YAML and the qti-package-maker item model.
 
-## Date handling
+### Reading exam YAML into an ItemBank
 
-The `date` field is required and must be in ISO 8601 `YYYY-MM-DD` format. The builder renders the date as "Mon DD, YYYY" in the exam header (e.g., "Tue 15, Apr 2026").
+A read engine should:
 
-The builder warns if the date is in the past (earlier than today), but does not error. Historical exam rebuilds must remain possible.
+1. Parse the YAML file with `yaml.safe_load()`
+2. Iterate over `sections[].questions[]`
+3. For each question, determine the item type:
+   - Has `choices` list -> **MC** (single answer; answer key is not stored in this format)
+   - Has `table` with `columns` and `rows` -> may contain a **MATCH** if column count is 2
+4. Create item objects:
+   - `question_text` = the `statement` field (strip any leading number prefix like "22) ")
+   - `choices_list` = the `choices` field (already plain text, no prefixes)
+   - `answer_text` = not available (this is a print format, not a grading format)
 
-## Total points
+### Fields preserved during read
 
-If `total_points` is omitted, it defaults to the total number of questions in the exam (1 point per question).
+| Exam YAML field | qti-package-maker field | Notes |
+| --- | --- | --- |
+| `statement` | `question_text` | Strip number prefix |
+| `choices` | `choices_list` | Direct mapping |
+| `table.columns` + `table.rows` | `prompts_list` + `choices_list` (MATCH) | Only if 2-column table |
 
-Override this default explicitly:
+### Fields lost during read (print-only metadata)
 
-```yaml
-total_points: 100
-```
+These fields have no equivalent in the qti item model and are silently dropped:
+
+- `title`, `date`, `student_line`, `total_points`, `scoring_sections`
+- `heading`, `chapter` (section structure)
+- `number`, `layout` (formatting hints)
+- `image` (embedded figures)
+- Answer correctness (not stored in exam YAML)
+
+### Writing exam YAML from an ItemBank
+
+A write engine should:
+
+1. Build the YAML structure with sensible defaults:
+   - `title`: use `package_name` or a default
+   - `date`: use today's date in ISO format
+   - `sections`: one section containing all questions
+2. For each item in the ItemBank:
+   - `statement` = `item.question_text`
+   - `choices` = `item.choices_list` (strip any prefixes with `remove_prefix_from_list()`)
+3. Item type mapping:
+   - **MC**: `statement` + `choices` (answer_text is lost since exam YAML has no answer key)
+   - **MA**: same as MC (multiple correct answers lost)
+   - **MATCH**: convert `prompts_list`/`choices_list` to a `table` with 2 columns
+   - **ORDER**: `statement` + `choices` (ordering information lost)
+   - **NUM**: `statement` only (numeric answer/tolerance lost)
+   - **FIB**: `statement` only (fill-in answers lost)
+
+### Fields lost during write (assessment-only metadata)
+
+These qti item fields have no equivalent in exam YAML:
+
+- `answer_text`, `answers_list`, `answer_index` (correct answers)
+- `answer_float`, `tolerance_float` (numeric answers)
+- `answer_map` (multi-fill-in-blank)
+- `ordered_answers_list` ordering semantics (choices written but order meaning lost)
+- `item_crc16`, `question_crc16`, `secondary_crc16` (CRC hashes)
+- `feedback_correct`, `feedback_incorrect` (item feedback)
+- `min_answers_required`, `allow_all_correct` (MA constraints)
+- `tolerance_message` (NUM display setting)
+
+### Round-trip limitations
+
+Exam YAML is a **print-document format**, not an assessment interchange format. Round-tripping through exam YAML loses answer keys, item metadata, and section structure. Use exam YAML as a one-way export target for generating printable exams, not as a lossless storage format.
+
+The recommended pipeline for LMS delivery is: source format -> qti-package-maker -> QTI/Blackboard. The recommended pipeline for print exams is: source format -> qti-package-maker -> bbq_text -> [bbq_to_exam_yaml.py](../bbq_to_exam_yaml.py) -> exam YAML -> [odt_exam_builder.py](../odt_exam_builder.py) -> ODT.

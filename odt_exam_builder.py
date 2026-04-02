@@ -8,12 +8,15 @@ multiple choice layouts, tables, and embedded images.
 
 # Standard Library
 import os
+import re
+import html
 import zipfile
 import argparse
 
 # Pip Modules
 import yaml
 import lxml.etree
+import PIL.Image
 
 # Local Repo Modules
 import odt_utils
@@ -245,6 +248,10 @@ def create_exam_styles() -> lxml.etree._Element:
 	right_tab = lxml.etree.SubElement(hdr_tabs, odt_utils.qname('style', 'tab-stop'))
 	right_tab.set(odt_utils.qname('style', 'position'), '7.3in')
 	right_tab.set(odt_utils.qname('style', 'type'), 'right')
+	# Right Aligned (for name/score lines on title page)
+	ra = add_style('Right Aligned', 'paragraph', 'Standard')
+	ra_para = lxml.etree.SubElement(ra, odt_utils.qname('style', 'paragraph-properties'))
+	ra_para.set(odt_utils.qname('fo', 'text-align'), 'end')
 	return office_styles
 
 
@@ -275,16 +282,16 @@ def create_page_layouts(date_str: str = "") -> tuple:
 	pl1_props.set(odt_utils.qname('fo', 'margin-left'), '0.6in')
 	pl1_props.set(odt_utils.qname('fo', 'margin-right'), '0.6in')
 	pl1_props.set(odt_utils.qname('style', 'writing-mode'), 'lr-tb')
-	# Mpm2 - First Page (0.5in top/bottom, 1.0in left/right)
+	# Mpm2 - First Page (same 0.6in margins as body pages, no header)
 	pl2 = lxml.etree.SubElement(auto_styles, odt_utils.qname('style', 'page-layout'))
 	pl2.set(odt_utils.qname('style', 'name'), 'Mpm2')
 	pl2_props = lxml.etree.SubElement(pl2, odt_utils.qname('style', 'page-layout-properties'))
 	pl2_props.set(odt_utils.qname('fo', 'page-width'), '8.5in')
 	pl2_props.set(odt_utils.qname('fo', 'page-height'), '11in')
-	pl2_props.set(odt_utils.qname('fo', 'margin-top'), '0.5in')
-	pl2_props.set(odt_utils.qname('fo', 'margin-bottom'), '0.5in')
-	pl2_props.set(odt_utils.qname('fo', 'margin-left'), '1.0in')
-	pl2_props.set(odt_utils.qname('fo', 'margin-right'), '1.0in')
+	pl2_props.set(odt_utils.qname('fo', 'margin-top'), '0.6in')
+	pl2_props.set(odt_utils.qname('fo', 'margin-bottom'), '0.6in')
+	pl2_props.set(odt_utils.qname('fo', 'margin-left'), '0.6in')
+	pl2_props.set(odt_utils.qname('fo', 'margin-right'), '0.6in')
 	pl2_props.set(odt_utils.qname('style', 'writing-mode'), 'lr-tb')
 	# Mpm3 - HTML import
 	pl3 = lxml.etree.SubElement(auto_styles, odt_utils.qname('style', 'page-layout'))
@@ -346,6 +353,23 @@ def create_page_layouts(date_str: str = "") -> tuple:
 
 
 #============================================
+def decode_html_entities(text: str) -> str:
+	"""Decode HTML entities to Unicode characters for ODT output.
+
+	YAML files use ASCII HTML entities (e.g., &Delta;, &alpha;) for
+	special characters. This converts them to Unicode for rendering.
+
+	Args:
+		text: Text that may contain HTML entities.
+
+	Returns:
+		Text with entities decoded to Unicode.
+	"""
+	decoded = html.unescape(text)
+	return decoded
+
+
+#============================================
 def create_paragraph(text: str, style_name: str) -> lxml.etree._Element:
 	"""Build a text:p element with the given text and style.
 
@@ -358,21 +382,20 @@ def create_paragraph(text: str, style_name: str) -> lxml.etree._Element:
 	"""
 	para = lxml.etree.Element(odt_utils.qname('text', 'p'))
 	para.set(odt_utils.qname('text', 'style-name'), style_name)
-	para.text = text
+	# decode HTML entities from YAML ASCII to Unicode for ODT
+	para.text = decode_html_entities(text)
 	return para
 
 
 #============================================
 def auto_layout_for_choices(choices: list) -> int:
-	"""Determine appropriate Choices layout based on choice count and length.
+	"""Determine appropriate Choices layout based on choice count and text length.
 
-	Auto-layout algorithm:
-	- 5 short choices (max ~15 chars): Choices5
-	- 5 long choices: Choices4 (overflow to 2 rows)
-	- 4 choices: Choices4
-	- 3 choices: Choices3
-	- 2 choices: Choices4 (fills row with extra tabs)
-	- Default: Choices5
+	Approximate character limits per column (10pt Liberation Sans + bold "(A) " prefix):
+	- Choices5: ~12 chars per choice text (column width ~1.40in)
+	- Choices4: ~16 chars per choice text (column width ~1.75in)
+	- Choices3: ~22 chars per choice text (column width ~2.33in)
+	- Choices4 with 2 items: uses 4 % 2 == 0 property for even spacing
 
 	Args:
 		choices: List of choice text strings.
@@ -380,24 +403,41 @@ def auto_layout_for_choices(choices: list) -> int:
 	Returns:
 		Layout integer (3, 4, or 5).
 	"""
+	# approximate max chars per column for each layout at 10pt Liberation Sans
+	# column widths: Choices5=1.40in, Choices4=1.75in, Choices3=2.33in
+	# empirically measured with bold "(A) " prefix included
+	MAX_CHARS_5 = 18
+	MAX_CHARS_4 = 24
+	MAX_CHARS_3 = 31
 	count = len(choices)
-	if count < 2:
+	if count < 1:
 		return 5
+	max_len = max(len(c) for c in choices)
+	# 2 choices: use Choices4 since 4 % 2 == 0 gives even spacing
+	# each item spans 2 columns (~50 chars per choice)
+	MAX_CHARS_2 = 50
 	if count == 2:
-		return 4
-	if count == 3:
-		return 3
-	if count == 4:
-		return 4
-	# count == 5 or more
-	if count >= 5:
-		max_len = max(len(c) for c in choices)
-		if max_len <= 15:
-			return 5
-		else:
+		if max_len <= MAX_CHARS_2:
 			return 4
-	# fallback
-	return 5
+		# very long 2-item choices: use Choices3 for more space
+		return 3
+	# 3 choices: use Choices3 if they fit, otherwise Choices4 with overflow
+	if count == 3:
+		if max_len <= MAX_CHARS_3:
+			return 3
+		return 4
+	# 4 choices: use Choices4 if they fit, otherwise Choices3 with overflow
+	if count == 4:
+		if max_len <= MAX_CHARS_4:
+			return 4
+		return 3
+	# 5+ choices: pick best fit from tightest to widest
+	if max_len <= MAX_CHARS_5:
+		return 5
+	if max_len <= MAX_CHARS_4:
+		return 4
+	# long choices need Choices3 with overflow rows
+	return 3
 
 
 #============================================
@@ -454,7 +494,7 @@ def create_choices_paragraph(choices: list, layout: int,
 		span = lxml.etree.SubElement(para, span_tag)
 		span.set(odt_utils.qname('text', 'style-name'), bold_style_name)
 		span.text = f"({letter}) "
-		span.tail = choice_text
+		span.tail = decode_html_entities(choice_text)
 	return para
 
 
@@ -551,12 +591,20 @@ def embed_image(image_path: str, odt_other_data: dict) -> lxml.etree._Element:
 	with open(image_path, 'rb') as f:
 		image_bytes = f.read()
 	odt_other_data[odt_image_path] = image_bytes
+	# get actual image dimensions and preserve aspect ratio
+	img = PIL.Image.open(image_path)
+	pixel_width, pixel_height = img.size
+	# scale to fit within max_width while preserving aspect ratio
+	max_width_in = 5.0
+	aspect_ratio = pixel_height / pixel_width
+	display_width = min(max_width_in, pixel_width / 96.0)
+	display_height = display_width * aspect_ratio
 	# create draw:frame
 	frame = lxml.etree.Element(odt_utils.qname('draw', 'frame'))
 	frame.set(odt_utils.qname('draw', 'name'), image_name)
 	frame.set(odt_utils.qname('text', 'anchor-type'), 'as-char')
-	frame.set(odt_utils.qname('svg', 'width'), '4in')
-	frame.set(odt_utils.qname('svg', 'height'), '3in')
+	frame.set(odt_utils.qname('svg', 'width'), f"{display_width:.2f}in")
+	frame.set(odt_utils.qname('svg', 'height'), f"{display_height:.2f}in")
 	# create draw:image inside frame
 	image = lxml.etree.SubElement(frame, odt_utils.qname('draw', 'image'))
 	image.set(odt_utils.qname('xlink', 'href'), odt_image_path)
@@ -627,9 +675,16 @@ def build_document_body(exam_data: dict,
 	"""
 	body = lxml.etree.Element(odt_utils.qname('office', 'body'))
 	text = lxml.etree.SubElement(body, odt_utils.qname('office', 'text'))
-	# exam title
+	# exam title (first page uses First Page master for no header)
 	title = exam_data.get('title', 'Exam')
-	title_para = create_paragraph(title, 'Heading 1')
+	# create automatic style that references First Page master
+	title_auto_name = next_auto_style_name()
+	title_auto = lxml.etree.SubElement(auto_styles, odt_utils.qname('style', 'style'))
+	title_auto.set(odt_utils.qname('style', 'name'), title_auto_name)
+	title_auto.set(odt_utils.qname('style', 'family'), 'paragraph')
+	title_auto.set(odt_utils.qname('style', 'parent-style-name'), 'Heading 1')
+	title_auto.set(odt_utils.qname('style', 'master-page-name'), 'First Page')
+	title_para = create_paragraph(title, title_auto_name)
 	text.append(title_para)
 	# calculate total points
 	total_points = exam_data.get('total_points', None)
@@ -638,13 +693,20 @@ def build_document_body(exam_data: dict,
 		total_points = count_total_questions(sections)
 	# scoring sections (number of blanks in score line)
 	num_sections = exam_data.get('scoring_sections', exam_defaults.DEFAULT_SCORING_SECTIONS)
-	# name line (with optional override)
+	# name line shifted right with tab (matching ARTIFACTS pattern)
 	name_line = exam_data.get('student_line', exam_defaults.DEFAULT_NAME_LINE)
-	name_para = create_paragraph(name_line, 'Standard')
+	name_para = lxml.etree.Element(odt_utils.qname('text', 'p'))
+	name_para.set(odt_utils.qname('text', 'style-name'), 'Question')
+	# use tab to shift text to right side of page
+	tab_elem = lxml.etree.SubElement(name_para, odt_utils.qname('text', 'tab'))
+	tab_elem.tail = name_line
 	text.append(name_para)
-	# score line
+	# score line shifted right with tab
 	score_line = exam_defaults.format_score_line(total_points, num_sections)
-	score_para = create_paragraph(score_line, 'Standard')
+	score_para = lxml.etree.Element(odt_utils.qname('text', 'p'))
+	score_para.set(odt_utils.qname('text', 'style-name'), 'Question')
+	tab_elem2 = lxml.etree.SubElement(score_para, odt_utils.qname('text', 'tab'))
+	tab_elem2.tail = score_line
 	text.append(score_para)
 	# sections
 	sections = exam_data.get('sections', [])
@@ -652,7 +714,12 @@ def build_document_body(exam_data: dict,
 	# track previous element type for question style selection
 	prev_element = 'chapter'  # start of section counts as chapter heading
 	for section in sections:
-		# section heading uses 'chapter' key
+		# section heading: 'heading' for major sections (Heading 2), 'chapter' for chapters (level 3)
+		heading = section.get('heading', '')
+		if heading:
+			heading_para = create_paragraph(heading, 'Heading 2')
+			text.append(heading_para)
+			prev_element = 'chapter'
 		chapter = section.get('chapter', '')
 		if chapter:
 			chapter_para = create_paragraph(chapter, 'Chapter Heading')
@@ -668,8 +735,10 @@ def build_document_body(exam_data: dict,
 			# build question statement with number prefix
 			statement = question.get('statement', '')
 			if statement:
+				# strip any existing number prefix (e.g., "22) " or "22. ")
+				stripped = re.sub(r'^\d+[).]\s*', '', statement)
 				# prepend number: "##. statement text"
-				q_text_with_num = f"{question_number}. {statement}"
+				q_text_with_num = f"{question_number}. {stripped}"
 				# select question style based on previous element
 				question_style = select_question_style(prev_element)
 				qh_para = create_paragraph(q_text_with_num, question_style)

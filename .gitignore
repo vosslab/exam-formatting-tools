@@ -1,2 +1,7 @@
 report_*.txt
 .DS_Store
+ARTIFACTS/
+images/
+*.docx
+*.yaml
+*.odt

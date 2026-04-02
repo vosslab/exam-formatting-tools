@@ -9,33 +9,8 @@ import pytest
 import lxml.etree
 
 # Local Repo Modules
-import git_file_utils
 import odt_utils
-
-REPO_ROOT = git_file_utils.get_repo_root()
-ARTIFACTS_DIR = os.path.join(REPO_ROOT, "ARTIFACTS")
-HAS_ARTIFACTS = os.path.isdir(ARTIFACTS_DIR)
-skip_no_artifacts = pytest.mark.skipif(
-	not HAS_ARTIFACTS, reason="ARTIFACTS directory not available"
-)
-
-# sample ODT filenames to look for in ARTIFACTS
-SAMPLE_ODT_2025 = "2025_genetics_final_exam2.odt"
-SAMPLE_ODT_2019 = "exam1-midtermA2-best_version.odt"
-
-
-#============================================
-def get_artifact_path(filename: str) -> str:
-	"""Build full path to an artifact file.
-
-	Args:
-		filename: Name of the file in ARTIFACTS/.
-
-	Returns:
-		Full path string.
-	"""
-	path = os.path.join(ARTIFACTS_DIR, filename)
-	return path
+import odt_exam_builder
 
 
 #============================================
@@ -279,55 +254,58 @@ def test_get_style_by_name_human_readable(tmp_path):
 
 
 #============================================
-# Artifact-dependent tests (skip if ARTIFACTS/ missing)
+# Tests using a generated ODT (no artifact dependency)
 #============================================
 
-@skip_no_artifacts
-def test_read_real_odt():
-	"""Read a real artifact ODT and verify dict structure."""
-	odt_path = get_artifact_path(SAMPLE_ODT_2025)
-	if not os.path.isfile(odt_path):
-		pytest.skip(f"Artifact file not found: {SAMPLE_ODT_2025}")
-	odt_data = odt_utils.read_odt(odt_path)
+@pytest.fixture
+def generated_odt(tmp_path):
+	"""Generate a minimal exam ODT for testing read/style operations."""
+	exam_data = {
+		'title': 'Test Exam',
+		'sections': [{
+			'chapter': 'Section 1',
+			'questions': [{
+				'statement': 'Sample question?',
+				'choices': ['Alpha', 'Beta', 'Gamma'],
+			}],
+		}],
+	}
+	odt_path = str(tmp_path / 'generated.odt')
+	odt_exam_builder.assemble_odt(exam_data, odt_path)
+	return odt_path
+
+
+#============================================
+def test_read_generated_odt(generated_odt):
+	"""Read a generated ODT and verify dict structure."""
+	odt_data = odt_utils.read_odt(generated_odt)
 	assert odt_data['styles_xml'] is not None
 	assert odt_data['content_xml'] is not None
 	assert len(odt_data['other_entries']) > 0
 
 
 #============================================
-@skip_no_artifacts
-def test_get_named_styles_real():
-	"""Verify named styles are found in real artifact ODT."""
-	odt_path = get_artifact_path(SAMPLE_ODT_2025)
-	if not os.path.isfile(odt_path):
-		pytest.skip(f"Artifact file not found: {SAMPLE_ODT_2025}")
-	odt_data = odt_utils.read_odt(odt_path)
+def test_get_named_styles_generated(generated_odt):
+	"""Verify named styles are found in generated ODT."""
+	odt_data = odt_utils.read_odt(generated_odt)
 	styles = odt_utils.get_named_styles(odt_data['styles_xml'])
 	assert len(styles) > 0
-	# check for known style names from docs/ODT_EXAM_STYLES.md
+	# check for known style names
 	names = [odt_utils.style_name(s) for s in styles]
 	assert "Standard" in names
 
 
 #============================================
-@skip_no_artifacts
-def test_get_page_layouts_real():
-	"""Verify page layouts are found in real artifact ODT."""
-	odt_path = get_artifact_path(SAMPLE_ODT_2025)
-	if not os.path.isfile(odt_path):
-		pytest.skip(f"Artifact file not found: {SAMPLE_ODT_2025}")
-	odt_data = odt_utils.read_odt(odt_path)
+def test_get_page_layouts_generated(generated_odt):
+	"""Verify page layouts are found in generated ODT."""
+	odt_data = odt_utils.read_odt(generated_odt)
 	layouts = odt_utils.get_page_layouts(odt_data['styles_xml'])
 	assert len(layouts) > 0
 
 
 #============================================
-@skip_no_artifacts
-def test_get_master_pages_real():
-	"""Verify master pages are found in real artifact ODT."""
-	odt_path = get_artifact_path(SAMPLE_ODT_2025)
-	if not os.path.isfile(odt_path):
-		pytest.skip(f"Artifact file not found: {SAMPLE_ODT_2025}")
-	odt_data = odt_utils.read_odt(odt_path)
+def test_get_master_pages_generated(generated_odt):
+	"""Verify master pages are found in generated ODT."""
+	odt_data = odt_utils.read_odt(generated_odt)
 	pages = odt_utils.get_master_pages(odt_data['styles_xml'])
 	assert len(pages) > 0

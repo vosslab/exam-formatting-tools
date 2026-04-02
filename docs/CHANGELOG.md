@@ -4,6 +4,32 @@
 
 ### Additions and New Features
 
+- Added `docx_exam_builder.py` -- new DOCX output engine using python-docx. Same YAML input format as `odt_exam_builder.py`, ~300 lines vs ~750 for ODT. Features: auto-numbering, auto-layout with orphan-row avoidance, bold (A) choice prefixes, Question Heading/Follow auto-selection, Chapter Heading (purple), Heading 2 (bold italic), images with aspect ratio, tables, first page boilerplate, page headers with student name, HTML entity decoding, overwrite protection, and .docx extension enforcement.
+- Added `exam_defaults.py` -- default boilerplate text (name line, score line format).
+- Added `bbq_to_exam_yaml.py` -- imports bbq_text format to exam YAML (MC, MA, MAT, ORD).
+- Added `okla_to_exam_yaml.py` -- imports okla_chrst_bqge format to exam YAML (MC, MA).
+- Created `docs/YAML_EXAM_FORMAT.md` -- complete format spec with qti-package-maker compatibility section.
+
+### Behavior or Interface Changes
+
+- YAML format redesigned: `chapter` for chapter headings, `heading` for major section labels (Heading 2), `statement` for question stems, `choices` as plain list (builder generates bold (A) prefixes).
+- Auto-layout engine avoids orphan rows: 4 long choices use 2+2 (not 3+1), 5 medium choices use 3+2 (not 4+1).
+- Removed `_20_` encoding from all generated ODT style names; plain spaces used directly.
+- Question Heading vs Question Follow auto-selected based on preceding element type.
+- Images preserve original aspect ratio using PIL dimensions.
+- HTML entities in YAML (`&Delta;`, `&alpha;`) decoded to Unicode in output.
+- Builder strips existing number prefixes before re-numbering (`22)` -> `22.`).
+- First page has no header; body pages show "Page X of Y | date | First Name:___".
+- All page margins unified at 0.6in.
+- `python-docx` and `pillow` added to `pip_requirements.txt`.
+- `conftest.py` updated so `pytest tests/` works without `source source_me.sh`.
+
+### Fixes and Maintenance
+
+- Fixed pre-existing pyflakes unused import warnings in `odt_utils.py`, `extract_odt_styles.py`, `propagate_odt_styles.py`, and test files.
+- Added `docx` import alias to `tests/test_import_requirements.py`.
+- Removed skipped artifact-dependent tests; replaced with generated ODT fixtures.
+
 - **WP-4.1: Updated docx_to_exam_yaml.py to output new YAML format**
   - Modified `parse_inline_choices()` function to return plain choice text strings without letter prefixes (e.g., "Loss of atoms" instead of "A. Loss of atoms").
   - Updated `parse_docx_questions()` to use new YAML keys: `statement` (replaces `heading` for questions), `choices` as plain list (replaces dict with `layout`/`items`). Removed `number` fields from questions (auto-numbered by builder).

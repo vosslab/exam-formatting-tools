@@ -75,9 +75,12 @@ def test_auto_layout_for_choices():
 	# 5 short choices -> Choices5
 	short_5 = ['a', 'b', 'c', 'd', 'e']
 	assert odt_exam_builder.auto_layout_for_choices(short_5) == 5
-	# 5 long choices -> Choices4
-	long_5 = ['very long choice text', 'another long one', 'yet more long text', 'more', 'final']
-	assert odt_exam_builder.auto_layout_for_choices(long_5) == 4
+	# 5 medium choices (<=24 chars) -> Choices4
+	med_5 = ['abcdefghijklmnopqrstuvwx', 'short', 'tiny', 'ok', 'end']
+	assert odt_exam_builder.auto_layout_for_choices(med_5) == 4
+	# 5 long choices (>24 chars) -> Choices3
+	long_5 = ['abcdefghijklmnopqrstuvwxy', 'short', 'tiny', 'ok', 'end']
+	assert odt_exam_builder.auto_layout_for_choices(long_5) == 3
 
 
 #============================================
