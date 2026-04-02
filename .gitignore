@@ -5,3 +5,4 @@ images/
 *.docx
 *.yaml
 *.odt
+.~lock.* #libreoffice lock files
