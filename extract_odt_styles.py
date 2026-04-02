@@ -7,7 +7,6 @@ Also supports comparison mode to diff styles between two ODT files.
 """
 
 # Standard Library
-import os
 import copy
 import argparse
 

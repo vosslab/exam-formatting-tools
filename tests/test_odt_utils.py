@@ -67,7 +67,7 @@ def create_minimal_odt(path: str) -> str:
 		'<style:style style:name="Standard" style:family="paragraph">'
 		'<style:text-properties fo:font-size="11pt"/>'
 		'</style:style>'
-		'<style:style style:name="Question_20_Heading" style:family="paragraph"'
+		'<style:style style:name="Question Heading" style:family="paragraph"'
 		' style:parent-style-name="Standard">'
 		'<style:text-properties fo:font-weight="bold" fo:font-style="italic"/>'
 		'</style:style>'
@@ -261,7 +261,7 @@ def test_get_named_styles_minimal(tmp_path):
 	assert len(styles) == 2
 	names = [odt_utils.style_name(s) for s in styles]
 	assert "Standard" in names
-	assert "Question_20_Heading" in names
+	assert "Question Heading" in names
 
 
 #============================================
@@ -269,10 +269,10 @@ def test_get_style_by_name_human_readable(tmp_path):
 	"""Verify get_style_by_name finds encoded style with human-readable name."""
 	odt_path = create_minimal_odt(str(tmp_path))
 	odt_data = odt_utils.read_odt(odt_path)
-	# style is stored as Question_20_Heading but we search with spaces
+	# style is stored with plain spaces
 	result = odt_utils.get_style_by_name(odt_data['styles_xml'], "Question Heading", "paragraph")
 	assert result is not None
-	assert odt_utils.style_name(result) == "Question_20_Heading"
+	assert odt_utils.style_name(result) == "Question Heading"
 	# nonexistent style returns None
 	result = odt_utils.get_style_by_name(odt_data['styles_xml'], "Nonexistent", "paragraph")
 	assert result is None

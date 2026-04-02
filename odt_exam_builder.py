@@ -8,7 +8,6 @@ multiple choice layouts, tables, and embedded images.
 
 # Standard Library
 import os
-import copy
 import zipfile
 import argparse
 
@@ -18,6 +17,7 @@ import lxml.etree
 
 # Local Repo Modules
 import odt_utils
+import exam_defaults
 
 
 # counter for automatic styles (tables, cells)
@@ -103,8 +103,8 @@ def create_exam_styles() -> lxml.etree._Element:
 	std_para.set(odt_utils.qname('fo', 'line-height'), '110%')
 	std_para.set(odt_utils.qname('fo', 'margin-bottom'), '0.05in')
 	std_para.set(odt_utils.qname('fo', 'margin-top'), '0in')
-	# Question Heading (encoded: spaces become _20_ in ODF style names)
-	qh = add_style('Question_20_Heading', 'paragraph', 'Standard')
+	# Question Heading
+	qh = add_style('Question Heading', 'paragraph', 'Standard')
 	qh_text = lxml.etree.SubElement(qh, odt_utils.qname('style', 'text-properties'))
 	qh_text.set(odt_utils.qname('fo', 'font-weight'), 'bold')
 	qh_text.set(odt_utils.qname('fo', 'font-style'), 'italic')
@@ -116,7 +116,7 @@ def create_exam_styles() -> lxml.etree._Element:
 	qh_para.set(odt_utils.qname('fo', 'margin-bottom'), '0.02in')
 	qh_para.set(odt_utils.qname('fo', 'keep-with-next'), 'always')
 	# Question
-	q = add_style('Question', 'paragraph', 'Question_20_Heading')
+	q = add_style('Question', 'paragraph', 'Question Heading')
 	q_text = lxml.etree.SubElement(q, odt_utils.qname('style', 'text-properties'))
 	q_text.set(odt_utils.qname('fo', 'font-weight'), 'normal')
 	q_text.set(odt_utils.qname('fo', 'font-style'), 'normal')
@@ -135,7 +135,7 @@ def create_exam_styles() -> lxml.etree._Element:
 	tab2 = lxml.etree.SubElement(tab_stops, odt_utils.qname('style', 'tab-stop'))
 	tab2.set(odt_utils.qname('style', 'position'), '3.5in')
 	# Question Follow
-	add_style('Question_20_Follow', 'paragraph', 'Standard')
+	add_style('Question Follow', 'paragraph', 'Standard')
 	# Choices (base)
 	ch = add_style('Choices', 'paragraph', 'Standard')
 	ch_text = lxml.etree.SubElement(ch, odt_utils.qname('style', 'text-properties'))
@@ -170,7 +170,7 @@ def create_exam_styles() -> lxml.etree._Element:
 	warn_para = lxml.etree.SubElement(warn, odt_utils.qname('style', 'paragraph-properties'))
 	warn_para.set(odt_utils.qname('fo', 'background-color'), '#333333')
 	# Preformatted Text
-	pre = add_style('Preformatted_20_Text', 'paragraph', 'Standard')
+	pre = add_style('Preformatted Text', 'paragraph', 'Standard')
 	pre_text = lxml.etree.SubElement(pre, odt_utils.qname('style', 'text-properties'))
 	pre_text.set(odt_utils.qname('fo', 'font-family'), 'Courier New')
 	pre_text.set(odt_utils.qname('fo', 'font-size'), '10pt')
@@ -179,13 +179,13 @@ def create_exam_styles() -> lxml.etree._Element:
 	pre_para.set(odt_utils.qname('fo', 'margin-top'), '0in')
 	pre_para.set(odt_utils.qname('fo', 'margin-bottom'), '0in')
 	# Table Contents
-	tc = add_style('Table_20_Contents', 'paragraph', 'Standard')
+	tc = add_style('Table Contents', 'paragraph', 'Standard')
 	tc_para = lxml.etree.SubElement(tc, odt_utils.qname('style', 'paragraph-properties'))
 	tc_para.set(odt_utils.qname('fo', 'line-height'), '90%')
 	tc_para.set(odt_utils.qname('fo', 'margin-top'), '0in')
 	tc_para.set(odt_utils.qname('fo', 'margin-bottom'), '0in')
 	# Table Heading
-	th = add_style('Table_20_Heading', 'paragraph', 'Standard')
+	th = add_style('Table Heading', 'paragraph', 'Standard')
 	th_text = lxml.etree.SubElement(th, odt_utils.qname('style', 'text-properties'))
 	th_text.set(odt_utils.qname('fo', 'font-weight'), 'bold')
 	th_para = lxml.etree.SubElement(th, odt_utils.qname('style', 'paragraph-properties'))
@@ -200,35 +200,64 @@ def create_exam_styles() -> lxml.etree._Element:
 	hb_para.set(odt_utils.qname('fo', 'margin-top'), '0.17in')
 	hb_para.set(odt_utils.qname('fo', 'margin-bottom'), '0.08in')
 	# Heading 1
-	h1 = add_style('Heading_20_1', 'paragraph', 'Heading')
+	h1 = add_style('Heading 1', 'paragraph', 'Heading')
 	h1_text = lxml.etree.SubElement(h1, odt_utils.qname('style', 'text-properties'))
 	h1_text.set(odt_utils.qname('fo', 'font-size'), '115%')
 	h1_text.set(odt_utils.qname('fo', 'font-weight'), 'bold')
 	# Heading 2
-	h2 = add_style('Heading_20_2', 'paragraph', 'Heading')
+	h2 = add_style('Heading 2', 'paragraph', 'Heading')
 	h2_text = lxml.etree.SubElement(h2, odt_utils.qname('style', 'text-properties'))
 	h2_text.set(odt_utils.qname('fo', 'font-size'), '14pt')
 	h2_text.set(odt_utils.qname('fo', 'font-weight'), 'bold')
 	h2_text.set(odt_utils.qname('fo', 'font-style'), 'italic')
 	# Heading 3
-	h3 = add_style('Heading_20_3', 'paragraph', 'Heading')
+	h3 = add_style('Heading 3', 'paragraph', 'Heading')
 	h3_text = lxml.etree.SubElement(h3, odt_utils.qname('style', 'text-properties'))
 	h3_text.set(odt_utils.qname('fo', 'font-size'), '12pt')
 	h3_text.set(odt_utils.qname('fo', 'font-weight'), 'bold')
 	# Heading 4
-	h4 = add_style('Heading_20_4', 'paragraph', 'Heading')
+	h4 = add_style('Heading 4', 'paragraph', 'Heading')
 	h4_text = lxml.etree.SubElement(h4, odt_utils.qname('style', 'text-properties'))
 	h4_text.set(odt_utils.qname('fo', 'font-size'), '11pt')
 	h4_text.set(odt_utils.qname('fo', 'font-weight'), 'bold')
+	# Chapter Heading (14pt bold, dark purple #6600cc, Liberation Sans/Arial, keep-with-next)
+	ch = add_style('Chapter Heading', 'paragraph', 'Standard')
+	ch_text = lxml.etree.SubElement(ch, odt_utils.qname('style', 'text-properties'))
+	ch_text.set(odt_utils.qname('fo', 'font-family'), 'Liberation Sans')
+	ch_text.set(odt_utils.qname('fo', 'font-size'), '14pt')
+	ch_text.set(odt_utils.qname('fo', 'font-weight'), 'bold')
+	ch_text.set(odt_utils.qname('fo', 'color'), '#6600cc')
+	ch_para = lxml.etree.SubElement(ch, odt_utils.qname('style', 'paragraph-properties'))
+	ch_para.set(odt_utils.qname('fo', 'keep-with-next'), 'always')
+	ch_para.set(odt_utils.qname('fo', 'margin-top'), '0.15in')
+	ch_para.set(odt_utils.qname('fo', 'margin-bottom'), '0.08in')
+	# Header (for page headers on body pages)
+	hdr = add_style('Header', 'paragraph', 'Standard')
+	hdr_text = lxml.etree.SubElement(hdr, odt_utils.qname('style', 'text-properties'))
+	hdr_text.set(odt_utils.qname('fo', 'font-size'), '9pt')
+	hdr_para = lxml.etree.SubElement(hdr, odt_utils.qname('style', 'paragraph-properties'))
+	hdr_tabs = lxml.etree.SubElement(hdr_para, odt_utils.qname('style', 'tab-stops'))
+	# center tab at ~3.6in (middle of page with 0.6in margins on 8.5in page)
+	center_tab = lxml.etree.SubElement(hdr_tabs, odt_utils.qname('style', 'tab-stop'))
+	center_tab.set(odt_utils.qname('style', 'position'), '3.65in')
+	center_tab.set(odt_utils.qname('style', 'type'), 'center')
+	# right tab at ~7.3in (page width 8.5 - 0.6 margins = 7.3, minus some padding)
+	right_tab = lxml.etree.SubElement(hdr_tabs, odt_utils.qname('style', 'tab-stop'))
+	right_tab.set(odt_utils.qname('style', 'position'), '7.3in')
+	right_tab.set(odt_utils.qname('style', 'type'), 'right')
 	return office_styles
 
 
 #============================================
-def create_page_layouts() -> tuple:
+def create_page_layouts(date_str: str = "") -> tuple:
 	"""Build page layout and master page elements.
 
 	Creates three page layouts (Mpm1/Standard, Mpm2/First Page, Mpm3/HTML)
-	and three corresponding master pages.
+	and three corresponding master pages. The Standard master page includes
+	a header with page numbers, date, and student name line.
+
+	Args:
+		date_str: Date string to embed in the header of body pages.
 
 	Returns:
 		Tuple of (auto_styles_element, master_styles_element).
@@ -272,10 +301,43 @@ def create_page_layouts() -> tuple:
 	mp_std = lxml.etree.SubElement(master_styles, odt_utils.qname('style', 'master-page'))
 	mp_std.set(odt_utils.qname('style', 'name'), 'Standard')
 	mp_std.set(odt_utils.qname('style', 'page-layout-name'), 'Mpm1')
+	# add header to Standard master page
+	hdr_std = lxml.etree.SubElement(mp_std, odt_utils.qname('style', 'header'))
+	hdr_std_para = lxml.etree.SubElement(hdr_std, odt_utils.qname('text', 'p'))
+	hdr_std_para.set(odt_utils.qname('text', 'style-name'), 'Header')
+	# "Page X of Y"
+	hdr_std_para.text = "Page "
+	page_num = lxml.etree.SubElement(hdr_std_para, odt_utils.qname('text', 'page-number'))
+	page_num.set(odt_utils.qname('text', 'select-page'), 'current')
+	page_num.text = "1"
+	page_num.tail = " of "
+	page_count = lxml.etree.SubElement(hdr_std_para, odt_utils.qname('text', 'page-count'))
+	page_count.text = "1"
+	page_count.tail = None
+	# tab to center position (for date)
+	tab1 = lxml.etree.SubElement(hdr_std_para, odt_utils.qname('text', 'tab'))
+	tab1.tail = date_str
+	# tab to right position (for student name line)
+	tab2 = lxml.etree.SubElement(hdr_std_para, odt_utils.qname('text', 'tab'))
+	if date_str:
+		tab2.tail = "First Name:_____________________________"
+	else:
+		tab2.tail = "First Name:_____________________________"
+	# add header style properties to page layout Mpm1
+	hdr_style = lxml.etree.SubElement(pl1, odt_utils.qname('style', 'header-style'))
+	hdr_style_props = lxml.etree.SubElement(hdr_style, odt_utils.qname('style', 'header-footer-properties'))
+	hdr_style_props.set(odt_utils.qname('fo', 'min-height'), '0in')
+	hdr_style_props.set(odt_utils.qname('fo', 'margin-bottom'), '0.2in')
+	# First Page master
 	mp_first = lxml.etree.SubElement(master_styles, odt_utils.qname('style', 'master-page'))
-	mp_first.set(odt_utils.qname('style', 'name'), 'First_20_Page')
+	mp_first.set(odt_utils.qname('style', 'name'), 'First Page')
 	mp_first.set(odt_utils.qname('style', 'page-layout-name'), 'Mpm2')
 	mp_first.set(odt_utils.qname('style', 'next-style-name'), 'Standard')
+	# add empty header to First Page master
+	hdr_first = lxml.etree.SubElement(mp_first, odt_utils.qname('style', 'header'))
+	hdr_first_para = lxml.etree.SubElement(hdr_first, odt_utils.qname('text', 'p'))
+	hdr_first_para.set(odt_utils.qname('text', 'style-name'), 'Header')
+	# HTML master page
 	mp_html = lxml.etree.SubElement(master_styles, odt_utils.qname('style', 'master-page'))
 	mp_html.set(odt_utils.qname('style', 'name'), 'HTML')
 	mp_html.set(odt_utils.qname('style', 'page-layout-name'), 'Mpm3')
@@ -301,18 +363,59 @@ def create_paragraph(text: str, style_name: str) -> lxml.etree._Element:
 
 
 #============================================
-def create_choices_paragraph(items: list, layout: int) -> lxml.etree._Element:
-	"""Build a tab-separated choices paragraph.
+def auto_layout_for_choices(choices: list) -> int:
+	"""Determine appropriate Choices layout based on choice count and length.
 
-	Uses Choices3 (layout 3), Choices4 (layout 4), or Choices5 (layout 5)
-	style names based on the layout parameter.
+	Auto-layout algorithm:
+	- 5 short choices (max ~15 chars): Choices5
+	- 5 long choices: Choices4 (overflow to 2 rows)
+	- 4 choices: Choices4
+	- 3 choices: Choices3
+	- 2 choices: Choices4 (fills row with extra tabs)
+	- Default: Choices5
 
 	Args:
-		items: List of choice text strings.
-		layout: Number of choices per row (3, 4, or 5).
+		choices: List of choice text strings.
 
 	Returns:
-		An lxml Element for text:p with tab-separated choices.
+		Layout integer (3, 4, or 5).
+	"""
+	count = len(choices)
+	if count < 2:
+		return 5
+	if count == 2:
+		return 4
+	if count == 3:
+		return 3
+	if count == 4:
+		return 4
+	# count == 5 or more
+	if count >= 5:
+		max_len = max(len(c) for c in choices)
+		if max_len <= 15:
+			return 5
+		else:
+			return 4
+	# fallback
+	return 5
+
+
+#============================================
+def create_choices_paragraph(choices: list, layout: int,
+	auto_styles: lxml.etree._Element = None) -> lxml.etree._Element:
+	"""Build a tab-separated choices paragraph with bold letter prefixes.
+
+	Uses Choices3 (layout 3), Choices4 (layout 4), or Choices5 (layout 5)
+	style names based on the layout parameter. Generates bold **(A) (B) (C)**
+	letter prefixes automatically.
+
+	Args:
+		choices: List of plain choice text strings (without letter prefixes).
+		layout: Number of choices per row (3, 4, or 5).
+		auto_styles: Optional automatic-styles element for bold style creation.
+
+	Returns:
+		An lxml Element for text:p with tab-separated choices and bold prefixes.
 	"""
 	style = f"Choices{layout}"
 	para = lxml.etree.Element(odt_utils.qname('text', 'p'))
@@ -321,28 +424,37 @@ def create_choices_paragraph(items: list, layout: int) -> lxml.etree._Element:
 	# Choices3 = 3 per row (2 tabs), Choices4 = 4 per row (3 tabs), Choices5 = 5 per row (4 tabs)
 	items_per_row = layout
 	tab_tag = odt_utils.qname('text', 'tab')
-	row_items = []
-	for i, item in enumerate(items):
-		row_items.append(item)
-		# if row is full or last item, flush the row
-		if len(row_items) == items_per_row or i == len(items) - 1:
-			# add this row of items
-			if i >= items_per_row:
-				# need a line break before new row
-				line_break = lxml.etree.SubElement(para, odt_utils.qname('text', 'line-break'))
-				line_break.tail = row_items[0]
-			else:
-				# first row
-				if len(para) == 0:
-					para.text = row_items[0]
-				else:
-					# should not happen for first row
-					para.text = row_items[0]
-			# add tabs between items in this row
-			for j in range(1, len(row_items)):
-				tab_elem = lxml.etree.SubElement(para, tab_tag)
-				tab_elem.tail = row_items[j]
-			row_items = []
+	span_tag = odt_utils.qname('text', 'span')
+	# ensure AutoBold style exists if auto_styles provided
+	bold_style_name = 'AutoBold'
+	if auto_styles is not None:
+		# check if AutoBold exists
+		bold_exists = False
+		for style_elem in auto_styles.findall(odt_utils.qname('style', 'style')):
+			if style_elem.get(odt_utils.qname('style', 'name')) == 'AutoBold':
+				bold_exists = True
+				break
+		# create AutoBold if not found
+		if not bold_exists:
+			bold_style = lxml.etree.SubElement(auto_styles, odt_utils.qname('style', 'style'))
+			bold_style.set(odt_utils.qname('style', 'name'), 'AutoBold')
+			bold_style.set(odt_utils.qname('style', 'family'), 'text')
+			text_props = lxml.etree.SubElement(bold_style, odt_utils.qname('style', 'text-properties'))
+			text_props.set(odt_utils.qname('fo', 'font-weight'), 'bold')
+	# build choices with bold letter prefixes and tabs
+	for i, choice_text in enumerate(choices):
+		letter = chr(ord('A') + i)
+		# insert line break before new rows (after first row)
+		if i > 0 and i % items_per_row == 0:
+			lxml.etree.SubElement(para, odt_utils.qname('text', 'line-break'))
+		# add tab before this choice (except first in row)
+		if i > 0 and i % items_per_row > 0:
+			lxml.etree.SubElement(para, tab_tag)
+		# add bold letter prefix as span
+		span = lxml.etree.SubElement(para, span_tag)
+		span.set(odt_utils.qname('text', 'style-name'), bold_style_name)
+		span.text = f"({letter}) "
+		span.tail = choice_text
 	return para
 
 
@@ -374,7 +486,7 @@ def create_table_cell(text: str, background_color: str,
 		cell_props.set(odt_utils.qname('fo', 'padding'), '0.0194in')
 		cell.set(odt_utils.qname('table', 'style-name'), auto_name)
 	# add text paragraph inside cell
-	para = create_paragraph(text, 'Table_20_Contents')
+	para = create_paragraph(text, 'Table Contents')
 	cell.append(para)
 	return cell
 
@@ -407,7 +519,7 @@ def create_table(columns: list, rows: list,
 		cell = create_table_cell(col_text, '#f2f2f2', auto_styles)
 		# use Table Heading style for header text
 		para = cell.find(odt_utils.qname('text', 'p'))
-		para.set(odt_utils.qname('text', 'style-name'), 'Table_20_Heading')
+		para.set(odt_utils.qname('text', 'style-name'), 'Table Heading')
 		header_row.append(cell)
 	# data rows
 	for row_data in rows:
@@ -455,10 +567,55 @@ def embed_image(image_path: str, odt_other_data: dict) -> lxml.etree._Element:
 
 
 #============================================
+def select_question_style(prev_element: str) -> str:
+	"""Select appropriate question paragraph style based on previous element.
+
+	"Question Heading" is used for questions in normal sequential flow
+	(after other questions or choices).
+
+	"Question Follow" is used for questions immediately after a non-question
+	element (image, table, or chapter heading).
+
+	Args:
+		prev_element: Type of the previous element ('question', 'choices',
+			'chapter', 'table', or 'image').
+
+	Returns:
+		Style name: 'Question Heading' or 'Question Follow'.
+	"""
+	if prev_element in ('question', 'choices'):
+		return 'Question Heading'
+	else:
+		# prev_element is 'chapter', 'table', or 'image'
+		return 'Question Follow'
+
+
+#============================================
+def count_total_questions(sections: list) -> int:
+	"""Count total number of questions across all sections.
+
+	Args:
+		sections: List of section dicts from exam data.
+
+	Returns:
+		Total count of questions.
+	"""
+	total = 0
+	for section in sections:
+		questions = section.get('questions', [])
+		total += len(questions)
+	return total
+
+
+#============================================
 def build_document_body(exam_data: dict,
 	auto_styles: lxml.etree._Element,
 	other_data: dict) -> lxml.etree._Element:
 	"""Build the office:body > office:text element tree from exam data.
+
+	Processes new YAML format with auto-numbering and auto-layout.
+	Auto-selects "Question Heading" or "Question Follow" style based on
+	what element precedes the question.
 
 	Args:
 		exam_data: Dict from YAML input with exam structure.
@@ -472,47 +629,62 @@ def build_document_body(exam_data: dict,
 	text = lxml.etree.SubElement(body, odt_utils.qname('office', 'text'))
 	# exam title
 	title = exam_data.get('title', 'Exam')
-	title_para = create_paragraph(title, 'Heading_20_1')
+	title_para = create_paragraph(title, 'Heading 1')
 	text.append(title_para)
-	# date line
-	date_str = exam_data.get('date', '')
-	if date_str:
-		date_para = create_paragraph(date_str, 'Standard')
-		text.append(date_para)
-	# student info line
-	student_line = exam_data.get('student_line', '')
-	if student_line:
-		student_para = create_paragraph(student_line, 'Standard')
-		text.append(student_para)
+	# calculate total points
+	total_points = exam_data.get('total_points', None)
+	if total_points is None:
+		sections = exam_data.get('sections', [])
+		total_points = count_total_questions(sections)
+	# scoring sections (number of blanks in score line)
+	num_sections = exam_data.get('scoring_sections', exam_defaults.DEFAULT_SCORING_SECTIONS)
+	# name line (with optional override)
+	name_line = exam_data.get('student_line', exam_defaults.DEFAULT_NAME_LINE)
+	name_para = create_paragraph(name_line, 'Standard')
+	text.append(name_para)
+	# score line
+	score_line = exam_defaults.format_score_line(total_points, num_sections)
+	score_para = create_paragraph(score_line, 'Standard')
+	text.append(score_para)
 	# sections
 	sections = exam_data.get('sections', [])
+	question_counter = 1  # auto-numbering counter
+	# track previous element type for question style selection
+	prev_element = 'chapter'  # start of section counts as chapter heading
 	for section in sections:
-		# section heading
-		heading = section.get('heading', '')
-		if heading:
-			heading_para = create_paragraph(heading, 'Heading_20_4')
-			text.append(heading_para)
+		# section heading uses 'chapter' key
+		chapter = section.get('chapter', '')
+		if chapter:
+			chapter_para = create_paragraph(chapter, 'Chapter Heading')
+			text.append(chapter_para)
+			prev_element = 'chapter'
 		# questions
 		questions = section.get('questions', [])
 		for question in questions:
-			# question heading
-			q_heading = question.get('heading', '')
-			if q_heading:
-				qh_para = create_paragraph(q_heading, 'Question_20_Heading')
+			# get explicit number if provided, otherwise use counter
+			if 'number' in question:
+				question_counter = question['number']
+			question_number = question_counter
+			# build question statement with number prefix
+			statement = question.get('statement', '')
+			if statement:
+				# prepend number: "##. statement text"
+				q_text_with_num = f"{question_number}. {statement}"
+				# select question style based on previous element
+				question_style = select_question_style(prev_element)
+				qh_para = create_paragraph(q_text_with_num, question_style)
 				text.append(qh_para)
-			# question text
-			q_text = question.get('text', '')
-			if q_text:
-				qt_para = create_paragraph(q_text, 'Question')
-				text.append(qt_para)
+				prev_element = 'question'
 			# choices
 			choices = question.get('choices', None)
-			if choices is not None:
-				layout = choices.get('layout', 4)
-				items = choices.get('items', [])
-				if items:
-					choices_para = create_choices_paragraph(items, layout)
-					text.append(choices_para)
+			if choices is not None and len(choices) > 0:
+				# auto-determine layout if not specified
+				layout = question.get('layout', None)
+				if layout is None:
+					layout = auto_layout_for_choices(choices)
+				choices_para = create_choices_paragraph(choices, layout, auto_styles)
+				text.append(choices_para)
+				prev_element = 'choices'
 			# table
 			table_data = question.get('table', None)
 			if table_data is not None:
@@ -520,6 +692,7 @@ def build_document_body(exam_data: dict,
 				rows = table_data['rows']
 				table_elem = create_table(columns, rows, auto_styles)
 				text.append(table_elem)
+				prev_element = 'table'
 			# image
 			image_path = question.get('image', None)
 			if image_path is not None and os.path.isfile(image_path):
@@ -529,6 +702,9 @@ def build_document_body(exam_data: dict,
 				img_para.set(odt_utils.qname('text', 'style-name'), 'Standard')
 				img_para.append(frame)
 				text.append(img_para)
+				prev_element = 'image'
+			# increment counter for next question
+			question_counter += 1
 	return body
 
 
@@ -557,7 +733,8 @@ def assemble_odt(exam_data: dict, output_path: str) -> None:
 	office_styles = create_exam_styles()
 	styles_root.append(office_styles)
 	# add page layouts and master pages
-	auto_styles_elem, master_styles_elem = create_page_layouts()
+	date_str = exam_data.get('date', '')
+	auto_styles_elem, master_styles_elem = create_page_layouts(date_str)
 	styles_root.append(auto_styles_elem)
 	styles_root.append(master_styles_elem)
 	# build the content.xml tree

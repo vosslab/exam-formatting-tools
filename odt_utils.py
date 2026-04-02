@@ -1,7 +1,6 @@
 """Shared utility module for reading and writing ODT files using lxml and zipfile."""
 
 # Standard Library
-import os
 import re
 import copy
 import zipfile

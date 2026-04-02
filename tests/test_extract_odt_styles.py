@@ -6,7 +6,6 @@ import zipfile
 
 # Pip Modules
 import pytest
-import yaml
 import lxml.etree
 
 # Local Repo Modules

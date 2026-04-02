@@ -4,8 +4,6 @@
 import os
 
 # Pip Modules
-import pytest
-import yaml
 import lxml.etree
 
 # Local Repo Modules
@@ -29,20 +27,15 @@ def make_sample_exam_data() -> dict:
 		'student_line': 'Name: ________  Score: ____/50',
 		'sections': [
 			{
-				'heading': 'Chapter 1 -- Basics',
+				'chapter': 'Chapter 1 -- Basics',
 				'questions': [
 					{
-						'number': 1,
-						'heading': '1. What is DNA?',
-						'text': 'Select the best answer.',
-						'choices': {
-							'layout': 4,
-							'items': ['protein', 'lipid', 'nucleic acid', 'carbohydrate'],
-						},
+						'statement': 'What is DNA?',
+						'choices': ['protein', 'lipid', 'nucleic acid', 'carbohydrate'],
+						'layout': 4,
 					},
 					{
-						'number': 2,
-						'heading': '2. Matching',
+						'statement': 'Matching question',
 						'table': {
 							'columns': ['Term', 'Definition'],
 							'rows': [
@@ -59,6 +52,35 @@ def make_sample_exam_data() -> dict:
 
 
 #============================================
+def test_select_question_style():
+	"""Auto-selection should choose correct style based on previous element."""
+	# After question or choices: use Question Heading
+	assert odt_exam_builder.select_question_style('question') == 'Question Heading'
+	assert odt_exam_builder.select_question_style('choices') == 'Question Heading'
+	# After chapter, table, or image: use Question Follow
+	assert odt_exam_builder.select_question_style('chapter') == 'Question Follow'
+	assert odt_exam_builder.select_question_style('table') == 'Question Follow'
+	assert odt_exam_builder.select_question_style('image') == 'Question Follow'
+
+
+#============================================
+def test_auto_layout_for_choices():
+	"""Auto-layout should select correct style based on count and length."""
+	# 2 choices -> Choices4
+	assert odt_exam_builder.auto_layout_for_choices(['a', 'b']) == 4
+	# 3 choices -> Choices3
+	assert odt_exam_builder.auto_layout_for_choices(['a', 'b', 'c']) == 3
+	# 4 choices -> Choices4
+	assert odt_exam_builder.auto_layout_for_choices(['a', 'b', 'c', 'd']) == 4
+	# 5 short choices -> Choices5
+	short_5 = ['a', 'b', 'c', 'd', 'e']
+	assert odt_exam_builder.auto_layout_for_choices(short_5) == 5
+	# 5 long choices -> Choices4
+	long_5 = ['very long choice text', 'another long one', 'yet more long text', 'more', 'final']
+	assert odt_exam_builder.auto_layout_for_choices(long_5) == 4
+
+
+#============================================
 def test_create_choices_paragraph():
 	"""Choices paragraph should use correct style and tab count per layout."""
 	tab_tag = odt_utils.qname('text', 'tab')
@@ -66,6 +88,13 @@ def test_create_choices_paragraph():
 	para4 = odt_exam_builder.create_choices_paragraph(['a', 'b', 'c', 'd'], 4)
 	assert para4.get(odt_utils.qname('text', 'style-name')) == 'Choices4'
 	assert len(para4.findall(tab_tag)) == 3
+	# verify bold letter prefixes are present
+	span_tag = odt_utils.qname('text', 'span')
+	spans = para4.findall(span_tag)
+	assert len(spans) == 4, f"Expected 4 bold letter spans, got {len(spans)}"
+	# check that spans contain bold style name
+	for span in spans:
+		assert span.get(odt_utils.qname('text', 'style-name')) == 'AutoBold'
 
 
 #============================================
@@ -77,7 +106,7 @@ def test_create_table():
 	first_row = table.findall(odt_utils.qname('table', 'table-row'))[0]
 	first_cell = first_row.find(odt_utils.qname('table', 'table-cell'))
 	para = first_cell.find(odt_utils.qname('text', 'p'))
-	assert para.get(odt_utils.qname('text', 'style-name')) == 'Table_20_Heading'
+	assert para.get(odt_utils.qname('text', 'style-name')) == 'Table Heading'
 
 
 #============================================
@@ -91,10 +120,11 @@ def test_create_exam_styles():
 	for elem in styles.findall(style_tag):
 		style_names.append(elem.get(name_attr))
 	expected_names = [
-		'Standard', 'Question_20_Heading', 'Question', 'Question_20_Follow',
+		'Standard', 'Question Heading', 'Question', 'Question Follow',
 		'Choices', 'Choices3', 'Choices4', 'Choices5',
-		'Warning', 'Preformatted_20_Text', 'Table_20_Contents', 'Table_20_Heading',
-		'Heading', 'Heading_20_1', 'Heading_20_2', 'Heading_20_3', 'Heading_20_4',
+		'Warning', 'Preformatted Text', 'Table Contents', 'Table Heading',
+		'Heading', 'Heading 1', 'Heading 2', 'Heading 3', 'Heading 4',
+		'Chapter Heading',
 	]
 	for name in expected_names:
 		assert name in style_names, f"Missing style: {name}"
@@ -112,7 +142,7 @@ def test_create_page_layouts():
 	master_tag = odt_utils.qname('style', 'master-page')
 	master_names = [m.get(odt_utils.qname('style', 'name')) for m in master_styles.findall(master_tag)]
 	assert 'Standard' in master_names
-	assert 'First_20_Page' in master_names
+	assert 'First Page' in master_names
 
 
 #============================================
@@ -131,7 +161,7 @@ def test_assemble_minimal_exam(tmp_path):
 	named_styles = odt_utils.get_named_styles(odt_data['styles_xml'])
 	names = [odt_utils.style_name(s) for s in named_styles]
 	assert 'Standard' in names
-	assert 'Question_20_Heading' in names
+	assert 'Question Heading' in names
 	assert 'Choices4' in names
 	# verify body has content
 	body_tag = odt_utils.qname('office', 'body')
@@ -140,3 +170,61 @@ def test_assemble_minimal_exam(tmp_path):
 	text = body.find(text_tag)
 	# should have paragraphs and a table
 	assert len(list(text)) > 0
+
+
+#============================================
+def test_question_style_selection_in_document(tmp_path):
+	"""Verify auto-selection: first question uses Question Follow after chapter."""
+	data = {
+		'title': 'Test Auto-Selection',
+		'date': '2025-12-01',
+		'student_line': 'Name: ________',
+		'sections': [
+			{
+				'chapter': 'Chapter 1 -- Introduction',
+				'questions': [
+					{
+						'statement': 'First question after chapter',
+						'choices': ['a', 'b', 'c', 'd'],
+						'layout': 4,
+					},
+					{
+						'statement': 'Second question after choices',
+						'choices': ['x', 'y', 'z'],
+						'layout': 3,
+					},
+				],
+			},
+		],
+	}
+	output_path = os.path.join(str(tmp_path), "test_selection.odt")
+	odt_exam_builder.assemble_odt(data, output_path)
+	# read back and check question styles
+	odt_data = odt_utils.read_odt(output_path)
+	body_tag = odt_utils.qname('office', 'body')
+	text_tag = odt_utils.qname('office', 'text')
+	body = odt_data['content_xml'].find(f".//{body_tag}")
+	text = body.find(text_tag)
+	# find all paragraphs with style attributes
+	paras = text.findall(odt_utils.qname('text', 'p'))
+	# collect styles: should have Heading1, Standard, Chapter Heading, then questions
+	styles_found = []
+	for para in paras:
+		style = para.get(odt_utils.qname('text', 'style-name'))
+		if style:
+			styles_found.append(style)
+	# verify first question uses Question Follow (after Chapter Heading)
+	assert 'Chapter Heading' in styles_found
+	chapter_idx = styles_found.index('Chapter Heading')
+	# first question after chapter should be Question Follow
+	assert chapter_idx + 1 < len(styles_found)
+	assert styles_found[chapter_idx + 1] == 'Question Follow'
+	# second question should be Question Heading (after choices)
+	choice_style_before_q2 = None
+	for i in range(chapter_idx + 1, len(styles_found)):
+		if styles_found[i].startswith('Choices'):
+			choice_style_before_q2 = i
+			break
+	if choice_style_before_q2 is not None:
+		assert choice_style_before_q2 + 1 < len(styles_found)
+		assert styles_found[choice_style_before_q2 + 1] == 'Question Heading'

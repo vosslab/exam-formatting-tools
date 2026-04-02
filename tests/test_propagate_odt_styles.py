@@ -4,10 +4,6 @@
 import os
 import zipfile
 
-# Pip Modules
-import pytest
-import lxml.etree
-
 # Local Repo Modules
 import git_file_utils
 import odt_utils

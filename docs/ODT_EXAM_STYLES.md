@@ -49,6 +49,8 @@ Parent: Standard. Used for the bold/italic lead-in line before a question.
 | Auto text indent | false |
 | Text autospace | none |
 
+Auto-selected when the previous element is another question or choices.
+
 ### Question
 
 Parent: Question Heading. Used for the question body text.
@@ -69,7 +71,26 @@ Parent: Question Heading. Used for the question body text.
 
 ### Question Follow
 
-Parent: Standard. Used for continuation paragraphs within a question.
+Parent: Standard. Used for the first question after an image, table, or chapter heading.
+
+Auto-selected when the previous element is an image, table, or chapter heading.
+
+## Automatic question style selection
+
+The `odt_exam_builder.py` module automatically selects the appropriate question
+style based on what precedes the question in the document:
+
+| Previous element | Selected style | Usage |
+| --- | --- | --- |
+| Another question statement | Question Heading | Normal flow between questions |
+| Choices paragraph | Question Heading | Normal flow after multiple choice |
+| Chapter/section heading | Question Follow | First question in a section |
+| Table | Question Follow | First question after a matching table |
+| Image | Question Follow | First question after an embedded image |
+
+This auto-selection reduces spacing and visual awkwardness when questions follow
+non-question elements (especially images and tables), while maintaining standard
+formatting for questions in normal sequential flow.
 
 ### Choices (base)
 

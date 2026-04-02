@@ -7,7 +7,6 @@ and optional page layout propagation.
 """
 
 # Standard Library
-import os
 import copy
 import shutil
 import argparse
