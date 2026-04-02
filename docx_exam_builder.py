@@ -87,15 +87,15 @@ def auto_layout_for_choices(choices: list) -> tuple:
 	Returns a (tab_style, items_per_row) tuple. The tab_style selects which
 	set of tab stops to use (3, 4, or 5). The items_per_row controls how many
 	choices go on each line. These can differ: e.g., tab_style=4 with
-	items_per_row=2 gives a "Choices2" layout using Choices4 tab stops.
+	items_per_row=2 gives a "Choices 2" layout using Choices 4 tab stops.
 
 	Layout rules to avoid orphan rows (1 item on last row):
-	- 2 items: Choices4 tabs, 2 per row (even spacing via 4 % 2 == 0)
-	- 3 items: Choices3 (all on one row) if they fit; else vertical
-	- 4 items: Choices4 if they fit; else 2+2 (Choices4 tabs, 2 per row);
-	  never Choices3 which gives 3+1 orphan
-	- 5 items: Choices5 if they fit; Choices3 gives 3+2 (no orphan);
-	  skip Choices4 (4+1 orphan) and Choices2 (2+2+1 orphan)
+	- 2 items: Choices 4 tabs, 2 per row (even spacing via 4 % 2 == 0)
+	- 3 items: Choices 3 (all on one row) if they fit; else vertical
+	- 4 items: Choices 4 if they fit; else 2+2 (Choices 4 tabs, 2 per row);
+	  never Choices 3 which gives 3+1 orphan
+	- 5 items: Choices 5 if they fit; Choices 3 gives 3+2 (no orphan);
+	  skip Choices 4 (4+1 orphan) and Choices 2 (2+2+1 orphan)
 
 	Args:
 		choices: List of choice text strings.
@@ -103,52 +103,52 @@ def auto_layout_for_choices(choices: list) -> tuple:
 	Returns:
 		Tuple of (tab_style, items_per_row).
 	"""
-	# empirically measured with bold "(A) " prefix included
-	MAX_CHARS_5 = 18
-	MAX_CHARS_4 = 24
-	MAX_CHARS_3 = 31
-	MAX_CHARS_2 = 50
+	# empirically measured with bold "(A) " prefix included, minus 1 safety margin
+	MAX_CHARS_5 = 17
+	MAX_CHARS_4 = 23
+	MAX_CHARS_3 = 30
+	MAX_CHARS_2 = 49
 	count = len(choices)
 	if count < 1:
 		return (5, 5)
 	max_len = max(len(c) for c in choices)
 
 	if count == 2:
-		# 2 items: Choices4 tabs with 2 per row (extra tab between)
+		# 2 items: dedicated Choices 2 layout
 		if max_len <= MAX_CHARS_2:
-			return (4, 2)
+			return (2, 2)
 		# very long: vertical stack
-		return (3, 1)
+		return (1, 1)
 
 	if count == 3:
 		# prefer all 3 on one row
 		if max_len <= MAX_CHARS_3:
 			return (3, 3)
-		# too long: vertical stack (avoid 3 in Choices4 which wastes a column)
-		return (3, 1)
+		# too long: vertical stack
+		return (1, 1)
 
 	if count == 4:
 		# prefer 4 on one row
 		if max_len <= MAX_CHARS_4:
 			return (4, 4)
-		# doesn't fit 4/row: use 2+2 layout (NOT Choices3 which gives 3+1 orphan)
+		# doesn't fit 4/row: use 2+2 layout (NOT Choices 3 which gives 3+1 orphan)
 		if max_len <= MAX_CHARS_2:
-			return (4, 2)
+			return (2, 2)
 		# very long: vertical stack
-		return (3, 1)
+		return (1, 1)
 
 	# 5+ choices
 	if max_len <= MAX_CHARS_5:
 		# all 5 on one row
 		return (5, 5)
 	if max_len <= MAX_CHARS_3:
-		# Choices3 gives 3+2 (no orphan) -- skip Choices4 which gives 4+1 orphan
+		# Choices 3 gives 3+2 (no orphan) -- skip Choices 4 which gives 4+1 orphan
 		return (3, 3)
 	if max_len <= MAX_CHARS_2:
-		# long text: try 3+2 with wider columns
+		# long text: still use 3+2 with Choices 3 columns
 		return (3, 3)
 	# very long: vertical stack
-	return (3, 1)
+	return (1, 1)
 
 
 #============================================
@@ -189,10 +189,50 @@ def select_question_style(prev_element: str) -> str:
 #============================================
 # tab stop positions for each choices layout (in inches)
 CHOICES_TAB_STOPS = {
+	1: [],
+	2: [3.65],
 	3: [2.33, 4.67],
 	4: [1.75, 3.50, 5.25],
 	5: [1.40, 2.80, 4.20, 5.60],
 }
+
+# style name for each tab layout
+CHOICES_STYLE_NAME = {
+	1: 'Choice',
+	2: 'Choices 2',
+	3: 'Choices 3',
+	4: 'Choices 4',
+	5: 'Choices 5',
+}
+
+# also keep 'Choices' in the old dict key for backward compat with explicit layout overrides
+# (user can set layout: 3 in YAML which maps to tab_style=3)
+
+
+#============================================
+def _set_font_with_fallback(style, primary: str, fallback: str) -> None:
+	"""Set font name on a style with a fallback font via XML.
+
+	python-docx only supports a single font name. This sets the primary
+	font and adds the fallback as hAnsi/cs font for cross-platform
+	compatibility (Liberation Sans on Linux, Arial on Windows/Mac).
+
+	Args:
+		style: A python-docx paragraph or character style.
+		primary: Primary font name (e.g., 'Liberation Sans').
+		fallback: Fallback font name (e.g., 'Arial').
+	"""
+	style.font.name = primary
+	# set the fallback font on the underlying XML for non-ascii/hAnsi
+	rpr = style.element.get_or_add_rPr()
+	rfonts_tag = docx.oxml.ns.qn('w:rFonts')
+	rfonts = rpr.find(rfonts_tag)
+	if rfonts is None:
+		rfonts = docx.oxml.OxmlElement('w:rFonts')
+		rpr.insert(0, rfonts)
+	rfonts.set(docx.oxml.ns.qn('w:ascii'), primary)
+	rfonts.set(docx.oxml.ns.qn('w:hAnsi'), fallback)
+	rfonts.set(docx.oxml.ns.qn('w:cs'), fallback)
 
 
 #============================================
@@ -207,16 +247,16 @@ def setup_styles(doc: docx.Document) -> None:
 	"""
 	# modify the built-in Normal style as our base
 	normal = doc.styles['Normal']
-	normal.font.name = 'Liberation Sans'
 	normal.font.size = docx.shared.Pt(11)
 	normal.paragraph_format.space_after = docx.shared.Pt(1)
 	normal.paragraph_format.space_before = docx.shared.Pt(0)
 	normal.paragraph_format.line_spacing = 1.1
+	_set_font_with_fallback(normal, 'Liberation Sans', 'Arial')
 
-	# customize built-in Heading 1 to match ODT: Liberation Sans, ~16pt bold
+	# customize built-in Heading 1 to match ODT: 16pt bold, Liberation Sans
 	# ODT: parent=Heading (14pt), 115% font size = ~16pt, bold, keep-with-next
+	# set font via XML to include fallback: "Liberation Sans;Arial"
 	h1 = doc.styles['Heading 1']
-	h1.font.name = 'Liberation Sans'
 	h1.font.size = docx.shared.Pt(16)
 	h1.font.bold = True
 	h1.font.italic = False
@@ -224,6 +264,8 @@ def setup_styles(doc: docx.Document) -> None:
 	h1.paragraph_format.space_before = docx.shared.Inches(0.17)
 	h1.paragraph_format.space_after = docx.shared.Inches(0.08)
 	h1.paragraph_format.keep_with_next = True
+	# set font name with fallback via XML (python-docx only supports single name)
+	_set_font_with_fallback(h1, 'Liberation Sans', 'Arial')
 
 	# Question Heading: bold italic, hanging indent, keep-with-next
 	# matching ODT: margin-top=0.15in, margin-bottom=0.02in
@@ -238,22 +280,24 @@ def setup_styles(doc: docx.Document) -> None:
 	qh.paragraph_format.space_after = docx.shared.Inches(0.02)
 	qh.paragraph_format.keep_with_next = True
 
-	# Question Follow: normal weight, no space above (used after images/tables/headings)
-	# matching ODT: inherits Standard margins (top=0, bottom=0.05in)
+	# Question Follow: same as Question Heading but no space above
+	# used after images/tables/headings where extra gap would be redundant
 	qf = doc.styles.add_style('Question Follow', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
 	qf.base_style = normal
+	qf.font.bold = True
+	qf.font.italic = True
 	qf.font.size = docx.shared.Pt(11)
 	qf.paragraph_format.left_indent = docx.shared.Inches(0.2)
 	qf.paragraph_format.first_line_indent = docx.shared.Inches(-0.2)
 	qf.paragraph_format.space_before = docx.shared.Pt(0)
-	qf.paragraph_format.space_after = docx.shared.Inches(0.05)
+	qf.paragraph_format.space_after = docx.shared.Inches(0.02)
 	qf.paragraph_format.keep_with_next = True
 
 	# Chapter Heading: 14pt bold, dark purple, keep-with-next
 	ch = doc.styles.add_style('Chapter Heading', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
 	ch.base_style = normal
-	ch.font.name = 'Liberation Sans'
 	ch.font.size = docx.shared.Pt(14)
+	_set_font_with_fallback(ch, 'Liberation Sans', 'Arial')
 	ch.font.bold = True
 	ch.font.color.rgb = docx.shared.RGBColor(0x66, 0x00, 0xCC)
 	ch.paragraph_format.space_before = docx.shared.Pt(6)
@@ -263,21 +307,28 @@ def setup_styles(doc: docx.Document) -> None:
 	# Heading 2: 14pt bold italic, for major section labels
 	h2 = doc.styles.add_style('Exam Heading 2', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
 	h2.base_style = normal
-	h2.font.name = 'Liberation Sans'
 	h2.font.size = docx.shared.Pt(14)
+	_set_font_with_fallback(h2, 'Liberation Sans', 'Arial')
 	h2.font.bold = True
 	h2.font.italic = True
 	h2.paragraph_format.space_before = docx.shared.Pt(6)
 	h2.paragraph_format.space_after = docx.shared.Pt(3)
 	h2.paragraph_format.keep_with_next = True
 
-	# Choices base: 10pt, slightly indented
-	choices = doc.styles.add_style('Choices', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
-	choices.base_style = normal
-	choices.font.size = docx.shared.Pt(10)
-	choices.paragraph_format.left_indent = docx.shared.Inches(0.15)
-	choices.paragraph_format.space_before = docx.shared.Pt(0)
-	choices.paragraph_format.space_after = docx.shared.Pt(1)
+	# Choice: base style for all choice layouts (10pt, indented, no tab stops)
+	# also used directly for single-column vertical layout
+	choice_base = doc.styles.add_style('Choice', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
+	choice_base.base_style = normal
+	choice_base.font.size = docx.shared.Pt(10)
+	choice_base.paragraph_format.left_indent = docx.shared.Inches(0.15)
+	choice_base.paragraph_format.first_line_indent = docx.shared.Inches(-0.05)
+	choice_base.paragraph_format.space_before = docx.shared.Pt(0)
+	choice_base.paragraph_format.space_after = docx.shared.Pt(1)
+
+	# Choices 2 through 5: inherit from Choice, tab stops set per-paragraph
+	for n in range(2, 6):
+		style = doc.styles.add_style(f'Choices {n}', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
+		style.base_style = choice_base
 
 
 #============================================
@@ -372,7 +423,9 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 		items_per_row: Number of choices per line (may differ from tab_style).
 	"""
 	para = doc.add_paragraph()
-	para.style = doc.styles['Choices']
+	# select the appropriate style for this layout
+	style_name = CHOICES_STYLE_NAME[tab_style]
+	para.style = doc.styles[style_name]
 	# set tab stops for the chosen layout
 	tab_positions = CHOICES_TAB_STOPS[tab_style]
 	for pos in tab_positions:
@@ -407,9 +460,6 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 		# choice text (normal weight)
 		text_run = para.add_run(decode_html_entities(choice_text))
 		text_run.font.size = docx.shared.Pt(10)
-		# extra tab after choice for 2-per-row layout using 4-column tabs
-		if items_per_row == 2 and tab_style == 4:
-			para.add_run("\t")
 
 
 #============================================
