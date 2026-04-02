@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-04-02
+
+### Fixes and Maintenance
+
+- Rewrote `README.md` to describe the actual exam formatting tools instead of the starter template boilerplate. Added quick start examples for all three CLI tools and linked all existing docs.
+
 ## 2026-04-01
 
 ### Additions and New Features

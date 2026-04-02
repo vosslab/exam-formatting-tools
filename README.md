@@ -1,20 +1,40 @@
-# starter_repo_template
-`starter_repo_template` is canonical bootstrap infrastructure for Python repositories that need consistent repository policy, Python style conventions, licensing boundaries, and test/lint scaffolding before project-specific code is added.
+# Exam formatting tools
 
-Only `README.md` and `docs/CHANGELOG.md` are intentionally repository-specific; every other file is designed to remain generic for downstream template users.
-
-## Documentation
-
-- [docs/REPO_STYLE.md](docs/REPO_STYLE.md): Repository structure, naming, versioning, dependency manifest, and licensing conventions.
-- [docs/PYTHON_STYLE.md](docs/PYTHON_STYLE.md): Python implementation rules for formatting, structure, imports, argparse, and testing.
-- [docs/MARKDOWN_STYLE.md](docs/MARKDOWN_STYLE.md): Markdown writing and formatting conventions for repository documentation.
-- [docs/AUTHORS.md](docs/AUTHORS.md): Canonical authorship and attribution metadata for template maintenance.
-- [docs/CHANGELOG.md](docs/CHANGELOG.md): Repository-specific history of updates to this template.
+Tools for working with ODT exam documents -- extracting styles, propagating styles between files, and building fully styled exams from YAML input. Built for instructors who maintain exam formatting consistency across semesters using LibreOffice.
 
 ## Quick start
 
-Run one focused repo check:
+Build an exam from a YAML definition:
 
 ```bash
-/opt/homebrew/opt/python@3.12/bin/python3.12 -m pytest tests/test_shebangs.py -q
+source source_me.sh && python3 odt_exam_builder.py -i exam_data.yaml -o exam_output.odt
+```
+
+Extract styles from an existing exam:
+
+```bash
+source source_me.sh && python3 extract_odt_styles.py -i exam.odt -o styles.yaml
+```
+
+Propagate styles from one exam to another:
+
+```bash
+source source_me.sh && python3 propagate_odt_styles.py -s source.odt -t target.odt
+```
+
+## Documentation
+
+- [docs/ODT_EXAM_STYLES.md](docs/ODT_EXAM_STYLES.md): Style definitions for page layouts, paragraphs, tables, and choice formatting.
+- [docs/ROADMAP.md](docs/ROADMAP.md): Implementation plan and phasing for the four core tools.
+- [docs/CHANGELOG.md](docs/CHANGELOG.md): Change history.
+- [docs/REPO_STYLE.md](docs/REPO_STYLE.md): Repository structure, naming, and versioning conventions.
+- [docs/PYTHON_STYLE.md](docs/PYTHON_STYLE.md): Python coding style rules.
+- [docs/MARKDOWN_STYLE.md](docs/MARKDOWN_STYLE.md): Markdown formatting conventions.
+- [docs/AUTHORS.md](docs/AUTHORS.md): Maintainers.
+- [docs/CLAUDE_HOOK_USAGE_GUIDE.md](docs/CLAUDE_HOOK_USAGE_GUIDE.md): AI agent hook rules.
+
+## Testing
+
+```bash
+source source_me.sh && python3 -m pytest tests/ -q
 ```
