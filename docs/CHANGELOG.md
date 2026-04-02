@@ -4,6 +4,23 @@
 
 ### Additions and New Features
 
+- Created `ef_tools/` package with shared exam formatting modules:
+  - `ef_tools/text_utils.py` -- HTML entity decoding, number prefix stripping, rich text parsing for `<sub>`, `<sup>`, `<b>`, `<strong>`, `<i>`, `<em>` tags.
+  - `ef_tools/layout.py` -- auto-layout algorithm for multiple choice column formatting, tab stop positions, style name mapping.
+  - `ef_tools/question_utils.py` -- question style selection and total question counting.
+  - `ef_tools/style_loader.py` -- loads style definitions from `styles/exam_styles.yaml`.
+- Created `styles/exam_styles.yaml` -- externalized all hardcoded style values (fonts, sizes, colors, spacing, tab stops, layout limits) from `docx_exam_builder.py`. Style tweaks can now be made in YAML without editing Python.
+- Added rich text rendering to DOCX builder: `<sub>`, `<sup>`, `<b>`, `<strong>`, `<i>`, `<em>` tags in question statements, choices, headings, and table cells now render with proper font formatting (subscript, superscript, bold, italic).
+
+### Behavior or Interface Changes
+
+- Moved `exam_defaults.py` into `ef_tools/exam_defaults.py` (via `git mv`). All imports updated.
+- Removed first-line indent from choice paragraphs (was -0.05in hanging indent, now 0).
+- `docx_exam_builder.py` now loads styles from `styles/exam_styles.yaml` at runtime instead of hardcoding values.
+- Utility functions (`decode_html_entities`, `strip_number_prefix`, `auto_layout_for_choices`, `select_question_style`, `count_total_questions`) extracted from builder into `ef_tools/` modules.
+
+### Fixes and Maintenance
+
 - Added `docx_exam_builder.py` -- new DOCX output engine using python-docx. Same YAML input format as `odt_exam_builder.py`, ~300 lines vs ~750 for ODT. Features: auto-numbering, auto-layout with orphan-row avoidance, bold (A) choice prefixes, Question Heading/Follow auto-selection, Chapter Heading (purple), Heading 2 (bold italic), images with aspect ratio, tables, first page boilerplate, page headers with student name, HTML entity decoding, overwrite protection, and .docx extension enforcement.
 - Added `exam_defaults.py` -- default boilerplate text (name line, score line format).
 - Added `bbq_to_exam_yaml.py` -- imports bbq_text format to exam YAML (MC, MA, MAT, ORD).

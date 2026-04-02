@@ -55,6 +55,19 @@ The `statement` field contains the full question stem. It may include an existin
 
 HTML entities are supported for special characters: `&Delta;`, `&alpha;`, `&beta;`, `&deg;`, `&prime;`, `&rarr;`, `&micro;`.
 
+Inline HTML tags are supported for formatting within statement and choice text:
+
+| Tag | Effect | Example |
+| --- | --- | --- |
+| `<sub>`, `</sub>` | Subscript | `H<sub>2</sub>O` |
+| `<sup>`, `</sup>` | Superscript | `x<sup>2</sup>` |
+| `<b>`, `</b>` | Bold | `<b>Note:</b> important` |
+| `<strong>`, `</strong>` | Bold (alias for `<b>`) | `<strong>key term</strong>` |
+| `<i>`, `</i>` | Italic | `<i>in vivo</i>` |
+| `<em>`, `</em>` | Italic (alias for `<i>`) | `<em>emphasis</em>` |
+
+Engines writing exam YAML should preserve these inline HTML tags verbatim in statement and choice text. HTML entities (e.g., `&deg;`) should also be preserved as-is; the builder decodes them at render time.
+
 ### Question numbering
 
 Questions are auto-numbered sequentially starting at 1, across all sections. The format is always `##. Question text` (period after number).
@@ -245,8 +258,8 @@ A write engine should:
    - `date`: use today's date in ISO format
    - `sections`: one section containing all questions
 2. For each item in the ItemBank:
-   - `statement` = `item.question_text`
-   - `choices` = `item.choices_list` (strip any prefixes with `remove_prefix_from_list()`)
+   - `statement` = `item.question_text` (preserve inline HTML tags: `<sub>`, `<sup>`, `<i>`, `<b>`, `<strong>`, `<em>`)
+   - `choices` = `item.choices_list` (strip any prefixes with `remove_prefix_from_list()`; preserve inline HTML tags)
 3. Item type mapping:
    - **MC**: `statement` + `choices` (answer_text is lost since exam YAML has no answer key)
    - **MA**: same as MC (multiple correct answers lost)

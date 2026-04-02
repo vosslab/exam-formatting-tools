@@ -31,7 +31,6 @@ IMPORT_REQUIREMENT_ALIASES = {
 	"colour": "colour-science",
 	"crypto": "pycryptodome",
 	"cv2": "opencv-python",
-	"docx": "python-docx",
 	"google": "google-api-python-client",
 	"googleapiclient": "google-api-python-client",
 	"imdb": "IMDbPY",
