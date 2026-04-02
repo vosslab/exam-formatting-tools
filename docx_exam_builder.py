@@ -126,6 +126,7 @@ def setup_styles(doc: docx.Document, styles: dict) -> None:
 	h1.paragraph_format.space_before = docx.shared.Inches(spacing['heading_space_before'])
 	h1.paragraph_format.space_after = docx.shared.Inches(spacing['heading_space_after'])
 	h1.paragraph_format.keep_with_next = True
+	h1.paragraph_format.alignment = docx.enum.text.WD_PARAGRAPH_ALIGNMENT.CENTER
 	_set_font_with_fallback(h1, fonts['primary'], fonts['fallback'])
 
 	# Question Heading: bold italic, hanging indent, keep-with-next
@@ -185,10 +186,26 @@ def setup_styles(doc: docx.Document, styles: dict) -> None:
 	choice_base.paragraph_format.space_before = docx.shared.Pt(0)
 	choice_base.paragraph_format.space_after = docx.shared.Pt(spacing['normal_space_after_pt'])
 
-	# Choices 2 through 5: inherit from Choice, tab stops set per-paragraph
+	# Header: small font for page headers with center and right tab stops
+	hdr = doc.styles.add_style('Header', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
+	hdr.base_style = normal
+	hdr.font.size = docx.shared.Pt(sizes['header'])
+	hdr.paragraph_format.tab_stops.add_tab_stop(
+		docx.shared.Inches(styles['page']['header_center_tab']),
+		docx.enum.text.WD_TAB_ALIGNMENT.CENTER
+	)
+	hdr.paragraph_format.tab_stops.add_tab_stop(
+		docx.shared.Inches(styles['page']['header_right_tab']),
+		docx.enum.text.WD_TAB_ALIGNMENT.RIGHT
+	)
+
+	# Choices 2 through 5: inherit from Choice, with tab stops on the style
 	for n in range(2, 6):
 		style = doc.styles.add_style(f'Choices {n}', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
 		style.base_style = choice_base
+		# add tab stops so switching styles in Word preserves column alignment
+		for pos in ef_tools.layout.CHOICES_TAB_STOPS[n]:
+			style.paragraph_format.tab_stops.add_tab_stop(docx.shared.Inches(pos))
 
 
 #============================================
@@ -201,41 +218,35 @@ def add_page_number_field(paragraph) -> None:
 	Args:
 		paragraph: The paragraph to add page numbers to.
 	"""
-	# "Page " text
-	run_page = paragraph.add_run("Page ")
-	run_page.font.size = docx.shared.Pt(9)
+	# "Page " text (font size inherited from paragraph style)
+	paragraph.add_run("Page ")
 	# PAGE field
 	run1 = paragraph.add_run()
-	run1.font.size = docx.shared.Pt(9)
 	fld_simple_page = docx.oxml.OxmlElement('w:fldSimple')
 	fld_simple_page.set(docx.oxml.ns.qn('w:instr'), ' PAGE ')
 	run1._element.addnext(fld_simple_page)
 	# " of " text
-	run_of = paragraph.add_run(" of ")
-	run_of.font.size = docx.shared.Pt(9)
+	paragraph.add_run(" of ")
 	# NUMPAGES field
 	run2 = paragraph.add_run()
-	run2.font.size = docx.shared.Pt(9)
 	fld_simple_total = docx.oxml.OxmlElement('w:fldSimple')
 	fld_simple_total.set(docx.oxml.ns.qn('w:instr'), ' NUMPAGES ')
 	run2._element.addnext(fld_simple_total)
 
 
 #============================================
-def setup_header(section, date_str: str, styles: dict) -> None:
+def setup_header(doc: docx.Document, section, date_str: str) -> None:
 	"""Configure page header on body pages with page number, date, and name.
 
 	Sets up different first page header (empty) and body page header with
-	'Page X of Y | date | First Name:___' layout using tab stops.
+	'Page X of Y | date | First Name:___' layout. Font size and tab stops
+	come from the Header style.
 
 	Args:
+		doc: The Document (needed to access Header style).
 		section: The document section to configure.
 		date_str: Date string to display in header center.
-		styles: Style definitions dict from YAML.
 	"""
-	page = styles['page']
-	header_size = styles['sizes']['header']
-
 	# enable different first page header (empty on page 1)
 	section.different_first_page_header_footer = True
 
@@ -243,26 +254,17 @@ def setup_header(section, date_str: str, styles: dict) -> None:
 	header = section.header
 	header.is_linked_to_previous = False
 	header_para = header.paragraphs[0]
-	# add tab stops from YAML: center and right
-	header_para.paragraph_format.tab_stops.add_tab_stop(
-		docx.shared.Inches(page['header_center_tab']), docx.enum.text.WD_TAB_ALIGNMENT.CENTER
-	)
-	header_para.paragraph_format.tab_stops.add_tab_stop(
-		docx.shared.Inches(page['header_right_tab']), docx.enum.text.WD_TAB_ALIGNMENT.RIGHT
-	)
+	# apply Header style (font size and tab stops defined on style)
+	header_para.style = doc.styles['Header']
 	# add page number fields
 	add_page_number_field(header_para)
 	# tab to center, add date
-	run_tab1 = header_para.add_run("\t")
-	run_tab1.font.size = docx.shared.Pt(header_size)
+	header_para.add_run("\t")
 	if date_str:
-		run_date = header_para.add_run(date_str)
-		run_date.font.size = docx.shared.Pt(header_size)
+		header_para.add_run(date_str)
 	# tab to right, add name line
-	run_tab2 = header_para.add_run("\t")
-	run_tab2.font.size = docx.shared.Pt(header_size)
-	run_name = header_para.add_run("First Name:_____________________________")
-	run_name.font.size = docx.shared.Pt(header_size)
+	header_para.add_run("\t")
+	header_para.add_run("First Name:_____________________________")
 
 	# first page header is empty (just clear it)
 	first_header = section.first_page_header
@@ -272,34 +274,30 @@ def setup_header(section, date_str: str, styles: dict) -> None:
 
 
 #============================================
-def add_rich_text_runs(para, text: str, font_size: float = None,
-	base_bold: bool = False, base_italic: bool = False) -> None:
+def add_rich_text_runs(para, text: str) -> None:
 	"""Add styled runs to a paragraph, parsing inline HTML tags.
 
 	Handles <sub>, <sup>, <b>, <strong>, <i>, <em> tags by creating
 	separate runs with appropriate font properties. HTML entities are
 	decoded first, then rich text tags are parsed.
 
+	Font size, base bold, and base italic come from the paragraph style.
+	Only rich text tags add run-level overrides.
+
 	Args:
 		para: The paragraph to add runs to.
 		text: Text that may contain HTML entities and inline tags.
-		font_size: Optional font size in points for all runs.
-		base_bold: Whether the base text should be bold.
-		base_italic: Whether the base text should be italic.
 	"""
 	# decode HTML entities first, then parse rich text tags
 	decoded = ef_tools.text_utils.decode_html_entities(text)
 	segments = ef_tools.text_utils.parse_rich_text(decoded)
 	for segment_text, tags in segments:
 		run = para.add_run(segment_text)
-		if font_size is not None:
-			run.font.size = docx.shared.Pt(font_size)
-		# apply base formatting
-		if base_bold or 'b' in tags:
+		# only set run-level overrides for rich text tags
+		if 'b' in tags:
 			run.font.bold = True
-		if base_italic or 'i' in tags:
+		if 'i' in tags:
 			run.font.italic = True
-		# apply sub/superscript
 		if 'sub' in tags:
 			run.font.subscript = True
 		if 'sup' in tags:
@@ -322,13 +320,9 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 		items_per_row: Number of choices per line (may differ from tab_style).
 	"""
 	para = doc.add_paragraph()
-	# select the appropriate style for this layout
+	# select the appropriate style (tab stops are defined on the style)
 	style_name = ef_tools.layout.CHOICES_STYLE_NAME[tab_style]
 	para.style = doc.styles[style_name]
-	# set tab stops for the chosen layout
-	tab_positions = ef_tools.layout.CHOICES_TAB_STOPS[tab_style]
-	for pos in tab_positions:
-		para.paragraph_format.tab_stops.add_tab_stop(docx.shared.Inches(pos))
 	# vertical stack: one choice per line, no tabs
 	if items_per_row <= 1:
 		for i, choice_text in enumerate(choices):
@@ -336,11 +330,11 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 				run_br = para.add_run()
 				run_br.add_break()
 			letter = chr(ord('A') + i)
+			# bold letter prefix (only run-level override needed)
 			bold_run = para.add_run(f"({letter}) ")
 			bold_run.bold = True
-			bold_run.font.size = docx.shared.Pt(10)
-			# choice text with rich text support
-			add_rich_text_runs(para, choice_text, font_size=10)
+			# choice text inherits font size from style
+			add_rich_text_runs(para, choice_text)
 		return
 	# multi-column layout
 	for i, choice_text in enumerate(choices):
@@ -352,12 +346,11 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 		# tab before this choice (except first in each row)
 		if i > 0 and i % items_per_row != 0:
 			para.add_run("\t")
-		# bold letter prefix
+		# bold letter prefix (only run-level override needed)
 		bold_run = para.add_run(f"({letter}) ")
 		bold_run.bold = True
-		bold_run.font.size = docx.shared.Pt(10)
-		# choice text with rich text support
-		add_rich_text_runs(para, choice_text, font_size=10)
+		# choice text inherits font size from style
+		add_rich_text_runs(para, choice_text)
 
 
 #============================================
@@ -432,15 +425,17 @@ def build_document(exam_data: dict, output_path: str) -> None:
 
 	# setup page header (empty on first page, name/date on body pages)
 	date_str = exam_data.get('date', '')
-	setup_header(section, date_str, styles)
+	setup_header(doc, section, date_str)
 
 	# --- first page boilerplate ---
 	boilerplate_tab = styles['page']['boilerplate_tab']
 
-	# exam title
+	# exam title (use add_paragraph with Heading 1 style, not add_heading,
+	# so our custom font overrides Word's built-in theme font)
 	title = exam_data.get('title', 'Exam')
-	title_para = doc.add_heading(ef_tools.text_utils.decode_html_entities(title), level=1)
-	title_para.alignment = docx.enum.text.WD_PARAGRAPH_ALIGNMENT.CENTER
+	title_para = doc.add_paragraph()
+	title_para.style = doc.styles['Heading 1']
+	add_rich_text_runs(title_para, title)
 
 	# name line shifted right with tab
 	name_line = exam_data.get('student_line', ef_tools.exam_defaults.DEFAULT_NAME_LINE)
@@ -472,14 +467,14 @@ def build_document(exam_data: dict, output_path: str) -> None:
 		if heading:
 			para = doc.add_paragraph()
 			para.style = doc.styles['Exam Heading 2']
-			add_rich_text_runs(para, heading, base_bold=True, base_italic=True)
+			add_rich_text_runs(para, heading)
 			prev_element = 'chapter'
 		# chapter heading (purple, level 3)
 		chapter = section_data.get('chapter', '')
 		if chapter:
 			para = doc.add_paragraph()
 			para.style = doc.styles['Chapter Heading']
-			add_rich_text_runs(para, chapter, base_bold=True)
+			add_rich_text_runs(para, chapter)
 			prev_element = 'chapter'
 		# questions
 		questions = section_data.get('questions', [])
@@ -497,12 +492,10 @@ def build_document(exam_data: dict, output_path: str) -> None:
 				style_name = ef_tools.question_utils.select_question_style(prev_element)
 				para = doc.add_paragraph()
 				para.style = doc.styles[style_name]
-				# add number prefix as bold-italic run
-				num_run = para.add_run(f"{question_number}. ")
-				num_run.bold = True
-				num_run.italic = True
+				# add number prefix (bold+italic inherited from style)
+				para.add_run(f"{question_number}. ")
 				# add statement text with rich text support
-				add_rich_text_runs(para, stripped, base_bold=True, base_italic=True)
+				add_rich_text_runs(para, stripped)
 				prev_element = 'question'
 			# image (before choices, after question text)
 			image_path = question.get('image', None)
