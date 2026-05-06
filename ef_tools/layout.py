@@ -32,6 +32,37 @@ CHOICES_STYLE_NAME = {
 
 
 #============================================
+def choice_text(choice) -> str:
+	"""Return display text for a string or structured choice.
+
+	Choice may be a plain string or a dict with optional ``text`` and
+	``image`` keys; both keys are intentionally optional, so missing
+	``text`` returns an empty string.
+	"""
+	if isinstance(choice, dict):
+		# 'text' is optional on image-only choices; empty default is intentional
+		text = choice.get('text', '')
+	else:
+		text = choice
+	return text
+
+
+#============================================
+def choice_image(choice) -> str:
+	"""Return image path for a structured choice, or None if absent.
+
+	Plain string choices have no image; dict choices may omit the
+	``image`` key for text-only entries.
+	"""
+	if isinstance(choice, dict):
+		# 'image' is optional on text-only choices; None default is intentional
+		image_path = choice.get('image', None)
+	else:
+		image_path = None
+	return image_path
+
+
+#============================================
 def auto_layout_for_choices(choices: list, layout_limits: dict = None) -> tuple:
 	"""Determine the best layout for choices based on count and text length.
 
@@ -71,7 +102,7 @@ def auto_layout_for_choices(choices: list, layout_limits: dict = None) -> tuple:
 	count = len(choices)
 	if count < 1:
 		return (5, 5)
-	max_len = max(len(c) for c in choices)
+	max_len = max(len(choice_text(c)) for c in choices)
 
 	if count == 2:
 		# 2 items: dedicated Choices 2 layout

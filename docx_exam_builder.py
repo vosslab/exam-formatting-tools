@@ -148,6 +148,12 @@ def build_document(exam_data: dict, output_path: str) -> None:
 			if 'number' in question:
 				question_counter = question['number']
 			question_number = question_counter
+			matching_terms = question.get('matching_terms', [])
+			question_span = max(1, len(matching_terms))
+			if question_span > 1:
+				question_prefix = f"Q{question_number}-{question_number + question_span - 1}. "
+			else:
+				question_prefix = f"{question_number}. "
 			# build question statement with number prefix
 			statement = question.get('statement', '')
 			if statement:
@@ -158,16 +164,28 @@ def build_document(exam_data: dict, output_path: str) -> None:
 				para = doc.add_paragraph()
 				para.style = doc.styles[style_name]
 				# add number prefix (bold+italic inherited from style)
-				para.add_run(f"{question_number}. ")
+				para.add_run(question_prefix)
 				# add statement text with rich text support
 				ef_tools.docx_builder.add_rich_text_runs(para, stripped)
 				prev_element = 'question'
-			# image (before choices, after question text)
+			if matching_terms:
+				for index, term in enumerate(matching_terms):
+					term_para = doc.add_paragraph()
+					term_para.style = doc.styles['Choice']
+					term_para.add_run(f"___ {question_number + index}. ")
+					ef_tools.docx_builder.add_rich_text_runs(term_para, term)
+				prev_element = 'choices'
+			# images (before choices, after question text)
+			image_paths = []
 			image_path = question.get('image', None)
-			if image_path is not None and os.path.isfile(image_path):
-				# add image with auto aspect ratio, max width from styles
-				doc.add_picture(image_path, width=docx.shared.Inches(image_max_width))
-				prev_element = 'image'
+			if image_path is not None:
+				image_paths.append(image_path)
+			image_paths.extend(question.get('images', []))
+			for current_image_path in image_paths:
+				if os.path.isfile(current_image_path):
+					# add image with auto aspect ratio, max width from styles
+					doc.add_picture(current_image_path, width=docx.shared.Inches(image_max_width))
+					prev_element = 'image'
 			# table
 			table_data = question.get('table', None)
 			if table_data is not None:
@@ -182,6 +200,19 @@ def build_document(exam_data: dict, output_path: str) -> None:
 			# choices
 			choices = question.get('choices', None)
 			if choices is not None and len(choices) > 0:
+				if any(isinstance(choice, dict) and choice.get('image', None) for choice in choices):
+					choice_image_width = styles['page']['choice_image_max_width']
+					page_width = 8.5 - (2 * styles['page']['margin'])
+					fit_width = (page_width - 0.4) / len(choices)
+					image_width = min(choice_image_width, fit_width)
+					ef_tools.docx_builder.add_image_choices_tabbed(
+						doc, choices,
+						image_width=image_width,
+						page_width=page_width,
+					)
+					prev_element = 'choices'
+					question_counter += question_span
+					continue
 				layout_override = question.get('layout', None)
 				if layout_override is not None:
 					# explicit override: tab_style = items_per_row = layout value
@@ -192,10 +223,11 @@ def build_document(exam_data: dict, output_path: str) -> None:
 					tab_style, items_per_row = ef_tools.layout.auto_layout_for_choices(
 						choices, layout_limits=layout_limits)
 				ef_tools.docx_builder.add_choices_paragraph(
-					doc, choices, tab_style, items_per_row)
+					doc, choices, tab_style, items_per_row,
+					image_width=styles['page']['choice_image_max_width'])
 				prev_element = 'choices'
 			# increment question counter
-			question_counter += 1
+			question_counter += question_span
 
 	# save document
 	doc.save(output_path)

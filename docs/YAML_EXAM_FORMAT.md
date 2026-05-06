@@ -44,9 +44,11 @@ Each question object represents a single exam item.
 | --- | --- | --- | --- | --- |
 | `statement` | string | yes | -- | Question stem/body text |
 | `number` | integer | no | auto | Numeric override; does not change the "##." format |
-| `choices` | list of strings | no | -- | Answer choices (plain text, no letter prefixes) |
+| `choices` | list of strings or choice objects | no | -- | Answer choices (plain text, no letter prefixes), optionally with image paths |
+| `matching_terms` | list of strings | no | -- | Terms in a matching question that each consume one question number |
 | `layout` | integer | no | auto | Choices column layout: 3, 4, or 5 |
 | `image` | string | no | -- | Relative path to an image file |
+| `images` | list of strings | no | -- | Additional relative image paths for questions with multiple figures |
 | `table` | object | no | -- | Data table (see below) |
 
 ### Statement text
@@ -87,6 +89,30 @@ choices:
 
 Rendered output: **(A)** Loss of atoms, **(B)** Change in molecular identity, **(C)** Release of heat
 
+For image-based choices, use choice objects:
+
+```yaml
+choices:
+  - text: "Titration curve A"
+    image: Final_Exam/Final_Exam_2A_files/titration_a.png.jpg
+  - image: Final_Exam/Final_Exam_2A_files/titration_b.png.jpg
+```
+
+When any choice has an image, the DOCX builder lays the choices out horizontally using paragraph tab stops (one column per choice) with inline images, rather than emitting a docx table.
+
+### Matching terms
+
+Use `matching_terms` when one matching prompt spans several numbered blanks:
+
+```yaml
+- statement: "Match each functional group with its description.\nA. Energy transfer\nB. C-terminus"
+  matching_terms:
+    - "Phosphate"
+    - "Carboxyl"
+```
+
+If this starts at question 5, the DOCX builder renders the prompt as `Q5-6.` and renders term lines as `___ 5. Phosphate` and `___ 6. Carboxyl`; the next question starts at 7.
+
 ### Auto-layout algorithm
 
 When `layout` is omitted, the builder selects a Choices style based on the longest choice text:
@@ -123,6 +149,8 @@ Override with an explicit `layout` value when needed:
 ```
 
 Images are embedded in the ODT with their original aspect ratio preserved. The image path is relative to the working directory.
+
+For cleaned Blackboard HTML exports, use [html_to_exam_yaml.py](../html_to_exam_yaml.py) to create YAML first; it preserves statement images as `images` and image-based answer choices as structured choice objects.
 
 ### Tables
 

@@ -46,9 +46,15 @@ def count_total_questions(sections: list) -> int:
 	total = 0
 	for section in sections:
 		questions = section.get('questions', [])
-		total += len(questions)
+		for question in questions:
+			if isinstance(question, dict):
+				matching_terms = question.get('matching_terms', [])
+				total += max(1, len(matching_terms))
+			else:
+				total += 1
 	return total
 
 assert count_total_questions([]) == 0
-assert count_total_questions([{'questions': [1, 2, 3]}]) == 3
-assert count_total_questions([{'questions': [1]}, {'questions': [2, 3]}]) == 3
+assert count_total_questions([{'questions': [{}, {}, {}]}]) == 3
+assert count_total_questions([{'questions': [{}]}, {'questions': [{}, {}]}]) == 3
+assert count_total_questions([{'questions': [{'matching_terms': [1, 2, 3]}]}]) == 3

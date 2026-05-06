@@ -57,3 +57,14 @@ def test_parse_rich_text_em_normalizes_to_i():
 	"""Test that em tag normalizes to i."""
 	result = ef_tools.text_utils.parse_rich_text("<em>y</em>")
 	assert result[0][1] == frozenset({"i"})
+
+
+#============================================
+def test_parse_rich_text_break_tag():
+	"""Test that HTML break tags become line break segments."""
+	result = ef_tools.text_utils.parse_rich_text("one<br/>two")
+	assert result == [
+		("one", frozenset()),
+		("\n", frozenset()),
+		("two", frozenset()),
+	]

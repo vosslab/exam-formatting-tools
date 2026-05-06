@@ -4,6 +4,8 @@ ARTIFACTS/
 images/
 *.docx
 *.yaml
+!styles/
+!styles/*.yaml
 *.odt
 #libreoffice lock files
 .~lock.*

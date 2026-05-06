@@ -1,5 +1,35 @@
 # Changelog
 
+## 2026-05-06
+
+### Additions and New Features
+
+- Added `html_to_exam_yaml.py` to convert cleaned Blackboard HTML exports into the repo's canonical exam YAML format while preserving statement images and image-based answer choices.
+- Added `html_exam_docx_builder.py` to generate one styled DOCX exam directly from cleaned Blackboard HTML exports while preserving question text, matching blocks, statement images, and image-based answer choices.
+- Extended the DOCX builder to render YAML `images` lists and structured choice objects with image paths.
+- Updated HTML-to-YAML conversion so block breaks become plain YAML newlines rather than literal `<br/>` text, matching questions keep the original prompt/term list style, and compact chemistry notation preserves subscript/superscript spacing without removing prose spaces.
+- Updated DOCX rich text rendering to turn YAML newlines and legacy `<br>` tags into Word line breaks.
+- Updated DOCX image-choice rendering so graph/image answer options are laid out horizontally in a choice table when they fit on the page.
+
+### Behavior or Interface Changes
+
+- Replaced the image-choice docx table layout with inline images positioned by paragraph tab stops; no docx tables are emitted for answer choices. Renamed `add_image_choices_table` to `add_image_choices_tabbed` in `ef_tools/docx_builder.py`; both YAML and HTML builders pass through the same tab-stop helper.
+- Added `matching_terms` support so matching prompts can span question-number ranges like `Q5-8.` and each matching term consumes its own numbered blank.
+- Added `styles/exam_styles.yaml`, the style configuration expected by the DOCX builders.
+- Added tests for HTML exam builder and HTML-to-YAML helper functions.
+
+### Fixes and Maintenance
+
+- Rewrote `README.md` to reflect the DOCX pipeline (the previous version still pointed at long-removed `odt_exam_builder.py`/`extract_odt_styles.py`/`propagate_odt_styles.py` scripts and `docs/ODT_EXAM_STYLES.md`).
+- Added `docs/INSTALL.md` and `docs/USAGE.md` so the README can stay short and link out for setup and command-line examples.
+
+### Developer Tests and Notes
+
+- Regenerated `Final_Exam/Final_Exam_2A_2B_combined.yaml` and `Final_Exam/Final_Exam_2A_2B_combined.docx` from `Cleaned_Final_Exam_2A.html` and `Cleaned_Final_Exam_2B.html`.
+- Verified the combined YAML contains 98 source items (48 from 2A and 50 from 2B), 125 numbered question slots after matching spans, 9 matching prompts, 46 image references, 38 structured image choices, no missing image files, and no empty question statements.
+- Verified the regenerated YAML contains no literal `<br/>`, `&lt;br`, `</sub>and`, or `</sub>values` artifacts.
+- Ran focused tests: `source source_me.sh && python3 -m pytest tests/test_html_to_exam_yaml.py tests/test_text_utils.py tests/test_html_exam_docx_builder.py tests/test_docx_builder_image_choices.py tests/test_layout.py -q`, `source source_me.sh && FAST_REPO_HYGIENE=1 python3 -m pytest tests/test_pyflakes_code_lint.py -q`, and `source source_me.sh && FAST_REPO_HYGIENE=1 python3 -m pytest tests/test_import_requirements.py -q`.
+
 ## 2026-04-02
 
 ### Additions and New Features

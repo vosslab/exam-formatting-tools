@@ -1,0 +1,76 @@
+fonts:
+  primary: "Liberation Sans"
+  fallback: "Arial"
+  header_primary: "Liberation Sans Narrow"
+  header_fallback: "Arial Narrow"
+
+sizes:
+  normal: 10
+  heading_1: 18
+  heading_2: 14
+  chapter_heading: 13
+  question: 10
+  choice: 10
+  header: 8
+
+colors:
+  heading_1: "#000000"
+  chapter_heading: "#6600CC"
+  table_header_bg: "#F2F2F2"
+
+spacing:
+  normal_space_after_pt: 3
+  normal_line_spacing: 1.0
+  heading_space_before: 0.1
+  heading_space_after: 0.08
+  question_indent: 0.28
+  question_hanging: -0.28
+  question_heading_space_before: 0.08
+  question_space_after: 0.03
+  choice_indent: 0.28
+  choice_first_line_indent: 0
+  chapter_space_before_pt: 8
+  chapter_space_after_pt: 4
+  header_space_after_pt: 2
+
+style_flags:
+  heading_1_bold: true
+  heading_1_italic: false
+  heading_1_centered: true
+  question_bold: false
+  question_italic: false
+  chapter_heading_bold: true
+  heading_2_bold: true
+  heading_2_italic: true
+  table_header_centered: true
+
+page:
+  margin: 0.6
+  header_distance: 0.5
+  header_center_tab: 3.65
+  header_right_tab: 7.3
+  boilerplate_tab: 1.4
+  image_max_width: 5.6
+  choice_image_max_width: 1.45
+
+layout_limits:
+  max_chars_5: 17
+  max_chars_4: 23
+  max_chars_3: 30
+  max_chars_2: 49
+
+layout_tab_stops:
+  2:
+    - 3.65
+  3:
+    - 2.33
+    - 4.67
+  4:
+    - 1.75
+    - 3.50
+    - 5.25
+  5:
+    - 1.40
+    - 2.80
+    - 4.20
+    - 5.60

@@ -53,9 +53,9 @@ assert strip_number_prefix("No prefix here") == "No prefix here"
 #============================================
 # regex pattern to match supported inline HTML tags
 # matches <sub>, </sub>, <sup>, </sup>, <b>, </b>, <strong>, </strong>,
-# <i>, </i>, <em>, </em>
+# <i>, </i>, <em>, </em>, and <br> variants
 _RICH_TEXT_TAG_PATTERN = re.compile(
-	r'(</?(?:sub|sup|b|strong|i|em)>)',
+	r'(<br\s*/?>|</?(?:sub|sup|b|strong|i|em)>)',
 	re.IGNORECASE,
 )
 
@@ -95,6 +95,9 @@ def parse_rich_text(text: str) -> list:
 		if not part:
 			continue
 		# check if this part is an HTML tag
+		if re.match(r'^<br\s*/?>$', part, re.IGNORECASE):
+			segments.append(("\n", frozenset(active_tags)))
+			continue
 		tag_match = re.match(r'^<(/?)(\w+)>$', part)
 		if tag_match:
 			is_closing = tag_match.group(1) == '/'

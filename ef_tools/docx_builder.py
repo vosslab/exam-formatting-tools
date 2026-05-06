@@ -314,21 +314,96 @@ def add_rich_text_runs(para, text: str) -> None:
 	decoded = ef_tools.text_utils.decode_html_entities(text)
 	segments = ef_tools.text_utils.parse_rich_text(decoded)
 	for segment_text, tags in segments:
-		run = para.add_run(segment_text)
-		# only set run-level overrides for rich text tags
-		if 'b' in tags:
-			run.font.bold = True
-		if 'i' in tags:
-			run.font.italic = True
-		if 'sub' in tags:
-			run.font.subscript = True
-		if 'sup' in tags:
-			run.font.superscript = True
+		if segment_text == "\n":
+			run = para.add_run()
+			run.add_break()
+			continue
+		text_parts = segment_text.split("\n")
+		for index, text_part in enumerate(text_parts):
+			if index > 0:
+				break_run = para.add_run()
+				break_run.add_break()
+			if not text_part:
+				continue
+			run = para.add_run(text_part)
+			# only set run-level overrides for rich text tags
+			if 'b' in tags:
+				run.font.bold = True
+			if 'i' in tags:
+				run.font.italic = True
+			if 'sub' in tags:
+				run.font.subscript = True
+			if 'sup' in tags:
+				run.font.superscript = True
+
+
+#============================================
+def add_choice_content(para, choice, image_width: float = None) -> None:
+	"""Add text and optional image content for one choice."""
+	choice_text = ef_tools.layout.choice_text(choice)
+	if choice_text:
+		add_rich_text_runs(para, choice_text)
+	image_path = ef_tools.layout.choice_image(choice)
+	if image_path:
+		if choice_text:
+			para.add_run().add_break()
+		run = para.add_run()
+		if image_width is None:
+			run.add_picture(image_path)
+		else:
+			run.add_picture(image_path, width=docx.shared.Inches(image_width))
+
+
+#============================================
+def add_image_choices_tabbed(doc: docx.Document, choices: list,
+	image_width: float, page_width: float) -> None:
+	"""Add image-based choices in a horizontal layout using tab stops.
+
+	Builds a single paragraph with explicit tab stops at evenly spaced
+	column positions. The first line holds bold letter prefixes and any
+	caption text, the second line holds inline images. No docx tables
+	are created.
+
+	Args:
+		doc: The Document to add the paragraph to.
+		choices: List of structured choice dicts with text and/or image keys.
+		image_width: Maximum image width in inches.
+		page_width: Usable page width in inches (page width minus margins).
+	"""
+	para = doc.add_paragraph()
+	para.style = doc.styles['Choice']
+	# evenly spaced tab stops, one per column boundary
+	num_cols = len(choices)
+	col_width = page_width / num_cols
+	for col_index in range(1, num_cols):
+		para.paragraph_format.tab_stops.add_tab_stop(
+			docx.shared.Inches(col_width * col_index),
+			docx.enum.text.WD_TAB_ALIGNMENT.LEFT,
+		)
+	# letter row: (A) caption_a <tab> (B) caption_b <tab> ...
+	for index, choice in enumerate(choices):
+		if index > 0:
+			para.add_run("\t")
+		letter = chr(ord('A') + index)
+		prefix = para.add_run(f"({letter}) ")
+		prefix.bold = True
+		choice_text = ef_tools.layout.choice_text(choice)
+		if choice_text:
+			add_rich_text_runs(para, choice_text)
+	# line break, then image row aligned to the same tab stops
+	para.add_run().add_break()
+	for index, choice in enumerate(choices):
+		if index > 0:
+			para.add_run("\t")
+		image_path = ef_tools.layout.choice_image(choice)
+		if image_path:
+			image_run = para.add_run()
+			image_run.add_picture(image_path, width=docx.shared.Inches(image_width))
 
 
 #============================================
 def add_choices_paragraph(doc: docx.Document, choices: list,
-	tab_style: int, items_per_row: int) -> None:
+	tab_style: int, items_per_row: int, image_width: float = None) -> None:
 	"""Add a tab-separated choices paragraph with bold letter prefixes.
 
 	Creates a paragraph with (A) (B) (C) format, using tab characters
@@ -337,7 +412,7 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 
 	Args:
 		doc: The Document to add the paragraph to.
-		choices: List of choice text strings (no letter prefixes).
+		choices: List of choice text strings or dicts with text/image keys.
 		tab_style: Tab stop layout (3, 4, or 5) from CHOICES_TAB_STOPS.
 		items_per_row: Number of choices per line (may differ from tab_style).
 	"""
@@ -345,9 +420,14 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 	# select the appropriate style (tab stops are defined on the style)
 	style_name = ef_tools.layout.CHOICES_STYLE_NAME[tab_style]
 	para.style = doc.styles[style_name]
+	has_images = any(ef_tools.layout.choice_image(choice) for choice in choices)
+	if has_images:
+		items_per_row = 1
+		tab_style = 1
+		para.style = doc.styles['Choice']
 	# vertical stack: one choice per line, no tabs
 	if items_per_row <= 1:
-		for i, choice_text in enumerate(choices):
+		for i, choice in enumerate(choices):
 			if i > 0:
 				run_br = para.add_run()
 				run_br.add_break()
@@ -355,11 +435,11 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 			# bold letter prefix (only run-level override needed)
 			bold_run = para.add_run(f"({letter}) ")
 			bold_run.bold = True
-			# choice text inherits font size from style
-			add_rich_text_runs(para, choice_text)
+			# choice content inherits font size from style
+			add_choice_content(para, choice, image_width=image_width)
 		return
 	# multi-column layout
-	for i, choice_text in enumerate(choices):
+	for i, choice in enumerate(choices):
 		letter = chr(ord('A') + i)
 		# line break before new rows (after first row)
 		if i > 0 and i % items_per_row == 0:
@@ -371,8 +451,8 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 		# bold letter prefix (only run-level override needed)
 		bold_run = para.add_run(f"({letter}) ")
 		bold_run.bold = True
-		# choice text inherits font size from style
-		add_rich_text_runs(para, choice_text)
+		# choice content inherits font size from style
+		add_choice_content(para, choice, image_width=image_width)
 
 
 #============================================
