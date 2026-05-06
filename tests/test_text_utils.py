@@ -68,3 +68,42 @@ def test_parse_rich_text_break_tag():
 		("\n", frozenset()),
 		("two", frozenset()),
 	]
+
+
+#============================================
+def test_choice_visible_text_decodes_entities():
+	"""HTML entities should be reduced to their visible glyphs."""
+	raw = "C &#8801; C"
+	result = ef_tools.text_utils.choice_visible_text(raw)
+	assert len(result) < len(raw)
+
+
+#============================================
+def test_choice_visible_text_strips_supported_inline_tags():
+	"""Inline tags strip to their inner text without the markup."""
+	result = ef_tools.text_utils.choice_visible_text("H<sub>2</sub>O")
+	assert result == "H2O"
+
+
+#============================================
+def test_choice_visible_text_image_only_dict_returns_empty():
+	"""An image-only choice contributes no visible text."""
+	result = ef_tools.text_utils.choice_visible_text({"image": "image.png"})
+	assert result == ""
+
+
+#============================================
+def test_choice_visible_width_relationships():
+	"""Wide glyphs score higher than narrow ones; entities below raw len."""
+	wide = ef_tools.text_utils.choice_visible_width("MMMM")
+	narrow = ef_tools.text_utils.choice_visible_width("iiii")
+	assert wide > narrow
+	raw = "C &#8801; C"
+	assert ef_tools.text_utils.choice_visible_width(raw) < len(raw)
+
+
+#============================================
+def test_choice_visible_width_image_only_choice_is_zero():
+	"""An image-only choice contributes zero width to the layout score."""
+	width = ef_tools.text_utils.choice_visible_width({"image": "image.png"})
+	assert width == 0.0

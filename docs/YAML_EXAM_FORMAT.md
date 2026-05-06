@@ -138,18 +138,28 @@ options in `choices_list` so the builder formats them consistently.
 
 ### Auto-layout algorithm
 
-When `layout` is omitted, the builder selects a Choices style based on the longest choice text:
+When `layout` is omitted, the builder selects a `Choices N` paragraph
+style based on a weighted **visible-width score** of the longest
+choice. The score is a sum of per-character weights (narrow glyphs
+like `i`, `l`, `.` count less than typical letters; wide glyphs like
+`M`, `W` count more). Crucially, HTML entities and inline tags are
+reduced to their visible text before scoring -- `&#8226;`,
+`&#8801;`, `<sub>2</sub>`, `<b>...</b>` each contribute their
+rendered glyphs, not their serialized YAML length.
 
-| Layout | Items per row | Max chars per choice | Column width |
+| Layout | Items per row | Max visible width | Column width |
 | --- | --- | --- | --- |
-| Choices5 | 5 | 18 | 1.40in |
-| Choices4 | 4 | 24 | 1.75in |
-| Choices3 | 3 | 31 | 2.33in |
-| Choices4 (2-item) | 2 | 50 | 3.50in (two columns) |
+| Choices 5 | 5 | 17 | 1.40in |
+| Choices 4 | 4 | 23 | 1.75in |
+| Choices 3 | 3 | 30 | 2.33in |
+| Choices 2 | 2 | 49 | 3.65in (two columns) |
 
-Character limits are empirically measured at 10pt Liberation Sans with bold "(A) " prefix. When the longest choice exceeds the limit, the next wider layout is selected.
-
-For 2 choices, Choices4 is used because `4 % 2 == 0` gives even column spacing.
+Width budgets are empirically measured at 10pt Liberation Sans with
+bold `(A) ` prefix. When the longest choice's visible-width score
+exceeds the budget, the next wider layout is selected; if no layout
+fits, the builder falls back to a single-column vertical stack
+rendered with the `Choices 2` style. The abstract `Choice` base style
+is never applied to a paragraph.
 
 Override with an explicit `layout` value when needed:
 

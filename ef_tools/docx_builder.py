@@ -389,9 +389,12 @@ def add_image_choices_tabbed(doc: docx.Document, choices: list,
 		page_width: Usable page width in inches (page width minus margins).
 	"""
 	para = doc.add_paragraph()
-	para.style = doc.styles['Choice']
-	# evenly spaced tab stops, one per column boundary
+	# clamp column count to the legal Choices 2..5 range so the
+	# resolved style is always concrete (never the abstract Choice base)
 	num_cols = len(choices)
+	style_columns = max(2, min(num_cols, 5))
+	para.style = doc.styles[ef_tools.layout.choices_style_name(style_columns)]
+	# evenly spaced tab stops, one per column boundary
 	col_width = page_width / num_cols
 	for col_index in range(1, num_cols):
 		para.paragraph_format.tab_stops.add_tab_stop(
@@ -435,14 +438,15 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 		items_per_row: Number of choices per line (may differ from tab_style).
 	"""
 	para = doc.add_paragraph()
-	# select the appropriate style (tab stops are defined on the style)
-	style_name = ef_tools.layout.CHOICES_STYLE_NAME[tab_style]
-	para.style = doc.styles[style_name]
+	# any image in the list forces a vertical stack so the image and
+	# its caption stay on one line per choice
 	has_images = any(ef_tools.layout.choice_image(choice) for choice in choices)
 	if has_images:
 		items_per_row = 1
 		tab_style = 1
-		para.style = doc.styles['Choice']
+	# select the appropriate style via the central resolver, which
+	# always returns a concrete Choices N (never the bare Choice base)
+	para.style = doc.styles[ef_tools.layout.choices_style_name(tab_style)]
 	# vertical stack: one choice per line, no tabs
 	if items_per_row <= 1:
 		for i, choice in enumerate(choices):

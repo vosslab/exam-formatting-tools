@@ -13,6 +13,17 @@ source source_me.sh && python3 docx_exam_builder.py \
 The YAML schema is documented in [docs/YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md).
 Style definitions come from [styles/exam_styles.yaml](../styles/exam_styles.yaml).
 
+Note: `docx_exam_builder.py` refuses to overwrite an existing output file
+(it raises `FileExistsError`). To regenerate a shipped DOCX, write the new
+output to `/tmp/` first and then `cp` it into place:
+
+```bash
+source source_me.sh && python3 docx_exam_builder.py \
+    -i Final_Exam/Final_Exam_2A_2B_combined.yaml \
+    -o /tmp/_regen_combined.docx
+cp /tmp/_regen_combined.docx Final_Exam/Final_Exam_2A_2B_combined.docx
+```
+
 ## Build a DOCX exam directly from cleaned Blackboard HTML
 
 Combine one or more cleaned HTML exports into a single styled DOCX exam:

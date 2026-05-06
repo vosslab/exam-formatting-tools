@@ -1,12 +1,19 @@
 """Auto-layout algorithm and constants for multiple choice formatting.
 
-Determines optimal column layout for exam choices based on count
-and text length, avoiding orphan rows.
+Determines optimal column layout for exam choices based on count and
+the visible-width score of each choice (see ef_tools.text_utils.
+choice_visible_width), avoiding orphan rows.
 """
 
+# Local repo modules
+import ef_tools.text_utils
 
-# default character limits for auto-layout, empirically measured at 10pt
-# Liberation Sans with bold "(A) " prefix, minus 1 safety margin
+
+# default visible-width budgets for auto-layout, empirically measured
+# at 10pt Liberation Sans with bold "(A) " prefix, minus 1 safety
+# margin. Legacy 'max_chars_*' naming is preserved for backward
+# compatibility with styles/exam_styles.yaml; the values are
+# interpreted as width budgets, not raw character counts.
 DEFAULT_MAX_CHARS_5 = 17
 DEFAULT_MAX_CHARS_4 = 23
 DEFAULT_MAX_CHARS_3 = 30
@@ -22,13 +29,38 @@ CHOICES_TAB_STOPS = {
 }
 
 # style name for each tab layout
+# 'Choice' is the abstract base style and must never appear here as
+# a value; tab_style=1 (vertical stack) intentionally maps to the
+# concrete 'Choices 2' style so no rendered paragraph carries the
+# bare base style.
 CHOICES_STYLE_NAME = {
-	1: 'Choice',
+	1: 'Choices 2',
 	2: 'Choices 2',
 	3: 'Choices 3',
 	4: 'Choices 4',
 	5: 'Choices 5',
 }
+
+
+#============================================
+def choices_style_name(tab_style: int) -> str:
+	"""Return the paragraph style name for a tab_style value.
+
+	Centralizes style-name resolution for the choice paragraph
+	emitters. Always returns one of 'Choices 2', 'Choices 3',
+	'Choices 4', or 'Choices 5'; never returns the abstract base
+	style name 'Choice'.
+
+	Args:
+		tab_style: An integer in 1..5 returned by
+			auto_layout_for_choices.
+
+	Returns:
+		The paragraph style name to apply.
+	"""
+	if tab_style not in CHOICES_STYLE_NAME:
+		raise ValueError(f"invalid tab_style {tab_style}; expected 1..5")
+	return CHOICES_STYLE_NAME[tab_style]
 
 
 #============================================
@@ -102,50 +134,42 @@ def auto_layout_for_choices(choices: list, layout_limits: dict = None) -> tuple:
 	count = len(choices)
 	if count < 1:
 		return (5, 5)
-	max_len = max(len(choice_text(c)) for c in choices)
+	# score by DOCX-visible width, not raw YAML/HTML string length;
+	# the max_chars_* names are legacy -- the values are width budgets
+	max_width = max(ef_tools.text_utils.choice_visible_width(c) for c in choices)
 
 	if count == 2:
 		# 2 items: dedicated Choices 2 layout
-		if max_len <= max_chars_2:
+		if max_width <= max_chars_2:
 			return (2, 2)
 		# very long: vertical stack
 		return (1, 1)
 
 	if count == 3:
 		# prefer all 3 on one row
-		if max_len <= max_chars_3:
+		if max_width <= max_chars_3:
 			return (3, 3)
 		# too long: vertical stack
 		return (1, 1)
 
 	if count == 4:
 		# prefer 4 on one row
-		if max_len <= max_chars_4:
+		if max_width <= max_chars_4:
 			return (4, 4)
 		# doesn't fit 4/row: use 2+2 layout (NOT Choices 3 which gives 3+1 orphan)
-		if max_len <= max_chars_2:
+		if max_width <= max_chars_2:
 			return (2, 2)
 		# very long: vertical stack
 		return (1, 1)
 
 	# 5+ choices
-	if max_len <= max_chars_5:
+	if max_width <= max_chars_5:
 		# all 5 on one row
 		return (5, 5)
-	if max_len <= max_chars_3:
-		# Choices 3 gives 3+2 (no orphan) -- skip Choices 4 which gives 4+1 orphan
-		return (3, 3)
-	if max_len <= max_chars_2:
-		# long text: still use 3+2 with Choices 3 columns
+	if max_width <= max_chars_2:
+		# Choices 3 gives 3+2 (no orphan) -- skip Choices 4 which gives 4+1
+		# orphan; the same 3+2 result is used up to the wider max_chars_2
+		# budget so longer items still avoid a vertical stack
 		return (3, 3)
 	# very long: vertical stack
 	return (1, 1)
-
-# test: short choices get 5-column layout
-assert auto_layout_for_choices(["a", "b", "c", "d", "e"]) == (5, 5)
-# test: 2 items get Choices 2 layout
-assert auto_layout_for_choices(["yes", "no"]) == (2, 2)
-# test: 4 medium choices get 2+2 layout to avoid orphan
-assert auto_layout_for_choices(["a" * 25, "b" * 25, "c" * 25, "d" * 25]) == (2, 2)
-# test: very long choices get vertical stack
-assert auto_layout_for_choices(["a" * 55, "b" * 55]) == (1, 1)

@@ -132,3 +132,100 @@ assert parse_rich_text("<strong>x</strong>") == [
 assert parse_rich_text("<em>y</em>") == [
 	("y", frozenset({"i"})),
 ]
+
+
+#============================================
+# pattern to strip supported inline tags while preserving inner text
+_INLINE_TAG_STRIP_PATTERN = re.compile(
+	r'</?(?:sub|sup|b|strong|i|em)>',
+	re.IGNORECASE,
+)
+# pattern to collapse runs of whitespace to a single space
+_WHITESPACE_RUN_PATTERN = re.compile(r'\s+')
+
+
+#============================================
+def choice_visible_text(choice: str | dict) -> str:
+	"""Return the DOCX-visible plain text for a YAML choice.
+
+	Reduces a YAML choice (string or dict with optional text/image keys)
+	to the plain text the DOCX builder will ultimately render: HTML
+	entities are decoded, supported inline tags are stripped while
+	preserving their inner text, and whitespace is normalized.
+
+	Image-only dicts (no text or empty text) return an empty string.
+	The returned value is intended for layout measurement, not for
+	rendering -- it does not preserve sub/sup/bold/italic state.
+
+	Args:
+		choice: A YAML choice -- a plain string or a dict with
+			optional 'text' and 'image' keys.
+
+	Returns:
+		The DOCX-visible plain-text representation, or '' for an
+		image-only choice.
+	"""
+	# extract the raw text payload from string or dict
+	if isinstance(choice, dict):
+		# 'text' is optional on image-only choices; '' is intentional
+		raw_text = choice.get('text', '')
+	else:
+		raw_text = choice
+	if not raw_text:
+		return ''
+	# decode HTML entities (&#8226; -> bullet glyph, etc.)
+	decoded = html.unescape(raw_text)
+	# strip supported inline tags while preserving their inner text
+	stripped = _INLINE_TAG_STRIP_PATTERN.sub('', decoded)
+	# normalize whitespace runs and trim
+	normalized = _WHITESPACE_RUN_PATTERN.sub(' ', stripped).strip()
+	return normalized
+
+
+#============================================
+# character width weights for visible-width scoring
+# weights are approximate -- they capture wide-vs-narrow ratios well
+# enough for column-fit decisions without modeling real font metrics
+_WIDTH_VERY_NARROW = set("ilI.,:;|!")
+_WIDTH_NARROW = set("fjrt")
+_WIDTH_GROUPING = set("+-=<>/\\*()[]{}")
+_WIDTH_WIDE = set("MW@#%&")
+
+
+#============================================
+def choice_visible_width(choice: str | dict) -> float:
+	"""Return an approximate visible-width score for a YAML choice.
+
+	The score is a weighted sum of the DOCX-visible characters of the
+	choice. Narrow glyphs (i, l, .) weigh less than typical letters;
+	wide glyphs (M, W) weigh more. The score is explicitly approximate
+	and is used to decide column layout in auto_layout_for_choices.
+
+	Image-only choices score 0.0 because they contribute no text width
+	to the choice paragraph (image rendering uses a separate column).
+
+	Args:
+		choice: A YAML choice -- a plain string or a dict with
+			optional 'text' and 'image' keys.
+
+	Returns:
+		The weighted visible-width score as a float.
+	"""
+	text = choice_visible_text(choice)
+	width = 0.0
+	for ch in text:
+		# whitespace and very narrow glyphs share the lowest weight
+		if ch.isspace() or ch in _WIDTH_VERY_NARROW:
+			width += 0.35
+		elif ch in _WIDTH_NARROW:
+			width += 0.55
+		elif ch in _WIDTH_GROUPING:
+			width += 0.65
+		elif ch in _WIDTH_WIDE:
+			width += 1.25
+		elif ord(ch) > 127:
+			# decoded entities like bullet, triple-bond, multiplication
+			width += 0.9
+		else:
+			width += 0.8
+	return width
