@@ -196,15 +196,9 @@ def build_document(exam_data: dict, output_path: str) -> None:
 				# add statement text with rich text support
 				ef_tools.docx_builder.add_rich_text_runs(para, stripped)
 				prev_element = 'question'
-			if prompts_list:
-				for index, prompt in enumerate(prompts_list):
-					prompt_para = doc.add_paragraph()
-					prompt_para.style = doc.styles['Choice']
-					prompt_para.add_run(f"___ {question_number + index}. ")
-					ef_tools.docx_builder.add_rich_text_runs(prompt_para, prompt)
-				prev_element = 'choices'
-			# matching choices_list: render the lettered (A)/(B)/... options
-			# below the prompts using the same auto-layout used for MC.
+			# matching layout matches reference artifacts in ARTIFACTS/:
+			# lettered (A)/(B)/... choices come FIRST as the answer key,
+			# then numbered blanks the student fills in.
 			choices_list = question.get('choices_list', [])
 			if choices_list:
 				tab_style, items_per_row = resolve_choice_layout(
@@ -212,6 +206,13 @@ def build_document(exam_data: dict, output_path: str) -> None:
 				ef_tools.docx_builder.add_choices_paragraph(
 					doc, choices_list, tab_style, items_per_row,
 					image_width=styles['page']['choice_image_max_width'])
+				prev_element = 'choices'
+			if prompts_list:
+				for index, prompt in enumerate(prompts_list):
+					prompt_para = doc.add_paragraph()
+					prompt_para.style = doc.styles['Matching Prompt']
+					prompt_para.add_run(f"___ {question_number + index}. ")
+					ef_tools.docx_builder.add_rich_text_runs(prompt_para, prompt)
 				prev_element = 'choices'
 			# images (before choices, after question text)
 			image_paths = []

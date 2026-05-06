@@ -29,6 +29,10 @@ spacing:
   question_space_after: 0.03
   choice_indent: 0.28
   choice_first_line_indent: 0
+  matching_prompt_indent: 0.2
+  matching_prompt_hanging: -0.2
+  matching_prompt_space_before: 0.07
+  matching_prompt_line_spacing: 1.25
   chapter_space_before_pt: 8
   chapter_space_after_pt: 4
   header_space_after_pt: 2
@@ -58,6 +62,10 @@ layout_limits:
   max_chars_4: 23
   max_chars_3: 30
   max_chars_2: 49
+
+matching_prompt_tab_stops:
+  - 0.5
+  - 3.5
 
 layout_tab_stops:
   2:

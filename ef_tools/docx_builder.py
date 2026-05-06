@@ -188,6 +188,24 @@ def setup_styles(doc: docx.Document, styles: dict) -> None:
 		docx.enum.text.WD_TAB_ALIGNMENT.RIGHT
 	)
 
+	# Matching Prompt: numbered fill-in lines for matching questions.
+	# Mirrors the legacy ARTIFACTS/2019_exam2-final.docx "Question" style
+	# (verified via LibreOffice style dialog). Two tab stops let prompts
+	# render in a two-column layout: "___ 1. text<tab>___ 2. text".
+	matching_prompt = doc.styles.add_style(
+		'Matching Prompt', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
+	matching_prompt.base_style = qh
+	matching_prompt.font.bold = False
+	matching_prompt.font.italic = False
+	matching_prompt.paragraph_format.left_indent = docx.shared.Inches(spacing['matching_prompt_indent'])
+	matching_prompt.paragraph_format.first_line_indent = docx.shared.Inches(spacing['matching_prompt_hanging'])
+	matching_prompt.paragraph_format.space_before = docx.shared.Inches(spacing['matching_prompt_space_before'])
+	matching_prompt.paragraph_format.space_after = docx.shared.Pt(0)
+	matching_prompt.paragraph_format.line_spacing = spacing['matching_prompt_line_spacing']
+	matching_prompt.paragraph_format.keep_with_next = False
+	for pos in styles['matching_prompt_tab_stops']:
+		matching_prompt.paragraph_format.tab_stops.add_tab_stop(docx.shared.Inches(pos))
+
 	# Choices 2 through 5: inherit from Choice, with tab stops on the style
 	# load tab stops from YAML if available, else use layout module defaults
 	tab_stops_config = styles.get('layout_tab_stops', ef_tools.layout.CHOICES_TAB_STOPS)

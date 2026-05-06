@@ -67,6 +67,51 @@ def test_matching_question_renders_prompts_blanks_and_choice_letters(tmp_path):
 
 
 #============================================
+def test_matching_renders_choices_before_prompts(tmp_path):
+	"""Lettered choices_list must render before numbered prompt blanks.
+
+	Compares paragraph indices (not character offsets) so a stray '(A)'
+	or '___ 1.' in the question statement cannot give a false positive.
+	"""
+	exam_data = _matching_yaml()
+	output_path = tmp_path / "matching_order.docx"
+	docx_exam_builder.build_document(exam_data, str(output_path))
+	doc = docx.Document(str(output_path))
+	# index of the first paragraph that starts with the choices block
+	choices_para = next(i for i, p in enumerate(doc.paragraphs) if p.text.startswith('(A)'))
+	# index of the first numbered prompt blank
+	prompt_para = next(i for i, p in enumerate(doc.paragraphs) if p.text.startswith('___ 1.'))
+	assert choices_para < prompt_para
+
+
+#============================================
+def test_matching_prompt_style_is_registered_and_applied(tmp_path):
+	"""'Matching Prompt' style must exist in the doc and tag prompt paragraphs.
+
+	Locks the style name (so a typo can't silently fall back to Normal),
+	the parent style, the two-column tab stops at 0.5" and 3.5", and the
+	1.25 line spacing -- the values verified against ARTIFACTS/2019_exam2-final.docx.
+	"""
+	exam_data = _matching_yaml()
+	output_path = tmp_path / "matching_style.docx"
+	docx_exam_builder.build_document(exam_data, str(output_path))
+	doc = docx.Document(str(output_path))
+	style = doc.styles['Matching Prompt']
+	assert style.base_style.name == 'Question Heading'
+	assert style.font.bold is False
+	assert style.font.italic is False
+	assert style.paragraph_format.line_spacing == 1.25
+	tab_positions = [stop.position for stop in style.paragraph_format.tab_stops]
+	# 0.5" and 3.5" expressed in EMU (914400 per inch)
+	assert tab_positions == [docx.shared.Inches(0.5), docx.shared.Inches(3.5)]
+	# every prompt paragraph in the doc carries this style
+	prompt_paras = [p for p in doc.paragraphs if p.text.startswith('___ ')]
+	assert len(prompt_paras) >= 1
+	for para in prompt_paras:
+		assert para.style.name == 'Matching Prompt'
+
+
+#============================================
 def test_matching_question_emits_no_choice_tables(tmp_path):
 	"""Layout policy: matching choices_list must not become a docx table.
 

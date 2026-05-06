@@ -126,9 +126,12 @@ Matching questions use `prompts_list` (the numbered items students label) and
 If this question starts at number 5, the DOCX builder renders:
 
 - header `Q5-6. Match each functional group with its description.`
-- numbered blanks `___ 5. Phosphate` and `___ 6. Carboxyl`
 - lettered options `(A) Energy transfer  (B) C-terminus` (auto-laid-out like MC)
+- numbered blanks `___ 5. Phosphate` and `___ 6. Carboxyl`
 - the next question starts at 7.
+
+The lettered choices render before the numbered blanks so students see the
+answer key first, matching the reference exam style in `ARTIFACTS/`.
 
 Do not embed `A. ... B. ...` enumerations inside `statement` -- put the
 options in `choices_list` so the builder formats them consistently.
@@ -203,6 +206,7 @@ The builder applies these named paragraph styles automatically:
 | Question Heading | Questions following other questions or choices (normal flow) |
 | Question Follow | Questions following an image, table, or heading (after a visual break) |
 | Choices3 / Choices4 / Choices5 | Multiple choice answer rows |
+| Matching Prompt | Numbered fill-in lines for matching questions (`___ N. text`); two-column tab stops at 0.5" and 3.5", inherits from Question Heading. See `ARTIFACTS/2019_exam2-final.docx` |
 | Standard | Default body text |
 
 Style selection between "Question Heading" and "Question Follow" is automatic based on the preceding element.
