@@ -2,7 +2,7 @@
 
 Version 1.0 -- exam-formatting-tools
 
-This document specifies the YAML exam format used by [odt_exam_builder.py](../odt_exam_builder.py) and compatible tools. It serves as the canonical reference for both human authors and machine readers/writers, including qti-package-maker engines.
+This document specifies the YAML exam format used by [docx_exam_builder.py](../docx_exam_builder.py) and [html_exam_docx_builder.py](../html_exam_docx_builder.py). It serves as the canonical reference for both human authors and machine readers/writers, including qti-package-maker engines.
 
 ## Overview
 
@@ -45,7 +45,8 @@ Each question object represents a single exam item.
 | `statement` | string | yes | -- | Question stem/body text |
 | `number` | integer | no | auto | Numeric override; does not change the "##." format |
 | `choices` | list of strings or choice objects | no | -- | Answer choices (plain text, no letter prefixes), optionally with image paths |
-| `matching_terms` | list of strings | no | -- | Terms in a matching question that each consume one question number |
+| `prompts_list` | list of strings | no | -- | Numbered matching prompts; each consumes one question number and renders as `___ N.` |
+| `choices_list` | list of strings | no | -- | Lettered matching choices rendered as `(A) (B) (C) ...` below the prompts |
 | `layout` | integer | no | auto | Choices column layout: 3, 4, or 5 |
 | `image` | string | no | -- | Relative path to an image file |
 | `images` | list of strings | no | -- | Additional relative image paths for questions with multiple figures |
@@ -98,20 +99,39 @@ choices:
   - image: Final_Exam/Final_Exam_2A_files/titration_b.png.jpg
 ```
 
-When any choice has an image, the DOCX builder lays the choices out horizontally using paragraph tab stops (one column per choice) with inline images, rather than emitting a docx table.
+**Layout policy: no docx tables for answer choices.** All answer choices --
+text-only and image-based -- are rendered as inline runs in a single paragraph
+positioned with paragraph tab stops, one column per choice. The DOCX builder
+must not emit `<w:tbl>` table elements for choices, even when images are
+present. This applies to MC `choices` and to matching `choices_list`. Data
+tables declared via the question-level `table` field (a separate concept) are
+still rendered as real tables.
 
-### Matching terms
+### Matching
 
-Use `matching_terms` when one matching prompt spans several numbered blanks:
+Matching questions use `prompts_list` (the numbered items students label) and
+`choices_list` (the lettered options). The schema mirrors bptools/qti-package-maker
+`MATCH(question_text, prompts_list, choices_list)`.
 
 ```yaml
-- statement: "Match each functional group with its description.\nA. Energy transfer\nB. C-terminus"
-  matching_terms:
+- statement: "Match each functional group with its description."
+  prompts_list:
     - "Phosphate"
     - "Carboxyl"
+  choices_list:
+    - "Energy transfer"
+    - "C-terminus"
 ```
 
-If this starts at question 5, the DOCX builder renders the prompt as `Q5-6.` and renders term lines as `___ 5. Phosphate` and `___ 6. Carboxyl`; the next question starts at 7.
+If this question starts at number 5, the DOCX builder renders:
+
+- header `Q5-6. Match each functional group with its description.`
+- numbered blanks `___ 5. Phosphate` and `___ 6. Carboxyl`
+- lettered options `(A) Energy transfer  (B) C-terminus` (auto-laid-out like MC)
+- the next question starts at 7.
+
+Do not embed `A. ... B. ...` enumerations inside `statement` -- put the
+options in `choices_list` so the builder formats them consistently.
 
 ### Auto-layout algorithm
 
@@ -148,7 +168,7 @@ Override with an explicit `layout` value when needed:
     - "Reduction"
 ```
 
-Images are embedded in the ODT with their original aspect ratio preserved. The image path is relative to the working directory.
+Images are embedded in the DOCX with their original aspect ratio preserved. The image path is relative to the working directory.
 
 For cleaned Blackboard HTML exports, use [html_to_exam_yaml.py](../html_to_exam_yaml.py) to create YAML first; it preserves statement images as `images` and image-based answer choices as structured choice objects.
 
@@ -252,11 +272,12 @@ A read engine should:
 1. Parse the YAML file with `yaml.safe_load()`
 2. Iterate over `sections[].questions[]`
 3. For each question, determine the item type:
+   - Has `prompts_list` and `choices_list` -> **MATCH**
    - Has `choices` list -> **MC** (single answer; answer key is not stored in this format)
-   - Has `table` with `columns` and `rows` -> may contain a **MATCH** if column count is 2
 4. Create item objects:
    - `question_text` = the `statement` field (strip any leading number prefix like "22) ")
-   - `choices_list` = the `choices` field (already plain text, no prefixes)
+   - For **MC**: `choices_list` = the `choices` field (already plain text, no prefixes)
+   - For **MATCH**: `prompts_list` and `choices_list` come straight from the matching fields
    - `answer_text` = not available (this is a print format, not a grading format)
 
 ### Fields preserved during read
@@ -264,8 +285,9 @@ A read engine should:
 | Exam YAML field | qti-package-maker field | Notes |
 | --- | --- | --- |
 | `statement` | `question_text` | Strip number prefix |
-| `choices` | `choices_list` | Direct mapping |
-| `table.columns` + `table.rows` | `prompts_list` + `choices_list` (MATCH) | Only if 2-column table |
+| `choices` | `choices_list` | MC, direct mapping |
+| `prompts_list` | `prompts_list` | MATCH, direct mapping |
+| `choices_list` | `choices_list` | MATCH, direct mapping |
 
 ### Fields lost during read (print-only metadata)
 
@@ -274,7 +296,7 @@ These fields have no equivalent in the qti item model and are silently dropped:
 - `title`, `date`, `student_line`, `total_points`, `scoring_sections`
 - `heading`, `chapter` (section structure)
 - `number`, `layout` (formatting hints)
-- `image` (embedded figures)
+- `image`, `images` (embedded figures)
 - Answer correctness (not stored in exam YAML)
 
 ### Writing exam YAML from an ItemBank
@@ -291,7 +313,7 @@ A write engine should:
 3. Item type mapping:
    - **MC**: `statement` + `choices` (answer_text is lost since exam YAML has no answer key)
    - **MA**: same as MC (multiple correct answers lost)
-   - **MATCH**: convert `prompts_list`/`choices_list` to a `table` with 2 columns
+   - **MATCH**: emit `prompts_list` and `choices_list` directly (statement stays in `statement`; do not encode as a `table`)
    - **ORDER**: `statement` + `choices` (ordering information lost)
    - **NUM**: `statement` only (numeric answer/tolerance lost)
    - **FIB**: `statement` only (fill-in answers lost)
@@ -313,4 +335,4 @@ These qti item fields have no equivalent in exam YAML:
 
 Exam YAML is a **print-document format**, not an assessment interchange format. Round-tripping through exam YAML loses answer keys, item metadata, and section structure. Use exam YAML as a one-way export target for generating printable exams, not as a lossless storage format.
 
-The recommended pipeline for LMS delivery is: source format -> qti-package-maker -> QTI/Blackboard. The recommended pipeline for print exams is: source format -> qti-package-maker -> bbq_text -> [bbq_to_exam_yaml.py](../bbq_to_exam_yaml.py) -> exam YAML -> [odt_exam_builder.py](../odt_exam_builder.py) -> ODT.
+The recommended pipeline for LMS delivery is: source format -> qti-package-maker -> QTI/Blackboard. The recommended pipeline for print exams is: source format -> qti-package-maker -> bbq_text -> [bbq_to_exam_yaml.py](../bbq_to_exam_yaml.py) -> exam YAML -> [docx_exam_builder.py](../docx_exam_builder.py) -> DOCX.

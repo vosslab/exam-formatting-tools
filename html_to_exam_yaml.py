@@ -22,8 +22,12 @@ INLINE_TAGS = html_exam_docx_builder.INLINE_TAGS
 CHOICE_ITEM_XPATH = (
 	".//div[contains(concat(' ', normalize-space(@class), ' '), ' cleaned-choice-item ')]"
 )
-MATCHING_TERM_MARKER_XPATH = ".//span[contains(@style, 'display:inline-block')]"
-MATCHING_PROMPT_XPATH = ".//span[contains(@style, 'white-space:nowrap')]"
+# Lettered options (A./B./C./D.) live in spans with white-space:nowrap.
+# In bptools MATCH terminology these are the choices_list.
+MATCHING_CHOICE_XPATH = ".//span[contains(@style, 'white-space:nowrap')]"
+# Numbered prompts (with the empty-box marker) live as inline-block spans.
+# In bptools MATCH terminology these are the prompts_list.
+MATCHING_PROMPT_MARKER_XPATH = ".//span[contains(@style, 'display:inline-block')]"
 
 
 #============================================
@@ -123,30 +127,38 @@ def clean_statement_html(text: str) -> str:
 #============================================
 def is_matching_block(element) -> bool:
 	"""Return whether an element contains a Blackboard matching block."""
-	prompts = element.xpath(MATCHING_PROMPT_XPATH)
-	term_markers = element.xpath(MATCHING_TERM_MARKER_XPATH)
-	result = len(prompts) > 0 and len(term_markers) > 0
+	choices = element.xpath(MATCHING_CHOICE_XPATH)
+	prompt_markers = element.xpath(MATCHING_PROMPT_MARKER_XPATH)
+	result = len(choices) > 0 and len(prompt_markers) > 0
 	return result
 
 
 #============================================
 def parse_matching_block(element) -> tuple[list[str], list[str]]:
-	"""Parse matching prompts and terms from a Blackboard matching block."""
-	prompts = []
-	for prompt_element in element.xpath(MATCHING_PROMPT_XPATH):
-		prompt = element_to_inline_html(prompt_element)
-		if prompt:
-			prompts.append(prompt)
-	terms = []
-	for marker in element.xpath(MATCHING_TERM_MARKER_XPATH):
+	"""Parse matching prompts and choices from a Blackboard matching block.
+
+	Returns a (prompts_list, choices_list) tuple matching the bptools
+	MATCH item shape: prompts_list are the numbered items, choices_list
+	are the lettered (A/B/C/D) options.
+	"""
+	# Lettered choices: strip leading 'A. '/'B) ' style prefix.
+	choices_list = []
+	for choice_element in element.xpath(MATCHING_CHOICE_XPATH):
+		choice = element_to_inline_html(choice_element)
+		choice = clean_choice_html(choice)
+		if choice:
+			choices_list.append(choice)
+	# Numbered prompts: anchored by the empty inline-block "blank" marker.
+	prompts_list = []
+	for marker in element.xpath(MATCHING_PROMPT_MARKER_XPATH):
 		parent = marker.getparent()
 		if parent is None:
 			continue
-		term = element_to_inline_html(parent)
-		term = term.replace("&#160;", "").strip()
-		if term:
-			terms.append(term)
-	return prompts, terms
+		prompt = element_to_inline_html(parent)
+		prompt = prompt.replace("&#160;", "").strip()
+		if prompt:
+			prompts_list.append(prompt)
+	return prompts_list, choices_list
 
 
 #============================================
@@ -196,7 +208,8 @@ def parse_question(html_path: str, question_div) -> dict:
 	statement_parts = []
 	images = []
 	choices = []
-	matching_terms = []
+	prompts_list = []
+	choices_list = []
 	if body.text and body.text.strip():
 		body_text = escape_text(body.text.strip())
 		if body_text:
@@ -209,9 +222,12 @@ def parse_question(html_path: str, question_div) -> dict:
 			choices = parse_choices(html_path, child)
 			continue
 		if is_matching_block(child):
-			prompts, terms = parse_matching_block(child)
-			statement_parts.extend(prompts)
-			matching_terms.extend(terms)
+			# Matching block contributes prompts_list and choices_list,
+			# never statement text. The lead-in prose ('Match each ...',
+			# 'Note: ...') has already landed in statement_parts.
+			block_prompts, block_choices = parse_matching_block(child)
+			prompts_list.extend(block_prompts)
+			choices_list.extend(block_choices)
 			continue
 		text = html_exam_docx_builder.text_from_element(child)
 		if html_exam_docx_builder.is_question_code(text):
@@ -228,8 +244,10 @@ def parse_question(html_path: str, question_div) -> dict:
 		question["images"] = images
 	if choices:
 		question["choices"] = choices
-	if matching_terms:
-		question["matching_terms"] = matching_terms
+	if prompts_list:
+		question["prompts_list"] = prompts_list
+	if choices_list:
+		question["choices_list"] = choices_list
 	return question
 
 

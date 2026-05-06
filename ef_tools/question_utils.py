@@ -48,8 +48,10 @@ def count_total_questions(sections: list) -> int:
 		questions = section.get('questions', [])
 		for question in questions:
 			if isinstance(question, dict):
-				matching_terms = question.get('matching_terms', [])
-				total += max(1, len(matching_terms))
+				# matching items use prompts_list; each prompt consumes one
+				# question slot, so a 4-prompt block counts as 4 questions.
+				prompts_list = question.get('prompts_list', [])
+				total += max(1, len(prompts_list))
 			else:
 				total += 1
 	return total
@@ -57,4 +59,4 @@ def count_total_questions(sections: list) -> int:
 assert count_total_questions([]) == 0
 assert count_total_questions([{'questions': [{}, {}, {}]}]) == 3
 assert count_total_questions([{'questions': [{}]}, {'questions': [{}, {}]}]) == 3
-assert count_total_questions([{'questions': [{'matching_terms': [1, 2, 3]}]}]) == 3
+assert count_total_questions([{'questions': [{'prompts_list': [1, 2, 3]}]}]) == 3

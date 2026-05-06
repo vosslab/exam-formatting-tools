@@ -37,6 +37,8 @@ source source_me.sh && python3 html_to_exam_yaml.py \
     -o exam_2A.yaml
 ```
 
+Matching questions are emitted as `prompts_list` plus `choices_list`; see [docs/YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md) for the schema.
+
 Blackboard `.bbq` export to YAML:
 
 ```bash

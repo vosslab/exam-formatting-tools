@@ -122,16 +122,22 @@ def test_parse_question_keeps_body_text_statement():
 
 
 #============================================
-def test_parse_matching_block_adds_numbered_terms():
-	"""Test matching blocks split prompts from numbered terms."""
+def test_parse_matching_block_emits_prompts_and_choices_lists():
+	"""Matching blocks emit bptools-style prompts_list and choices_list.
+
+	The lead-in prose stays in `statement`, the lettered (A./B./...) options
+	land in `choices_list` (with prefixes stripped), and the numbered items
+	students label land in `prompts_list`. The legacy `matching_terms`
+	field is no longer emitted.
+	"""
 	html_text = """
 	<div class="takeQuestionDiv">
 	<li>
 	<p>Match the terms.</p>
 	<div>
 	<div>
-	<span style="white-space:nowrap">A. First prompt</span>
-	<span style="white-space:nowrap">B. Second prompt</span>
+	<span style="white-space:nowrap">A. First option</span>
+	<span style="white-space:nowrap">B. Second option</span>
 	</div>
 	<div>
 	<div><span style="display:inline-block"></span><strong>Term 1</strong></div>
@@ -143,9 +149,20 @@ def test_parse_matching_block_adds_numbered_terms():
 	"""
 	question_div = lxml.html.fromstring(html_text)
 	result = html_to_exam_yaml.parse_question("Final_Exam/source.html", question_div)
+	# lead-in prose remains in statement; lettered options must NOT
 	assert "Match the terms." in result["statement"]
-	assert "A. First prompt" in result["statement"]
-	assert "B. Second prompt" in result["statement"]
-	assert len(result["matching_terms"]) == 2
-	assert "Term 1" in result["matching_terms"][0]
-	assert "Term 2" in result["matching_terms"][1]
+	assert "A. First option" not in result["statement"]
+	assert "B. Second option" not in result["statement"]
+	# choices_list holds lettered options with the 'A. '/'B. ' prefix stripped
+	assert result["choices_list"] == ["First option", "Second option"]
+	# prompts_list holds the numbered items, preserving inline markup,
+	# and must not absorb any of the lettered-option text.
+	assert "Term 1" in result["prompts_list"][0]
+	assert "Term 2" in result["prompts_list"][1]
+	for prompt in result["prompts_list"]:
+		assert "A. " not in prompt
+		assert "B. " not in prompt
+		assert "First option" not in prompt
+		assert "Second option" not in prompt
+	# legacy field is gone
+	assert "matching_terms" not in result

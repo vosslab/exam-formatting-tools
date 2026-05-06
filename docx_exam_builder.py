@@ -48,6 +48,22 @@ def parse_args() -> argparse.Namespace:
 
 
 #============================================
+def resolve_choice_layout(question: dict, items: list, layout_limits) -> tuple:
+	"""Pick (tab_style, items_per_row) for a list of choice items.
+
+	An integer `layout` on the question bypasses auto-sizing; otherwise
+	the items are sized via the shared MC auto-layout. Used by both MC
+	`choices` and matching `choices_list` so the two paths stay in sync.
+	"""
+	layout_override = question.get('layout', None)
+	if layout_override is not None:
+		return layout_override, layout_override
+	tab_style, items_per_row = ef_tools.layout.auto_layout_for_choices(
+		items, layout_limits=layout_limits)
+	return tab_style, items_per_row
+
+
+#============================================
 def build_document(exam_data: dict, output_path: str) -> None:
 	"""Build a complete DOCX exam document from YAML data.
 
@@ -144,12 +160,24 @@ def build_document(exam_data: dict, output_path: str) -> None:
 		# questions
 		questions = section_data.get('questions', [])
 		for question in questions:
+			# Hard-switch guard: matching schema migrated from `matching_terms`
+			# to `prompts_list`/`choices_list`. Refuse legacy YAML loudly so
+			# stale inputs don't render as malformed exams with empty prompts.
+			if 'matching_terms' in question:
+				raise ValueError(
+					"Question contains legacy 'matching_terms' key; "
+					"replace with 'prompts_list' and 'choices_list' "
+					"(see docs/YAML_EXAM_FORMAT.md)."
+				)
 			# get explicit number if provided, otherwise use counter
 			if 'number' in question:
 				question_counter = question['number']
 			question_number = question_counter
-			matching_terms = question.get('matching_terms', [])
-			question_span = max(1, len(matching_terms))
+			# matching items use bptools-style prompts_list/choices_list:
+			# prompts_list drives the question-number span and the numbered
+			# blanks; choices_list is the lettered (A)/(B)/... options.
+			prompts_list = question.get('prompts_list', [])
+			question_span = max(1, len(prompts_list))
 			if question_span > 1:
 				question_prefix = f"Q{question_number}-{question_number + question_span - 1}. "
 			else:
@@ -168,12 +196,22 @@ def build_document(exam_data: dict, output_path: str) -> None:
 				# add statement text with rich text support
 				ef_tools.docx_builder.add_rich_text_runs(para, stripped)
 				prev_element = 'question'
-			if matching_terms:
-				for index, term in enumerate(matching_terms):
-					term_para = doc.add_paragraph()
-					term_para.style = doc.styles['Choice']
-					term_para.add_run(f"___ {question_number + index}. ")
-					ef_tools.docx_builder.add_rich_text_runs(term_para, term)
+			if prompts_list:
+				for index, prompt in enumerate(prompts_list):
+					prompt_para = doc.add_paragraph()
+					prompt_para.style = doc.styles['Choice']
+					prompt_para.add_run(f"___ {question_number + index}. ")
+					ef_tools.docx_builder.add_rich_text_runs(prompt_para, prompt)
+				prev_element = 'choices'
+			# matching choices_list: render the lettered (A)/(B)/... options
+			# below the prompts using the same auto-layout used for MC.
+			choices_list = question.get('choices_list', [])
+			if choices_list:
+				tab_style, items_per_row = resolve_choice_layout(
+					question, choices_list, layout_limits)
+				ef_tools.docx_builder.add_choices_paragraph(
+					doc, choices_list, tab_style, items_per_row,
+					image_width=styles['page']['choice_image_max_width'])
 				prev_element = 'choices'
 			# images (before choices, after question text)
 			image_paths = []
@@ -213,15 +251,8 @@ def build_document(exam_data: dict, output_path: str) -> None:
 					prev_element = 'choices'
 					question_counter += question_span
 					continue
-				layout_override = question.get('layout', None)
-				if layout_override is not None:
-					# explicit override: tab_style = items_per_row = layout value
-					tab_style = layout_override
-					items_per_row = layout_override
-				else:
-					# auto-determine layout with YAML limits
-					tab_style, items_per_row = ef_tools.layout.auto_layout_for_choices(
-						choices, layout_limits=layout_limits)
+				tab_style, items_per_row = resolve_choice_layout(
+					question, choices, layout_limits)
 				ef_tools.docx_builder.add_choices_paragraph(
 					doc, choices, tab_style, items_per_row,
 					image_width=styles['page']['choice_image_max_width'])

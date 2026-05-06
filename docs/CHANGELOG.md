@@ -15,6 +15,7 @@
 
 - Replaced the image-choice docx table layout with inline images positioned by paragraph tab stops; no docx tables are emitted for answer choices. Renamed `add_image_choices_table` to `add_image_choices_tabbed` in `ef_tools/docx_builder.py`; both YAML and HTML builders pass through the same tab-stop helper.
 - Added `matching_terms` support so matching prompts can span question-number ranges like `Q5-8.` and each matching term consumes its own numbered blank.
+- Replaced `matching_terms` with bptools-style `prompts_list` + `choices_list` for matching questions (mirrors `MATCH(question_text, prompts_list, choices_list)` in `qti_package_maker/assessment_items/item_types.py`). `html_to_exam_yaml.py` now extracts the lettered (A./B./...) options into `choices_list` (with prefixes stripped) and the bond/term items into `prompts_list`; the lead-in prose stays in `statement` instead of carrying an inline `A. ... B. ...` enumeration. `docx_exam_builder.py` renders `choices_list` through the standard MC auto-layout so matching options look identical to MC choices. The legacy `matching_terms` field is no longer read or emitted.
 - Added `styles/exam_styles.yaml`, the style configuration expected by the DOCX builders.
 - Added tests for HTML exam builder and HTML-to-YAML helper functions.
 
@@ -22,10 +23,20 @@
 
 - Rewrote `README.md` to reflect the DOCX pipeline (the previous version still pointed at long-removed `odt_exam_builder.py`/`extract_odt_styles.py`/`propagate_odt_styles.py` scripts and `docs/ODT_EXAM_STYLES.md`).
 - Added `docs/INSTALL.md` and `docs/USAGE.md` so the README can stay short and link out for setup and command-line examples.
+- Fixed stale ODT references in `docs/YAML_EXAM_FORMAT.md` (header sentence and Images subsection now name the DOCX builders).
+- Extracted `resolve_choice_layout()` helper in `docx_exam_builder.py` so MC `choices` and matching `choices_list` share one auto-layout/override path.
+
+### Removals and Deprecations
+
+- Removed legacy `matching_terms` field from the exam YAML schema. `docx_exam_builder.py` now raises `ValueError` if a question carries `matching_terms`, pointing authors at `prompts_list`/`choices_list` and the format spec.
+
+### Decisions and Failures
+
+- Reaffirmed layout policy in `docs/YAML_EXAM_FORMAT.md`: answer choices (MC `choices` and matching `choices_list`, text-only and image-based) are always laid out as inline runs with paragraph tab stops, never as docx tables. Question-level `table` data tables are unaffected.
 
 ### Developer Tests and Notes
 
-- Regenerated `Final_Exam/Final_Exam_2A_2B_combined.yaml` and `Final_Exam/Final_Exam_2A_2B_combined.docx` from `Cleaned_Final_Exam_2A.html` and `Cleaned_Final_Exam_2B.html`.
+- Regenerated `Final_Exam/Final_Exam_2A_2B_combined.yaml` and `Final_Exam/Final_Exam_2A_2B_combined.docx` from `Cleaned_Final_Exam_2A.html` and `Cleaned_Final_Exam_2B.html` after the matching schema switch; matching items now have explicit `prompts_list` (bond/term names) and `choices_list` (formula options with leading `A.`/`B.`/`C.`/`D.` stripped).
 - Verified the combined YAML contains 98 source items (48 from 2A and 50 from 2B), 125 numbered question slots after matching spans, 9 matching prompts, 46 image references, 38 structured image choices, no missing image files, and no empty question statements.
 - Verified the regenerated YAML contains no literal `<br/>`, `&lt;br`, `</sub>and`, or `</sub>values` artifacts.
 - Ran focused tests: `source source_me.sh && python3 -m pytest tests/test_html_to_exam_yaml.py tests/test_text_utils.py tests/test_html_exam_docx_builder.py tests/test_docx_builder_image_choices.py tests/test_layout.py -q`, `source source_me.sh && FAST_REPO_HYGIENE=1 python3 -m pytest tests/test_pyflakes_code_lint.py -q`, and `source source_me.sh && FAST_REPO_HYGIENE=1 python3 -m pytest tests/test_import_requirements.py -q`.
