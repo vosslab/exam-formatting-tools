@@ -19,6 +19,7 @@ Runtime packages:
 - `pillow`: image I/O and aspect-ratio detection for inline answer images.
 - `python-docx`: Word `.docx` reading and writing.
 - `pyyaml`: YAML parsing and serialization.
+- `rdkit`: cheminformatics toolkit; renders RDKit HTML5 canvas widgets to PNG when converting cleaned Blackboard exports. Installed via the `rdkit` pip wheel; no Homebrew formula required.
 
 For development (running the test suite, linters), also install:
 

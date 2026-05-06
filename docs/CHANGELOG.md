@@ -4,6 +4,8 @@
 
 ### Additions and New Features
 
+- Added `ef_tools/rdkit_render.py` to render RDKit HTML5 canvas widgets to PNG by extracting the inline `let smiles="..."` literal and re-drawing through `rdkit.Chem.Draw.MolToFile`. PNG filenames are derived from the source canvas id (e.g. `rdkit_canvas_3071.png`) so reruns overwrite stably.
+- Wired `html_to_exam_yaml.py` to the new RDKit renderer so canvas widgets that the parser previously dropped silently now produce PNG files in the existing Blackboard `*_files/` directory and emit standard `images:` (and structured choice `image:`) references in the YAML. No YAML schema change.
 - Added `html_to_exam_yaml.py` to convert cleaned Blackboard HTML exports into the repo's canonical exam YAML format while preserving statement images and image-based answer choices.
 - Added `html_exam_docx_builder.py` to generate one styled DOCX exam directly from cleaned Blackboard HTML exports while preserving question text, matching blocks, statement images, and image-based answer choices.
 - Extended the DOCX builder to render YAML `images` lists and structured choice objects with image paths.
@@ -13,6 +15,7 @@
 
 ### Behavior or Interface Changes
 
+- Cleaned Blackboard `<canvas class="cleaned-statement-media">` widgets paired with an inline `initRDKitModule()` script no longer disappear during HTML-to-YAML conversion: the SMILES is extracted, rendered through RDKit (no headless browser), and saved as `rdkit_<canvas_id>.png` next to the existing `*_files/` content. Malformed SMILES or missing literals now raise instead of silently dropping the widget.
 - Replaced the image-choice docx table layout with inline images positioned by paragraph tab stops; no docx tables are emitted for answer choices. Renamed `add_image_choices_table` to `add_image_choices_tabbed` in `ef_tools/docx_builder.py`; both YAML and HTML builders pass through the same tab-stop helper.
 - Added `matching_terms` support so matching prompts can span question-number ranges like `Q5-8.` and each matching term consumes its own numbered blank.
 - Reordered matching-question DOCX rendering to put lettered `choices_list` BEFORE the numbered `prompts_list` blanks, matching the reference exam style in `ARTIFACTS/`. Added `test_matching_renders_choices_before_prompts` to lock the order; updated `docs/YAML_EXAM_FORMAT.md` matching example accordingly.
@@ -23,6 +26,7 @@
 
 ### Fixes and Maintenance
 
+- Added `rdkit` to `pip_requirements.txt` (used by `ef_tools/rdkit_render.py`).
 - Rewrote `README.md` to reflect the DOCX pipeline (the previous version still pointed at long-removed `odt_exam_builder.py`/`extract_odt_styles.py`/`propagate_odt_styles.py` scripts and `docs/ODT_EXAM_STYLES.md`).
 - Added `docs/INSTALL.md` and `docs/USAGE.md` so the README can stay short and link out for setup and command-line examples.
 - Fixed stale ODT references in `docs/YAML_EXAM_FORMAT.md` (header sentence and Images subsection now name the DOCX builders).
@@ -42,6 +46,8 @@
 - Verified the combined YAML contains 98 source items (48 from 2A and 50 from 2B), 125 numbered question slots after matching spans, 9 matching prompts, 46 image references, 38 structured image choices, no missing image files, and no empty question statements.
 - Verified the regenerated YAML contains no literal `<br/>`, `&lt;br`, `</sub>and`, or `</sub>values` artifacts.
 - Ran focused tests: `source source_me.sh && python3 -m pytest tests/test_html_to_exam_yaml.py tests/test_text_utils.py tests/test_html_exam_docx_builder.py tests/test_docx_builder_image_choices.py tests/test_layout.py -q`, `source source_me.sh && FAST_REPO_HYGIENE=1 python3 -m pytest tests/test_pyflakes_code_lint.py -q`, and `source source_me.sh && FAST_REPO_HYGIENE=1 python3 -m pytest tests/test_import_requirements.py -q`.
+- Added unit tests in `tests/test_rdkit_render.py` and an end-to-end fixture test in `tests/test_html_to_exam_yaml.py::test_parse_question_renders_rdkit_canvas_to_png` covering SMILES extraction (including charged brackets and stereochemistry), PNG output, and the full HTML-to-YAML path. Added helper-coverage tests for `compute_rdkit_out_dir`, `find_rdkit_script_for_canvas`, and the canvas-without-script `ValueError` path. Re-ran the focused suite plus full-scope `tests/test_pyflakes_code_lint.py`, `tests/test_import_requirements.py`, `tests/test_ascii_compliance.py`, and `tests/test_bandit_security.py`.
+- Re-regenerated `Final_Exam/Final_Exam_2A_2B_combined.{yaml,docx}` after wiring the RDKit renderer; two new `Final_Exam/Final_Exam_2A_files/rdkit_*.png` files (adenine and the lysine-phenylalanine dipeptide) now ride through the standard `images:` list.
 
 ## 2026-04-02
 

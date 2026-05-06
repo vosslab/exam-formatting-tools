@@ -14,6 +14,7 @@ import yaml
 
 # Local Repo Modules
 import html_exam_docx_builder
+import ef_tools.rdkit_render
 
 
 TAKE_QUESTION_XPATH = html_exam_docx_builder.TAKE_QUESTION_XPATH
@@ -21,6 +22,13 @@ IMAGE_CLASS_XPATH = html_exam_docx_builder.IMAGE_CLASS_XPATH
 INLINE_TAGS = html_exam_docx_builder.INLINE_TAGS
 CHOICE_ITEM_XPATH = (
 	".//div[contains(concat(' ', normalize-space(@class), ' '), ' cleaned-choice-item ')]"
+)
+# Canvases that pair with an inline RDKit script. Both statement-media and
+# choice-media classes are handled so future exams can place RDKit widgets
+# inside answer choices.
+RDKIT_CANVAS_XPATH = (
+	".//canvas[contains(concat(' ', normalize-space(@class), ' '), ' cleaned-statement-media ') "
+	"or contains(concat(' ', normalize-space(@class), ' '), ' cleaned-choice-media ')]"
 )
 # Lettered options (A./B./C./D.) live in spans with white-space:nowrap.
 # In bptools MATCH terminology these are the choices_list.
@@ -162,8 +170,119 @@ def parse_matching_block(element) -> tuple[list[str], list[str]]:
 
 
 #============================================
-def resolve_images(html_path: str, element) -> list[str]:
-	"""Resolve relevant images contained in an element."""
+def compute_rdkit_out_dir(html_path: str, doc_root) -> str:
+	"""Pick the directory where RDKit-rendered PNGs should be saved.
+
+	Prefers the directory of an existing cleaned image (so RDKit PNGs sit
+	beside Blackboard's exported `*_files/` content). Falls back to a
+	`<stem>_files` directory derived from the HTML filename, with any
+	leading `Cleaned_` prefix stripped to match Blackboard's convention.
+
+	Args:
+		html_path: Path to the source HTML file.
+		doc_root: Parsed lxml document root for the same HTML.
+
+	Returns:
+		Absolute or repo-relative directory path; not guaranteed to exist
+		(`render_smiles_to_png` creates it on first write).
+	"""
+	for image in doc_root.xpath(IMAGE_CLASS_XPATH):
+		src = image.get("src", "")
+		if not src or src.startswith(("http://", "https://")):
+			continue
+		image_path = html_exam_docx_builder.resolve_image_path(html_path, src)
+		out_dir = os.path.dirname(image_path)
+		if out_dir:
+			return out_dir
+	stem = os.path.splitext(os.path.basename(html_path))[0]
+	if stem.lower().startswith("cleaned_"):
+		stem = stem[len("cleaned_"):]
+	out_dir = os.path.join(os.path.dirname(html_path), f"{stem}_files")
+	return out_dir
+
+
+#============================================
+def find_rdkit_script_for_canvas(scripts: list, canvas_id: str):
+	"""Return the RDKit script element that draws the given canvas id.
+
+	Args:
+		scripts: list of lxml `<script>` elements drawn from the question
+			subtree (typically `question_div.xpath(".//script")`).
+		canvas_id: id attribute of the target `<canvas>` element.
+
+	Returns:
+		The first script element whose source contains both the canvas id
+		and the `initRDKitModule` token, or None when canvas_id is falsy
+		or no script in the list matches.
+	"""
+	if not canvas_id:
+		return None
+	for script in scripts:
+		text = script.text or ""
+		if canvas_id in text and "initRDKitModule" in text:
+			return script
+	return None
+
+
+#============================================
+def resolve_rdkit_canvases(
+	html_path: str, element, script_scope, out_dir: str
+) -> list[str]:
+	"""Render RDKit canvas widgets in element to PNGs and return paths.
+
+	Canvas elements are searched within `element` only, but the matching
+	scripts are searched within `script_scope` because Blackboard cleaned
+	exports often place the inline RDKit script in a different `<td>` of
+	the same question. Each canvas without a matching script raises
+	ValueError to surface conversion gaps loudly.
+
+	Args:
+		html_path: Source HTML path (used for error messages only).
+		element: lxml subtree to scan for `<canvas>` widgets.
+		script_scope: lxml subtree to scan for matching `<script>` blocks.
+		out_dir: Destination directory for the generated PNGs.
+
+	Returns:
+		Absolute paths of the rendered PNG files in canvas document order.
+	"""
+	paths = []
+	canvases = element.xpath(RDKIT_CANVAS_XPATH)
+	if not canvases:
+		return paths
+	scripts = script_scope.xpath(".//script")
+	for canvas in canvases:
+		canvas_id = canvas.get("id")
+		script = find_rdkit_script_for_canvas(scripts, canvas_id)
+		if script is None:
+			raise ValueError(
+				f"RDKit canvas {canvas_id!r} in {html_path} has no matching script"
+			)
+		# find_rdkit_script_for_canvas already required initRDKitModule in
+		# the script text, so extract_smiles_from_rdkit_script can only
+		# return a string here or raise; no None branch to handle.
+		smiles = ef_tools.rdkit_render.extract_smiles_from_rdkit_script(script)
+		# Filename uses the canvas id directly so each rendered PNG maps
+		# obviously back to the source widget on disk.
+		basename = f"rdkit_{canvas_id}"
+		png_path = ef_tools.rdkit_render.render_smiles_to_png(
+			smiles, out_dir, basename=basename
+		)
+		paths.append(png_path)
+	return paths
+
+
+#============================================
+def resolve_images(
+	html_path: str, element, script_scope=None, rdkit_out_dir: str | None = None
+) -> list[str]:
+	"""Resolve relevant images contained in an element.
+
+	Image sources are returned in document order: `<img>` tags first, then
+	RDKit canvases re-rendered to PNG via `ef_tools.rdkit_render`. The
+	`script_scope` and `rdkit_out_dir` arguments default to None so the
+	function can also be used from callers that only need `<img>`
+	resolution; current callers always pass both.
+	"""
 	images = []
 	for image in element.xpath(IMAGE_CLASS_XPATH):
 		src = image.get("src", "")
@@ -171,11 +290,15 @@ def resolve_images(html_path: str, element) -> list[str]:
 			continue
 		image_path = html_exam_docx_builder.resolve_image_path(html_path, src)
 		images.append(image_path)
+	if script_scope is not None and rdkit_out_dir is not None:
+		images.extend(resolve_rdkit_canvases(html_path, element, script_scope, rdkit_out_dir))
 	return images
 
 
 #============================================
-def parse_choices(html_path: str, element) -> list:
+def parse_choices(
+	html_path: str, element, script_scope=None, rdkit_out_dir: str | None = None
+) -> list:
 	"""Parse multiple-choice labels from an HTML element."""
 	choices = []
 	labels = element.xpath(".//label[.//input]")
@@ -187,7 +310,7 @@ def parse_choices(html_path: str, element) -> list:
 		text = clean_choice_html(element_to_inline_html(choice_element))
 		if text:
 			choice["text"] = text
-		images = resolve_images(html_path, choice_element)
+		images = resolve_images(html_path, choice_element, script_scope, rdkit_out_dir)
 		if images:
 			choice["image"] = images[0]
 		if set(choice.keys()) == {"text"}:
@@ -198,7 +321,9 @@ def parse_choices(html_path: str, element) -> list:
 
 
 #============================================
-def parse_question(html_path: str, question_div) -> dict:
+def parse_question(
+	html_path: str, question_div, rdkit_out_dir: str | None = None
+) -> dict:
 	"""Parse one cleaned Blackboard question div into YAML data."""
 	li_elements = question_div.xpath("./li")
 	if li_elements:
@@ -219,7 +344,7 @@ def parse_question(html_path: str, question_div) -> dict:
 		if tag in ("script", "style", "input", "h5"):
 			continue
 		if html_exam_docx_builder.has_choice_labels(child) or child.xpath(CHOICE_ITEM_XPATH):
-			choices = parse_choices(html_path, child)
+			choices = parse_choices(html_path, child, question_div, rdkit_out_dir)
 			continue
 		if is_matching_block(child):
 			# Matching block contributes prompts_list and choices_list,
@@ -235,7 +360,7 @@ def parse_question(html_path: str, question_div) -> dict:
 		inline_text = element_to_inline_html(child)
 		if inline_text:
 			statement_parts.append(inline_text)
-		images.extend(resolve_images(html_path, child))
+		images.extend(resolve_images(html_path, child, question_div, rdkit_out_dir))
 	statement = clean_statement_html("\n".join(statement_parts))
 	question = {
 		"statement": statement,
@@ -257,9 +382,10 @@ def parse_html_file(path: str) -> dict:
 	with open(path, "r", encoding="utf-8") as handle:
 		html_text = handle.read()
 	html_doc = lxml.html.fromstring(html_text)
+	rdkit_out_dir = compute_rdkit_out_dir(path, html_doc)
 	questions = []
 	for question_div in html_doc.xpath(TAKE_QUESTION_XPATH):
-		questions.append(parse_question(path, question_div))
+		questions.append(parse_question(path, question_div, rdkit_out_dir))
 	section = {
 		"heading": html_exam_docx_builder.extract_document_title(path),
 		"questions": questions,

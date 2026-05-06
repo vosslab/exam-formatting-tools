@@ -175,6 +175,8 @@ Images are embedded in the DOCX with their original aspect ratio preserved. The 
 
 For cleaned Blackboard HTML exports, use [html_to_exam_yaml.py](../html_to_exam_yaml.py) to create YAML first; it preserves statement images as `images` and image-based answer choices as structured choice objects.
 
+RDKit HTML5 canvas widgets are also handled: when a `<canvas class="cleaned-statement-media">` is paired with an inline `initRDKitModule()` script, [ef_tools/rdkit_render.py](../ef_tools/rdkit_render.py) extracts the SMILES literal and renders a PNG into the existing `*_files/` directory. The PNG path is added to the standard `images` list (or to a structured choice `image` field for canvas-based answer choices), so the YAML schema is unchanged.
+
 ### Tables
 
 ```yaml

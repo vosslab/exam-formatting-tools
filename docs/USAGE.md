@@ -39,6 +39,8 @@ source source_me.sh && python3 html_to_exam_yaml.py \
 
 Matching questions are emitted as `prompts_list` plus `choices_list`; see [docs/YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md) for the schema.
 
+RDKit HTML5 canvas widgets in the cleaned HTML are auto-rendered to PNG (named `rdkit_<canvas_id>.png`) inside the existing Blackboard `*_files/` directory and emitted as standard `images:` entries; nothing extra to configure on the command line.
+
 Blackboard `.bbq` export to YAML:
 
 ```bash

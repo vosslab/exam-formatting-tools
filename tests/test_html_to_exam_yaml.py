@@ -1,7 +1,13 @@
 """Test cleaned HTML to exam YAML conversion helpers."""
 
-import lxml.html
+# Standard Library
+import os
 
+# Pip Modules
+import lxml.html
+import pytest
+
+# Local Repo Modules
 import html_to_exam_yaml
 
 
@@ -166,3 +172,128 @@ def test_parse_matching_block_emits_prompts_and_choices_lists():
 		assert "Second option" not in prompt
 	# legacy field is gone
 	assert "matching_terms" not in result
+
+
+#============================================
+def test_parse_question_renders_rdkit_canvas_to_png(tmp_path):
+	"""RDKit canvas widgets become PNG entries in the question images list."""
+	html_path = tmp_path / "Cleaned_sample.html"
+	# Write the HTML to disk so resolve_image_path / out-dir resolution
+	# behave the same as in the real pipeline.
+	html_text = (
+		"<html><body>"
+		"<div class='takeQuestionDiv'><li>"
+		"<p>Identify the molecule shown.</p>"
+		"<table><tr><td><p>"
+		"<canvas class='cleaned-statement-media' id='canvas_test_1' width='480' height='480'></canvas>"
+		"</p></td>"
+		"<td><script>"
+		"/* */initRDKitModule().then(function(instance){"
+		"RDKitModule=instance;"
+		"let smiles=\"C1=NC2=NC=NC(=C2N1)N\";"
+		"let mol=RDKitModule.get_mol(smiles);"
+		"canvas=document.getElementById(\"canvas_test_1\");"
+		"});"
+		"</script></td></tr></table>"
+		"<div><label><input type='radio'/><span>A. Adenine</span></label></div>"
+		"</li></div>"
+		"</body></html>"
+	)
+	html_path.write_text(html_text, encoding="utf-8")
+	html_doc = lxml.html.fromstring(html_text)
+	question_div = html_doc.xpath(html_to_exam_yaml.TAKE_QUESTION_XPATH)[0]
+	rdkit_out_dir = html_to_exam_yaml.compute_rdkit_out_dir(str(html_path), html_doc)
+	result = html_to_exam_yaml.parse_question(str(html_path), question_div, rdkit_out_dir)
+	# The statement keeps the lead-in prose and does not leak script source.
+	assert "Identify the molecule shown." in result["statement"]
+	assert "initRDKitModule" not in result["statement"]
+	assert "canvas_test_1" not in result["statement"]
+	# A PNG path was emitted into the standard images list.
+	assert "images" in result
+	assert any(path.endswith(".png") for path in result["images"])
+	# The PNG actually exists on disk.
+	for path in result["images"]:
+		if path.endswith(".png") and "rdkit_" in os.path.basename(path):
+			assert os.path.isfile(path)
+			return
+	raise AssertionError("expected an rdkit_*.png entry in question images")
+
+
+#============================================
+def test_compute_rdkit_out_dir_uses_existing_image_directory(tmp_path):
+	"""When the doc has a cleaned image, RDKit PNGs share that directory."""
+	html_path = tmp_path / "Cleaned_exam.html"
+	images_dir = tmp_path / "exam_files"
+	images_dir.mkdir()
+	(images_dir / "fig.png").write_bytes(b"\x89PNG\r\n")
+	html_text = (
+		"<html><body>"
+		"<img class='cleaned-statement-media' src='exam_files/fig.png'/>"
+		"</body></html>"
+	)
+	html_path.write_text(html_text, encoding="utf-8")
+	doc = lxml.html.fromstring(html_text)
+	out_dir = html_to_exam_yaml.compute_rdkit_out_dir(str(html_path), doc)
+	# Compare resolved paths so /tmp vs /private/tmp on macOS does not flake.
+	assert os.path.realpath(out_dir) == os.path.realpath(str(images_dir))
+
+
+#============================================
+def test_compute_rdkit_out_dir_strips_cleaned_prefix(tmp_path):
+	"""Without an existing image, the stem fallback drops the Cleaned_ prefix."""
+	html_path = tmp_path / "Cleaned_Exam_2A.html"
+	html_path.write_text("<html><body></body></html>", encoding="utf-8")
+	doc = lxml.html.fromstring("<html><body></body></html>")
+	out_dir = html_to_exam_yaml.compute_rdkit_out_dir(str(html_path), doc)
+	assert os.path.basename(out_dir) == "Exam_2A_files"
+
+
+#============================================
+def test_compute_rdkit_out_dir_uses_plain_stem_when_no_prefix(tmp_path):
+	"""Without an existing image and without a Cleaned_ prefix, use the bare stem."""
+	html_path = tmp_path / "midterm.html"
+	html_path.write_text("<html><body></body></html>", encoding="utf-8")
+	doc = lxml.html.fromstring("<html><body></body></html>")
+	out_dir = html_to_exam_yaml.compute_rdkit_out_dir(str(html_path), doc)
+	assert os.path.basename(out_dir) == "midterm_files"
+
+
+#============================================
+def test_resolve_rdkit_canvases_raises_when_canvas_has_no_script(tmp_path):
+	"""A canvas with no matching RDKit script must fail loudly, not drop silently."""
+	# Canvas carries an explicit id so the failure is unambiguously the
+	# missing-script branch and not the falsy-id short-circuit.
+	html_text = (
+		"<html><body><div class='takeQuestionDiv'><li>"
+		"<canvas class='cleaned-statement-media' id='canvas_orphan_99'></canvas>"
+		"</li></div></body></html>"
+	)
+	doc = lxml.html.fromstring(html_text)
+	question_div = doc.xpath(html_to_exam_yaml.TAKE_QUESTION_XPATH)[0]
+	with pytest.raises(ValueError):
+		html_to_exam_yaml.resolve_rdkit_canvases(
+			"sample.html", question_div, question_div, str(tmp_path)
+		)
+
+
+#============================================
+def test_find_rdkit_script_for_canvas_returns_none_when_id_missing():
+	"""Falsy canvas ids short-circuit and return None."""
+	result = html_to_exam_yaml.find_rdkit_script_for_canvas([], "")
+	assert result is None
+	result = html_to_exam_yaml.find_rdkit_script_for_canvas([], None)
+	assert result is None
+
+
+#============================================
+def test_find_rdkit_script_for_canvas_returns_none_when_no_script_matches():
+	"""A non-empty script list with no matching id falls through to None."""
+	wrapper = lxml.html.fromstring(
+		"<div>"
+		"<script>initRDKitModule();/*canvas_other*/let smiles=\"CC\";</script>"
+		"<script>console.log('unrelated');</script>"
+		"</div>"
+	)
+	scripts = wrapper.xpath(".//script")
+	result = html_to_exam_yaml.find_rdkit_script_for_canvas(scripts, "canvas_missing")
+	assert result is None
