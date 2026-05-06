@@ -146,8 +146,8 @@ def test_parse_matching_block_emits_prompts_and_choices_lists():
 	<span style="white-space:nowrap">B. Second option</span>
 	</div>
 	<div>
-	<div><span style="display:inline-block"></span><strong>Term 1</strong></div>
-	<div><span style="display:inline-block"></span><strong>Term 2</strong></div>
+	<div><span style="display:inline-block; width:30px; height:22px; border:2px solid #333;"></span><strong>Term 1</strong></div>
+	<div><span style="display:inline-block; width:30px; height:22px; border:2px solid #333;"></span><strong>Term 2</strong></div>
 	</div>
 	</div>
 	</li>
@@ -172,6 +172,165 @@ def test_parse_matching_block_emits_prompts_and_choices_lists():
 		assert "Second option" not in prompt
 	# legacy field is gone
 	assert "matching_terms" not in result
+
+
+#============================================
+def test_parse_question_preserves_text_after_inline_bold():
+	"""Statement text following an inline <b> child (the .tail) is kept."""
+	# Mirrors the Lineweaver-Burk question shape from
+	# Final_Exam/Cleaned_Final_Exam_2A.html:3485-3552.
+	html_text = """
+	<div class="takeQuestionDiv">
+	<li>
+	The <b>y-intercept</b> of a Lineweaver-Burk plot is:
+	<div>
+	<label><input type="radio"/><span>A. 1/V<sub>0</sub></span></label>
+	<label><input type="radio"/><span>B. 1/V<sub>max</sub></span></label>
+	</div>
+	</li>
+	</div>
+	"""
+	question_div = lxml.html.fromstring(html_text)
+	result = html_to_exam_yaml.parse_question("Final_Exam/source.html", question_div)
+	statement = result["statement"]
+	# Text after the inline <b> wrapper survives.
+	assert "Lineweaver-Burk plot is:" in statement
+	# Inline tag wrapping survives, not just the inner text.
+	assert "<b>y-intercept</b>" in statement
+
+
+#============================================
+def test_parse_question_preserves_text_after_inline_italic_sub():
+	"""Statement text following <i>...<sub/></i> survives as a tail."""
+	# Mirrors the K'eq question shape: prose continues after the italic
+	# wrapper that contains a numeric character entity and a subscript.
+	html_text = """
+	<div class="takeQuestionDiv">
+	<li>
+	If <i>K&#8242;<sub>eq</sub></i> = 1, what is the value of &#916;G&#176;&#8242;?
+	<div>
+	<label><input type="radio"/><span>A. 0</span></label>
+	<label><input type="radio"/><span>B. negative</span></label>
+	</div>
+	</li>
+	</div>
+	"""
+	question_div = lxml.html.fromstring(html_text)
+	result = html_to_exam_yaml.parse_question("Final_Exam/source.html", question_div)
+	statement = result["statement"]
+	# Entity for the prime character round-trips as ASCII.
+	assert "K&#8242;" in statement
+	# Subscript inside the italic wrapper is preserved.
+	assert "<sub>eq</sub>" in statement
+	# The .tail (everything after </i>) survives.
+	assert "= 1" in statement
+
+
+#============================================
+def test_is_matching_block_rejects_styled_hint_legend():
+	"""A hint legend using bold inline-block spans must not look like matching.
+
+	Without the bordered/empty-marker check, `display:inline-block` styled
+	bold terms in a legend would falsely classify the surrounding div as a
+	matching block, dumping bold terms into prompts_list and dropping the
+	statement text.
+	"""
+	html_text = """
+	<div class="takeQuestionDiv">
+	<li>
+	Which class of biomolecules stores genetic information?
+	<div>
+	<span style="white-space:nowrap; display:inline-block;"><b>proteins</b></span>
+	<span style="white-space:nowrap; display:inline-block;"><b>nucleic acids</b></span>
+	<span style="white-space:nowrap; display:inline-block;"><b>carbohydrates</b></span>
+	<span style="white-space:nowrap; display:inline-block;"><b>lipids</b></span>
+	</div>
+	<div>
+	<label><input type="radio"/><span>A. proteins</span></label>
+	<label><input type="radio"/><span>B. nucleic acids</span></label>
+	</div>
+	</li>
+	</div>
+	"""
+	question_div = lxml.html.fromstring(html_text)
+	hint_div = question_div.xpath(".//div[span[contains(@style, 'display:inline-block')]]")[0]
+	assert html_to_exam_yaml.is_matching_block(hint_div) is False
+	result = html_to_exam_yaml.parse_question("Final_Exam/source.html", question_div)
+	assert "genetic information" in result["statement"]
+	assert "prompts_list" not in result
+	# Order-independent: both choice texts present, nothing extra leaked.
+	assert set(result["choices"]) >= {"proteins", "nucleic acids"}
+
+
+#============================================
+def test_matching_marker_xpath_requires_border():
+	"""A bare display:inline-block empty span must not classify as a marker.
+
+	Locks the tightened MATCHING_PROMPT_MARKER_XPATH boundary directly:
+	the marker must carry both `border` styling and empty content.
+	"""
+	wrapper = lxml.html.fromstring(
+		"<div>"
+		"<span style=\"white-space:nowrap\">A. only choice</span>"
+		"<span style=\"display:inline-block; width:30px;\"></span>"
+		"</div>"
+	)
+	# is_matching_block requires both a choice span AND a marker;
+	# without `border` styling the inline-block span is not a marker,
+	# so the whole div fails to classify.
+	assert html_to_exam_yaml.is_matching_block(wrapper) is False
+
+
+#============================================
+def test_real_matching_question_still_yields_lists():
+	"""A realistic matching block (bordered empty marker) still classifies."""
+	# Marker styling matches the real cleaned HTML at
+	# Final_Exam/Cleaned_Final_Exam_2A.html:59 et al.
+	html_text = """
+	<div class="takeQuestionDiv">
+	<li>
+	<p>Match each bond to a type.</p>
+	<div>
+	<div>
+	<span style="white-space:nowrap">A. ionic</span>
+	<span style="white-space:nowrap">B. covalent</span>
+	</div>
+	<div>
+	<div><span style="display:inline-block; width:30px; height:22px; border:2px solid #333;"></span><strong>Na-Cl</strong></div>
+	<div><span style="display:inline-block; width:30px; height:22px; border:2px solid #333;"></span><strong>C-C</strong></div>
+	</div>
+	</div>
+	</li>
+	</div>
+	"""
+	question_div = lxml.html.fromstring(html_text)
+	result = html_to_exam_yaml.parse_question("Final_Exam/source.html", question_div)
+	# Order-independent: both lettered options reach choices_list.
+	assert set(result["choices_list"]) >= {"ionic", "covalent"}
+	assert any("Na-Cl" in p for p in result["prompts_list"])
+	assert any("C-C" in p for p in result["prompts_list"])
+
+
+#============================================
+def test_parse_question_preserves_statement_image():
+	"""A statement-body <img> survives the deep-copy + prune flow."""
+	html_text = """
+	<div class="takeQuestionDiv">
+	<li>
+	<p>Identify the structure shown below.</p>
+	<p><img class="cleaned-statement-media" src="files/structure.png"/></p>
+	<div>
+	<label><input type="radio"/><span>A. glucose</span></label>
+	<label><input type="radio"/><span>B. fructose</span></label>
+	</div>
+	</li>
+	</div>
+	"""
+	question_div = lxml.html.fromstring(html_text)
+	result = html_to_exam_yaml.parse_question("Final_Exam/source.html", question_div)
+	assert "Identify the structure shown" in result["statement"]
+	assert "images" in result
+	assert any(p.endswith("files/structure.png") for p in result["images"])
 
 
 #============================================

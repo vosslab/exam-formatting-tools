@@ -3,6 +3,7 @@
 
 # Standard Library
 import argparse
+import copy
 import datetime
 import html
 import os
@@ -34,8 +35,16 @@ RDKIT_CANVAS_XPATH = (
 # In bptools MATCH terminology these are the choices_list.
 MATCHING_CHOICE_XPATH = ".//span[contains(@style, 'white-space:nowrap')]"
 # Numbered prompts (with the empty-box marker) live as inline-block spans.
-# In bptools MATCH terminology these are the prompts_list.
-MATCHING_PROMPT_MARKER_XPATH = ".//span[contains(@style, 'display:inline-block')]"
+# In bptools MATCH terminology these are the prompts_list. The marker is the
+# bordered, empty inline-block span next to the prompt text; tightening the
+# XPath to require both `border` styling and no inner text keeps non-matching
+# hint legends (which use display:inline-block on bold terms) out of the
+# matching branch.
+MATCHING_PROMPT_MARKER_XPATH = (
+	".//span[contains(@style, 'display:inline-block') "
+	"and contains(@style, 'border') "
+	"and not(normalize-space(.))]"
+)
 
 
 #============================================
@@ -321,47 +330,101 @@ def parse_choices(
 
 
 #============================================
+def remove_node(element) -> None:
+	"""Detach an element from its parent if it has one."""
+	parent = element.getparent()
+	if parent is not None:
+		parent.remove(element)
+
+
+#============================================
+def remove_statement_noise(element) -> None:
+	"""Remove non-statement scaffolding from a deep-copied question body.
+
+	Strips script/style/input/h5 nodes (Blackboard scaffolding that never
+	belongs in the prose) and any direct child whose text is just a hidden
+	question-code marker.
+	"""
+	for child in list(element):
+		tag = child.tag.lower() if isinstance(child.tag, str) else ""
+		if tag in ("script", "style", "input", "h5"):
+			remove_node(child)
+			continue
+		text = html_exam_docx_builder.text_from_element(child)
+		if html_exam_docx_builder.is_question_code(text):
+			remove_node(child)
+
+
+#============================================
+def remove_choice_blocks(element) -> None:
+	"""Remove only the leaf choice nodes from a deep-copied question body.
+
+	Leaf-only by design: a wrapper <div> may contain BOTH statement text
+	and the choice labels, so removing ancestor divs would silently drop
+	statement prose. Empty wrapper divs left behind are absorbed by
+	element_to_inline_html's whitespace collapsing.
+	"""
+	for node in element.xpath(".//label[.//input]"):
+		remove_node(node)
+	for node in element.xpath(CHOICE_ITEM_XPATH):
+		remove_node(node)
+
+
+#============================================
+def remove_matching_blocks(element) -> None:
+	"""Remove direct-child matching blocks from a deep-copied body.
+
+	Matching blocks contribute prompts_list/choices_list separately and
+	must not bleed into the statement.
+	"""
+	for child in list(element):
+		if is_matching_block(child):
+			remove_node(child)
+
+
+#============================================
 def parse_question(
 	html_path: str, question_div, rdkit_out_dir: str | None = None
 ) -> dict:
-	"""Parse one cleaned Blackboard question div into YAML data."""
+	"""Parse one cleaned Blackboard question div into YAML data.
+
+	Statement extraction is subtractive: the question body is deep-copied,
+	choice/matching/noise subtrees are pruned from the copy, and
+	element_to_inline_html is called once on what remains. This preserves
+	lxml's natural ordering of .text, child text, inline tag wrappers, and
+	.tail in one pass instead of trying to glue inline fragments back
+	together in a Python loop.
+	"""
 	li_elements = question_div.xpath("./li")
 	if li_elements:
 		body = li_elements[0]
 	else:
 		body = question_div
-	statement_parts = []
-	images = []
+	# Choices and matching are extracted from the original (un-pruned) body
+	# so that image/RDKit canvas resolution scope is unchanged.
 	choices = []
 	prompts_list = []
 	choices_list = []
-	if body.text and body.text.strip():
-		body_text = escape_text(body.text.strip())
-		if body_text:
-			statement_parts.append(body_text)
 	for child in body:
-		tag = child.tag.lower() if isinstance(child.tag, str) else ""
-		if tag in ("script", "style", "input", "h5"):
-			continue
 		if html_exam_docx_builder.has_choice_labels(child) or child.xpath(CHOICE_ITEM_XPATH):
 			choices = parse_choices(html_path, child, question_div, rdkit_out_dir)
 			continue
 		if is_matching_block(child):
-			# Matching block contributes prompts_list and choices_list,
-			# never statement text. The lead-in prose ('Match each ...',
-			# 'Note: ...') has already landed in statement_parts.
 			block_prompts, block_choices = parse_matching_block(child)
 			prompts_list.extend(block_prompts)
 			choices_list.extend(block_choices)
 			continue
-		text = html_exam_docx_builder.text_from_element(child)
-		if html_exam_docx_builder.is_question_code(text):
-			continue
-		inline_text = element_to_inline_html(child)
-		if inline_text:
-			statement_parts.append(inline_text)
-		images.extend(resolve_images(html_path, child, question_div, rdkit_out_dir))
-	statement = clean_statement_html("\n".join(statement_parts))
+	# Build the statement on a pruned deep copy so .tail and inline tag
+	# wrappers (<b>, <i>, <sub>, <sup>) round-trip correctly.
+	statement_body = copy.deepcopy(body)
+	remove_statement_noise(statement_body)
+	remove_choice_blocks(statement_body)
+	remove_matching_blocks(statement_body)
+	statement = clean_statement_html(element_to_inline_html(statement_body))
+	# Image resolution runs against the pruned body so we don't pull in
+	# images that belonged to choices; RDKit script_scope stays the full
+	# question_div so canvases on the statement still find their script.
+	images = resolve_images(html_path, statement_body, question_div, rdkit_out_dir)
 	question = {
 		"statement": statement,
 	}

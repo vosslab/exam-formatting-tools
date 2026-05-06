@@ -373,6 +373,22 @@ canonical way to search files from this harness.
 (`... | grep pat`) stays allowed for slicing piped stdout, where Grep does
 not apply.
 
+### `git grep`
+
+**Blocked:** `git grep <pattern>`, including all git invocation forms
+(`/usr/bin/git grep`, `command git grep`, `env X=y git grep`,
+`git -c core.pager=cat grep`, `git -C <path> grep`,
+`git --git-dir=<dir> grep`, `git --work-tree=<dir> grep`).
+
+**Why:** Grep is a Claude Code tool call (like Read/Edit/Write); `git grep`
+would keep every search shell-side and re-create the loop the file-`grep`
+deny is meant to break. The Grep tool is the canonical search path.
+
+**Instead:** Invoke the Grep tool directly with `pattern`, `path`, `glob`,
+`-A`/`-B`/`-C`, `output_mode`, and `head_limit`. There is no Bash escape
+hatch for repo searches. For Bash file listings, `ls <dir>` and
+`git ls-files <pathspec>` remain allowed.
+
 ### `find`
 
 **Blocked:** `find . -name "*.py"`, including absolute-path invocations.
@@ -694,9 +710,8 @@ and `... | sed -n '10,20p'` are allowed.
 | Run Python | `python3 script.py` | `source source_me.sh && python3 script.py` |
 | Read a file | `cat /path/to/file.py` | Read tool: `file_path="/path/to/file.py"` |
 | Search files | `grep -r "pattern" src/` | Grep tool: `pattern="pattern"`, `path="src/"` |
-| Bash file listing | `find . -name "*.py"` (denied) | `git ls-files '*.py'` or `ls <dir>` (allowed) |
 | Tool name as Bash | `Grep -n "^## " docs/CHANGELOG.md` | Invoke the Grep tool directly (not via Bash) |
-| Find files | `find . -name "*.py"` | Glob tool: `pattern="**/*.py"` |
+| Find files | `find . -name "*.py"` | Glob tool: `pattern="**/*.py"`. For Bash listings, `ls <dir>` or `git ls-files '*.py'` |
 | Read lines 10-20 | `sed -n '10,20p' file.txt` | Read tool: `offset=10`, `limit=11` |
 | Delete temp file | `rm temp.py` | Name it `_temp.py`, then `rm _temp.py` |
 | Rename file | `mv old.py new.py` | `git mv old.py new.py` |
