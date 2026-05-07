@@ -32,6 +32,42 @@ cp /tmp/_regen_combined.docx Final_Exam/Final_Exam_2A_2B_combined.docx
 Image-based answer choices are laid out horizontally using paragraph tab stops
 (no DOCX tables); see [docs/YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md).
 
+## Validate ZipGrade compatibility
+
+ZipGrade 100-question bubble forms accept five lettered choices per row
+(A-E) for up to 100 rows. Two tools enforce this:
+
+`validate_zip_grade_yaml.py` reports incompatible questions by source line
+number. Each issue is labeled `ERROR` (cannot fit ZipGrade without a
+rewrite) or `FIXABLE` (likely editable to fit). Both are non-OK; the
+linter exits non-zero unless every question is OK.
+
+```bash
+source source_me.sh && python3 validate_zip_grade_yaml.py -i exam.yml
+```
+
+Pass `-o` to write a filtered YAML containing only OK questions (drops
+both ERROR and FIXABLE; the original YAML is not modified):
+
+```bash
+source source_me.sh && python3 validate_zip_grade_yaml.py \
+    -i exam.yml -o exam_zipgrade.yml
+```
+
+`yaml_to_exam_docx.py --zip-grade` (or `-z`) builds a DOCX containing
+only ZipGrade-compatible questions in one shot. It also drops both ERROR
+and FIXABLE, prints a per-question removal report (line-anchored), and
+warns if the post-filter row total still exceeds 100:
+
+```bash
+source source_me.sh && python3 yaml_to_exam_docx.py -i exam.yml -z
+```
+
+The flag never silently rewrites questions. A 6-choice question is
+classified `FIXABLE` (the author may drop one distractor by hand) but is
+removed from the DOCX, not auto-truncated -- the YAML schema does not
+store the correct answer, so tooling cannot pick which option to drop.
+
 ## Convert question banks to exam YAML
 
 Blackboard cleaned HTML to YAML (one or more files; first input's stem

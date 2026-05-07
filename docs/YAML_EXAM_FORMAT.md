@@ -8,6 +8,8 @@ This document specifies the YAML exam format used by [yaml_to_exam_docx.py](../y
 
 The format describes a printable exam document with sections, questions, choices, images, and tables. It uses sensible defaults (auto-numbering, auto-layout) so minimal YAML produces a complete exam.
 
+To check whether an exam will fit a ZipGrade A-E bubble form, run [validate_zip_grade_yaml.py](../validate_zip_grade_yaml.py); to build a DOCX containing only ZipGrade-compatible questions, pass `--zip-grade` to [yaml_to_exam_docx.py](../yaml_to_exam_docx.py). See [USAGE.md](USAGE.md) for both commands.
+
 ## Top-level fields
 
 | Field | Type | Required | Default | Description |

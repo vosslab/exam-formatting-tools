@@ -8,6 +8,7 @@ format (see docs/YAML_EXAM_FORMAT.md) and styles from styles/exam_styles.yaml.
 
 # Standard Library
 import os
+import sys
 import argparse
 
 # Pip Modules
@@ -18,6 +19,7 @@ import docx.enum.text
 
 # Local Repo Modules
 import ef_tools.layout
+import ef_tools.zip_grade
 import ef_tools.text_utils
 import ef_tools.cli_checks
 import ef_tools.style_loader
@@ -44,8 +46,54 @@ def parse_args() -> argparse.Namespace:
 		'-o', '--output', dest='output_file', default=None,
 		help="Output DOCX file path. Defaults to <input-stem>.docx in CWD."
 	)
+	parser.add_argument(
+		'-z', '--zip-grade', dest='zip_grade', action='store_true',
+		help="ZipGrade mode: exclude nonconforming questions from DOCX output."
+	)
 	args = parser.parse_args()
 	return args
+
+
+#============================================
+def apply_zip_grade_filter(exam_data: dict, source_path: str) -> dict:
+	"""Filter exam_data for ZipGrade compatibility before DOCX build.
+
+	Prints the mode banner, the per-question removal report (line-anchored),
+	and a summary line showing post-filter row count. Emits a stderr WARNING
+	when the post-filter row total still exceeds the ZipGrade form capacity
+	(100 rows), but still returns the filtered exam so the build proceeds.
+
+	Drops both ERROR and FIXABLE questions per the contract: a 6-choice
+	question is not safe to truncate automatically. Use the
+	validate_zipgrade_yaml.py linter to surface FIXABLE candidates and
+	hand-edit them before re-running without the flag.
+
+	Args:
+		exam_data: Parsed exam YAML.
+		source_path: Path to the input YAML file (used as report prefix).
+
+	Returns:
+		Filtered exam dict with non-OK questions removed.
+	"""
+	# mode banner so authors know -z is mutating output
+	print("ZipGrade mode enabled: excluding nonconforming questions from DOCX output.")
+	filtered, issues = ef_tools.zip_grade.filter_exam(exam_data)
+	# per-question removal report (line-anchored)
+	if issues:
+		report_text = ef_tools.zip_grade.format_report(issues, source_path=source_path)
+		print(report_text)
+	# count what was dropped (per-question issues only; whole-exam issue
+	# does not represent a removed question)
+	dropped = sum(1 for issue in issues if issue.question_number is not None)
+	kept_rows = ef_tools.zip_grade.filtered_total_rows(filtered)
+	print(f"ZipGrade filter: dropped {dropped} questions; {kept_rows} rows -> DOCX")
+	# warn but build when post-filter overflow remains
+	if kept_rows > ef_tools.zip_grade.MAX_TOTAL_ROWS:
+		warning = (f"WARNING: {kept_rows} rows after filtering; "
+			f"rows {ef_tools.zip_grade.MAX_TOTAL_ROWS + 1}-{kept_rows} "
+			f"won't fit on a {ef_tools.zip_grade.MAX_TOTAL_ROWS}-row ZipGrade form.")
+		print(warning, file=sys.stderr)
+	return filtered
 
 
 #============================================
@@ -288,9 +336,16 @@ def main():
 	if output_file is None:
 		output_file = ef_tools.cli_checks.default_output_path(args.input_file, '.docx')
 	ef_tools.cli_checks.require_extensions(output_file, ('.docx',), 'output')
-	# load YAML
-	with open(args.input_file, 'r') as f:
-		exam_data = yaml.safe_load(f)
+	# load YAML; use the line-tracking loader when --zip-grade is set so
+	# the removal report can anchor each dropped question to a source line
+	if args.zip_grade:
+		with open(args.input_file, 'r') as f:
+			# LineTrackingLoader extends yaml.SafeLoader, so this is safe
+			exam_data = yaml.load(f, Loader=ef_tools.zip_grade.LineTrackingLoader)  # nosec B506
+		exam_data = apply_zip_grade_filter(exam_data, args.input_file)
+	else:
+		with open(args.input_file, 'r') as f:
+			exam_data = yaml.safe_load(f)
 	# build document and report question count
 	question_count = build_document(exam_data, output_file)
 	print(f"Exam DOCX written to {output_file} ({question_count} questions)")
