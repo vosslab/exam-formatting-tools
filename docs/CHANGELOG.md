@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-05-07
+
+### Fixes and Maintenance
+
+- `html_to_exam_yaml.py` now registers a custom string representer that emits double-quoted YAML scalars for any string containing an apostrophe, instead of single-quoted with the `''` escape. The doubled-apostrophe form is valid YAML 1.1/1.2 and round-trips correctly through `yaml.safe_load`, but some lenient/legacy YAML validators flag `Chargaff''s` and `it''s` as syntax errors. Switching to double-quoted style produces `"Chargaff's"` literally, which every validator accepts. Strings without apostrophes keep PyYAML's default plain style, so the diff is limited to lines that previously carried `''`.
+
 ## 2026-05-06
 
 ### Additions and New Features

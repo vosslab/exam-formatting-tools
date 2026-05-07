@@ -481,6 +481,15 @@ def main() -> None:
 	else:
 		date = args.date
 	exam_data = build_yaml(args.input_files, args.title, date)
+	# Custom string representer: when a string contains an apostrophe, dump
+	# it as a double-quoted scalar instead of single-quoted. PyYAML's default
+	# single-quoted form escapes ' as '' (valid YAML 1.1/1.2), but some
+	# lenient/legacy validators reject the doubled form, so we sidestep it.
+	def _str_representer(dumper: yaml.SafeDumper, value: str):
+		if "'" in value:
+			return dumper.represent_scalar("tag:yaml.org,2002:str", value, style='"')
+		return dumper.represent_scalar("tag:yaml.org,2002:str", value)
+	yaml.add_representer(str, _str_representer, Dumper=yaml.SafeDumper)
 	with open(args.output_file, "w", encoding="utf-8") as handle:
 		yaml.safe_dump(exam_data, handle, sort_keys=False, allow_unicode=False)
 	print(f"Exam YAML written to {args.output_file}")
