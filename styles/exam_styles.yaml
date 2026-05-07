@@ -27,7 +27,7 @@ spacing:
   question_hanging: -0.28
   question_heading_space_before: 0.08
   question_space_after: 0.03
-  choice_indent: 0.28
+  choice_indent: 0.13
   choice_first_line_indent: 0
   matching_prompt_indent: 0.2
   matching_prompt_hanging: -0.2
@@ -55,7 +55,8 @@ page:
   header_right_tab: 7.3
   boilerplate_tab: 1.4
   image_max_width: 5.6
-  choice_image_max_width: 1.45
+  choice_image_max_width: 3.00
+  choice_image_max_height: 2.00
 
 layout_limits:
   max_chars_5: 17
@@ -68,17 +69,21 @@ matching_prompt_tab_stops:
   - 3.5
 
 layout_tab_stops:
+  # Tab stops are pre-offset by choice_indent (0.13") so inter-column gaps
+  # render evenly. OOXML tab stops are measured from page left margin, so
+  # the FIRST gap (from indent to first tab) would be short by `choice_indent`
+  # without this offset.
   2:
-    - 3.65
+    - 3.78
   3:
-    - 2.33
-    - 4.67
+    - 2.46
+    - 4.80
   4:
-    - 1.75
-    - 3.50
-    - 5.25
+    - 1.88
+    - 3.63
+    - 5.38
   5:
-    - 1.40
-    - 2.80
-    - 4.20
-    - 5.60
+    - 1.53
+    - 2.93
+    - 4.33
+    - 5.73

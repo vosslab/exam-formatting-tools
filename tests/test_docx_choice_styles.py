@@ -103,7 +103,7 @@ def test_all_image_choices_avoid_bare_choice_style(tmp_path):
 	choices = [{"text": "", "image": path} for path in images]
 	doc = _make_styled_doc()
 	ef_tools.docx_builder.add_image_choices_tabbed(
-		doc, choices, image_width=1.0, page_width=6.5,
+		doc, choices, image_width=1.0,
 	)
 	style_name = doc.paragraphs[-1].style.name
 	assert _CHOICES_N_PATTERN.match(style_name), style_name

@@ -160,6 +160,17 @@ def build_document(exam_data: dict, output_path: str) -> None:
 		# questions
 		questions = section_data.get('questions', [])
 		for question in questions:
+			# inline chapter heading: a YAML question-list entry of the form
+			# `- chapter: "..."` is not a real question; render it as a
+			# Chapter Heading paragraph and skip the question pipeline so
+			# the question counter does not advance.
+			if 'chapter' in question and 'statement' not in question:
+				chapter_text = question['chapter']
+				para = doc.add_paragraph()
+				para.style = doc.styles['Chapter Heading']
+				ef_tools.docx_builder.add_rich_text_runs(para, chapter_text)
+				prev_element = 'chapter'
+				continue
 			# Hard-switch guard: matching schema migrated from `matching_terms`
 			# to `prompts_list`/`choices_list`. Refuse legacy YAML loudly so
 			# stale inputs don't render as malformed exams with empty prompts.
@@ -205,7 +216,8 @@ def build_document(exam_data: dict, output_path: str) -> None:
 					question, choices_list, layout_limits)
 				ef_tools.docx_builder.add_choices_paragraph(
 					doc, choices_list, tab_style, items_per_row,
-					image_width=styles['page']['choice_image_max_width'])
+					image_width=styles['page']['choice_image_max_width'],
+					image_height=styles['page']['choice_image_max_height'])
 				prev_element = 'choices'
 			if prompts_list:
 				for index, prompt in enumerate(prompts_list):
@@ -240,14 +252,10 @@ def build_document(exam_data: dict, output_path: str) -> None:
 			choices = question.get('choices', None)
 			if choices is not None and len(choices) > 0:
 				if any(isinstance(choice, dict) and choice.get('image', None) for choice in choices):
-					choice_image_width = styles['page']['choice_image_max_width']
-					page_width = 8.5 - (2 * styles['page']['margin'])
-					fit_width = (page_width - 0.4) / len(choices)
-					image_width = min(choice_image_width, fit_width)
 					ef_tools.docx_builder.add_image_choices_tabbed(
 						doc, choices,
-						image_width=image_width,
-						page_width=page_width,
+						image_width=styles['page']['choice_image_max_width'],
+						image_height=styles['page']['choice_image_max_height'],
 					)
 					prev_element = 'choices'
 					question_counter += question_span
@@ -256,7 +264,8 @@ def build_document(exam_data: dict, output_path: str) -> None:
 					question, choices, layout_limits)
 				ef_tools.docx_builder.add_choices_paragraph(
 					doc, choices, tab_style, items_per_row,
-					image_width=styles['page']['choice_image_max_width'])
+					image_width=styles['page']['choice_image_max_width'],
+					image_height=styles['page']['choice_image_max_height'])
 				prev_element = 'choices'
 			# increment question counter
 			question_counter += question_span

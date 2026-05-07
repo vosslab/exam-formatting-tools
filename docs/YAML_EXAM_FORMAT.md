@@ -90,7 +90,11 @@ choices:
 
 Rendered output: **(A)** Loss of atoms, **(B)** Change in molecular identity, **(C)** Release of heat
 
-For image-based choices, use choice objects:
+For image-based choices, use choice objects. The `text` field is treated
+as alt text and rendered as a small caption row below the image row, but
+only when the alt text is meaningful -- empty strings and the literal
+placeholder `image` are skipped so a row of placeholder captions does not
+clutter the page.
 
 ```yaml
 choices:
@@ -98,6 +102,24 @@ choices:
     image: Final_Exam/Final_Exam_2A_files/titration_a.png.jpg
   - image: Final_Exam/Final_Exam_2A_files/titration_b.png.jpg
 ```
+
+Image widths are clamped per column count by
+`ef_tools.docx_builder.IMAGE_CHOICE_MAX_WIDTH_BY_COLS`, which sets
+empirical per-column caps that prevent a trailing image from pushing
+the cursor past its tab stop and wrapping to a new line:
+
+| Columns | Image width cap |
+| --- | --- |
+| 2 | 2.96in |
+| 3 | 1.90in |
+| 4 | 1.32in |
+| 5 | 0.96in |
+
+The cap dominates `choice_image_max_width` and `choice_image_max_height`
+in `styles/exam_styles.yaml` for any layout where the per-column budget
+is tighter. All images in a row render at one shared height computed
+from the binding-constraint image, and inline-image edge margins
+(`distT`/`distB`/`distL`/`distR`) are zeroed so images pack tight.
 
 **Layout policy: no docx tables for answer choices.** All answer choices --
 text-only and image-based -- are rendered as inline runs in a single paragraph
@@ -147,17 +169,21 @@ reduced to their visible text before scoring -- `&#8226;`,
 `&#8801;`, `<sub>2</sub>`, `<b>...</b>` each contribute their
 rendered glyphs, not their serialized YAML length.
 
-| Layout | Items per row | Max visible width | Column width |
+| Layout | Items per row | Max visible width | Tab-stop position |
 | --- | --- | --- | --- |
-| Choices 5 | 5 | 17 | 1.40in |
-| Choices 4 | 4 | 23 | 1.75in |
-| Choices 3 | 3 | 30 | 2.33in |
-| Choices 2 | 2 | 49 | 3.65in (two columns) |
+| Choices 5 | 5 | 17 | 1.53in, 2.93in, 4.33in, 5.73in |
+| Choices 4 | 4 | 23 | 1.88in, 3.63in, 5.38in |
+| Choices 3 | 3 | 30 | 2.46in, 4.80in |
+| Choices 2 | 2 | 49 | 3.78in (two columns) |
 
 Width budgets are empirically measured at 10pt Liberation Sans with
-bold `(A) ` prefix. When the longest choice's visible-width score
-exceeds the budget, the next wider layout is selected; if no layout
-fits, the builder falls back to a single-column vertical stack
+bold `(A) ` prefix. Tab-stop positions in `layout_tab_stops`
+(`styles/exam_styles.yaml`) are pre-offset by `choice_indent` (0.13in)
+because OOXML measures tab stops from the page left margin, not from
+the paragraph indent -- without the offset the first column gap would
+be shorter than the rest. When the longest choice's visible-width
+score exceeds the budget, the next wider layout is selected; if no
+layout fits, the builder falls back to a single-column vertical stack
 rendered with the `Choices 2` style. The abstract `Choice` base style
 is never applied to a paragraph.
 

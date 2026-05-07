@@ -234,10 +234,6 @@ def add_choice_label_paragraph(doc, html_path: str, labels: list, styles: dict) 
 		)
 		return
 	# build structured choices for tab-stop horizontal layout
-	choice_image_width = styles["page"]["choice_image_max_width"]
-	page_width = 8.5 - (2 * styles["page"]["margin"])
-	fit_width = (page_width - 0.4) / len(labels)
-	image_width = min(choice_image_width, fit_width)
 	structured_choices = []
 	for label in labels:
 		clean_text = strip_choice_prefix(text_from_element(label))
@@ -251,8 +247,8 @@ def add_choice_label_paragraph(doc, html_path: str, labels: list, styles: dict) 
 	ef_tools.docx_builder.add_image_choices_tabbed(
 		doc,
 		structured_choices,
-		image_width=image_width,
-		page_width=page_width,
+		image_width=styles["page"]["choice_image_max_width"],
+		image_height=styles["page"]["choice_image_max_height"],
 	)
 
 
