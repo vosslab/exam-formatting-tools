@@ -15,6 +15,9 @@ import re
 # PIP3 modules
 import yaml
 
+# Local Repo Modules
+import ef_tools.cli_checks
+
 
 def parse_args():
 	"""
@@ -28,8 +31,8 @@ def parse_args():
 		help='Input file in okla_chrst_bqge format'
 	)
 	parser.add_argument(
-		'-o', '--output', dest='output_file', required=True,
-		help='Output YAML file'
+		'-o', '--output', dest='output_file', default=None,
+		help='Output YAML file. Defaults to <input-stem>.yml in CWD.'
 	)
 	parser.add_argument(
 		'-t', '--title', dest='title', default='Exam',
@@ -226,10 +229,17 @@ def main():
 	"""
 	args = parse_args()
 
+	# validate input extension and resolve default output
+	ef_tools.cli_checks.require_extensions(args.input_file, ('.txt',), 'input')
+	output_file = args.output_file
+	if output_file is None:
+		output_file = ef_tools.cli_checks.default_output_path(args.input_file, '.yml')
+	ef_tools.cli_checks.require_extensions(output_file, ('.yml', '.yaml'), 'output')
+
 	exam_dict = convert_okla_to_yaml(args.input_file, args.title)
 
 	# Write YAML output
-	with open(args.output_file, 'w', encoding='utf-8') as f:
+	with open(output_file, 'w', encoding='utf-8') as f:
 		yaml.dump(
 			exam_dict,
 			f,
@@ -238,7 +248,8 @@ def main():
 			sort_keys=False,
 		)
 
-	print(f'Converted {len(exam_dict["sections"][0]["questions"])} questions to {args.output_file}')
+	question_count = sum(len(section.get('questions', [])) for section in exam_dict['sections'])
+	print(f"Exam YAML written to {output_file} ({question_count} questions)")
 
 
 if __name__ == '__main__':

@@ -15,6 +15,9 @@ import yaml
 import docx
 import docx.oxml.ns
 
+# Local Repo Modules
+import ef_tools.cli_checks
+
 
 #============================================
 def parse_args() -> argparse.Namespace:
@@ -31,8 +34,8 @@ def parse_args() -> argparse.Namespace:
 		help="Input DOCX file"
 	)
 	parser.add_argument(
-		'-o', '--output', dest='output_file', required=True,
-		help="Output YAML file"
+		'-o', '--output', dest='output_file', default=None,
+		help="Output YAML file. Defaults to <input-stem>.yml in CWD."
 	)
 	parser.add_argument(
 		'-d', '--image-dir', dest='image_dir', default='images',
@@ -395,20 +398,25 @@ def build_yaml_structure(doc: docx.Document, questions: list) -> dict:
 def main():
 	"""Main entry point for DOCX to YAML converter."""
 	args = parse_args()
+	# validate input extension and resolve default output
+	ef_tools.cli_checks.require_extensions(args.input_file, ('.docx',), 'input')
+	output_file = args.output_file
+	if output_file is None:
+		output_file = ef_tools.cli_checks.default_output_path(args.input_file, '.yml')
+	ef_tools.cli_checks.require_extensions(output_file, ('.yml', '.yaml'), 'output')
 	# load the DOCX
 	doc = docx.Document(args.input_file)
 	# extract images
 	para_images = extract_images(doc, args.image_dir)
-	print(f"Extracted {len(para_images)} images to {args.image_dir}/")
 	# parse questions
 	questions = parse_docx_questions(doc, para_images)
-	print(f"Parsed {len(questions)} questions")
 	# build YAML structure
 	exam_data = build_yaml_structure(doc, questions)
 	# write YAML
-	with open(args.output_file, 'w') as f:
+	with open(output_file, 'w') as f:
 		yaml.dump(exam_data, f, default_flow_style=False, allow_unicode=True, width=120)
-	print(f"YAML written to {args.output_file}")
+	question_count = sum(len(section.get('questions', [])) for section in exam_data['sections'])
+	print(f"Exam YAML written to {output_file} ({question_count} questions)")
 
 
 #============================================

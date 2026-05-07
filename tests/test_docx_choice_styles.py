@@ -22,11 +22,11 @@ import git_file_utils
 import ef_tools.docx_builder
 import ef_tools.style_loader
 
-# put the repo root on sys.path so docx_exam_builder.py is importable
+# put the repo root on sys.path so yaml_to_exam_docx.py is importable
 _REPO_ROOT = git_file_utils.get_repo_root()
 if _REPO_ROOT not in sys.path:
 	sys.path.insert(0, _REPO_ROOT)
-import docx_exam_builder
+import yaml_to_exam_docx
 
 
 _CHOICES_N_PATTERN = re.compile(r"^Choices [2-5]$")
@@ -127,7 +127,7 @@ def test_matching_choices_list_uses_multi_column_style(tmp_path):
 	"""A matching question's choices_list lands on a Choices [2-5] style.
 
 	Goes through the full builder render path (`build_document`), which
-	is the matching code path in docx_exam_builder.py:202-208.
+	is the matching code path in yaml_to_exam_docx.py:202-208.
 	"""
 	# minimal YAML structure with one matching question; choices are short
 	# chemistry formulae so the visible-width score allows a multi-column
@@ -158,7 +158,7 @@ def test_matching_choices_list_uses_multi_column_style(tmp_path):
 		],
 	}
 	output_path = str(tmp_path / "matching.docx")
-	docx_exam_builder.build_document(exam_data, output_path)
+	yaml_to_exam_docx.build_document(exam_data, output_path)
 	doc = docx.Document(output_path)
 	# find the choices_list paragraph: it carries the (A) prefix
 	choices_paragraph = None
@@ -184,7 +184,7 @@ def test_combined_yaml_no_paragraph_uses_choice_base_style(tmp_path):
 	with open(combined_yaml, encoding="utf-8") as handle:
 		exam_data = yaml.safe_load(handle)
 	output_path = str(tmp_path / "combined.docx")
-	docx_exam_builder.build_document(exam_data, output_path)
+	yaml_to_exam_docx.build_document(exam_data, output_path)
 	doc = docx.Document(output_path)
 	bare_choice_paragraphs = [
 		paragraph for paragraph in doc.paragraphs

@@ -9,7 +9,10 @@ sizes:
   heading_1: 18
   heading_2: 14
   chapter_heading: 13
-  question: 10
+  # Question Heading/Follow render at 11pt bold italic to match the legacy
+  # ODT artifacts in ARTIFACTS/ (e.g. exam1.odt: Question_20_Heading carries
+  # fo:font-size="11pt" fo:font-weight="bold" fo:font-style="italic").
+  question: 11
   choice: 10
   header: 8
 
@@ -23,10 +26,13 @@ spacing:
   normal_line_spacing: 1.0
   heading_space_before: 0.1
   heading_space_after: 0.08
-  question_indent: 0.28
-  question_hanging: -0.28
-  question_heading_space_before: 0.08
-  question_space_after: 0.03
+  # Question Heading indent/hanging match ARTIFACTS exam1.odt (0.2 in / -0.2 in).
+  question_indent: 0.2
+  question_hanging: -0.2
+  # space_before 0.12 in and space_after 0.05 in mirror the artifact's
+  # fo:margin-top="0.1201in" / fo:margin-bottom="0.05in" on Question Heading.
+  question_heading_space_before: 0.12
+  question_space_after: 0.05
   choice_indent: 0.13
   choice_first_line_indent: 0
   matching_prompt_indent: 0.2
@@ -41,8 +47,10 @@ style_flags:
   heading_1_bold: true
   heading_1_italic: false
   heading_1_centered: true
-  question_bold: false
-  question_italic: false
+  # Question Heading/Follow render bold italic to match ARTIFACTS exam1.odt
+  # (fo:font-weight="bold" fo:font-style="italic" on Question_20_Heading).
+  question_bold: true
+  question_italic: true
   chapter_heading_bold: true
   heading_2_bold: true
   heading_2_italic: true

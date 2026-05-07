@@ -1,26 +1,17 @@
 # Exam formatting tools
 
-Tools for building and converting styled exam documents. The current pipeline produces DOCX exams from a YAML definition or directly from cleaned Blackboard HTML exports, and converts third-party question banks (Blackboard `.bbq`, Oklahoma exports, Blackboard HTML) into the shared YAML exam format.
+Tools for building and converting styled exam documents. The pipeline is one-way: third-party question banks (Blackboard `.bbq`, Oklahoma exports, Blackboard HTML, DOCX) are converted into the shared YAML exam format, and `yaml_to_exam_docx.py` produces the final styled DOCX from that YAML.
 
 ## Quick start
 
-Build a styled DOCX exam from a YAML definition:
+Convert cleaned Blackboard HTML to exam YAML, then build a styled DOCX:
 
 ```bash
-source source_me.sh && python3 docx_exam_builder.py -i exam_data.yaml -o exam_output.docx
+source source_me.sh && python3 html_to_exam_yaml.py -i Cleaned_Final_Exam_2A.html
+source source_me.sh && python3 yaml_to_exam_docx.py -i Cleaned_Final_Exam_2A.yml
 ```
 
-Build a styled DOCX exam directly from cleaned Blackboard HTML exports:
-
-```bash
-source source_me.sh && python3 html_exam_docx_builder.py -i Final_Exam/Cleaned_Final_Exam_2A.html -o exam_output.docx -t "Final Exam"
-```
-
-Convert cleaned Blackboard HTML to exam YAML:
-
-```bash
-source source_me.sh && python3 html_to_exam_yaml.py -i Cleaned_Final_Exam_2A.html -o exam_2A.yaml
-```
+`-o` is optional on every script. When omitted, output is `<input-stem>` with the target extension in the current directory.
 
 ## Documentation
 

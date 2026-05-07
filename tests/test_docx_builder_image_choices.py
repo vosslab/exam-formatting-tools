@@ -139,43 +139,6 @@ def test_add_image_choices_tabbed_mixed_text_and_images(tmp_path):
 
 
 #============================================
-def test_add_choice_label_paragraph_routes_image_choices_through_tabbed(tmp_path):
-	"""The HTML builder routes image-bearing choice labels through tab-stop layout, not a table."""
-	import lxml.html
-
-	import ef_tools.style_loader
-	import html_exam_docx_builder
-
-	# write a tiny PNG into a fixture html dir so resolve_image_path can find it
-	html_dir = tmp_path / "html_dir"
-	html_dir.mkdir()
-	files_dir = html_dir / "html_files"
-	files_dir.mkdir()
-	(files_dir / "a.png").write_bytes(_PNG_BYTES)
-	html_path = str(html_dir / "page.html")
-
-	label_html = (
-		'<div>'
-		'<label><input type="radio"/>'
-		'<img class="cleaned-choice-media" src="html_files/a.png"/>'
-		'</label>'
-		'<label><input type="radio"/><span>B. text only</span></label>'
-		'</div>'
-	)
-	container = lxml.html.fromstring(label_html)
-	labels = container.xpath(".//label")
-
-	doc = _make_styled_doc()
-	styles = ef_tools.style_loader.load_styles()
-	html_exam_docx_builder.add_choice_label_paragraph(doc, html_path, labels, styles)
-
-	# routing must produce no docx tables
-	assert len(doc.tables) == 0
-	# the image choice must produce an inline shape
-	assert len(doc.inline_shapes) == 1
-
-
-#============================================
 def test_image_choice_max_width_per_cols_clamps_5col(tmp_path):
 	"""5-col rows must be clamped to IMAGE_CHOICE_MAX_WIDTH_BY_COLS[5]
 	even when the caller passes a much larger image_width. Without this

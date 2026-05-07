@@ -36,7 +36,7 @@ if REPO_ROOT not in sys.path:
 
 # local repo modules
 
-import docx_exam_builder
+import yaml_to_exam_docx
 import ef_tools.style_loader
 
 # OOXML drawing namespace; <wp:ext> carries image extent in EMU.
@@ -50,7 +50,7 @@ def parse_args():
 	parser = argparse.ArgumentParser(
 		description="Render image-choice rows for cols 2-5 and report dead space.")
 	parser.add_argument('-o', '--output-dir', dest='output_dir',
-		default='/tmp/image_choice_measure',
+		default='image_choice_measure',
 		help="Directory for generated images, YAML, DOCX, PDF, PNG output.")
 	parser.add_argument('-k', '--keep', dest='keep', action='store_true',
 		help="Keep the output directory contents (do not clear before run).")
@@ -221,7 +221,7 @@ def main():
 		yaml.safe_dump(exam_data, handle, sort_keys=False)
 	# build docx through the production pipeline
 	docx_path = os.path.join(output_dir, 'measure.docx')
-	docx_exam_builder.build_document(exam_data, docx_path)
+	yaml_to_exam_docx.build_document(exam_data, docx_path)
 	# render to inspectable PNG pages
 	png_paths = render_docx_to_pngs(docx_path, output_dir)
 	# measure rendered image widths and group by col count, in order

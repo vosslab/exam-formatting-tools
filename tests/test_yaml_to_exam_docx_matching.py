@@ -1,4 +1,4 @@
-"""Smoke test for matching-question rendering in docx_exam_builder.
+"""Smoke test for matching-question rendering in yaml_to_exam_docx.
 
 Exercises the prompts_list/choices_list path end-to-end by feeding a tiny
 synthetic YAML structure through build_document and inspecting the output.
@@ -8,7 +8,7 @@ import pytest
 import yaml
 import docx
 
-import docx_exam_builder
+import yaml_to_exam_docx
 
 
 #============================================
@@ -46,7 +46,7 @@ def test_matching_question_renders_prompts_blanks_and_choice_letters(tmp_path):
 	"""prompts_list drives Q1-3. plus three blanks; choices_list renders A/B/C."""
 	exam_data = _matching_yaml()
 	output_path = tmp_path / "matching.docx"
-	docx_exam_builder.build_document(exam_data, str(output_path))
+	yaml_to_exam_docx.build_document(exam_data, str(output_path))
 	doc = docx.Document(str(output_path))
 	body_text = "\n".join(p.text for p in doc.paragraphs)
 	# multi-prompt span header
@@ -75,7 +75,7 @@ def test_matching_renders_choices_before_prompts(tmp_path):
 	"""
 	exam_data = _matching_yaml()
 	output_path = tmp_path / "matching_order.docx"
-	docx_exam_builder.build_document(exam_data, str(output_path))
+	yaml_to_exam_docx.build_document(exam_data, str(output_path))
 	doc = docx.Document(str(output_path))
 	# index of the first paragraph that starts with the choices block
 	choices_para = next(i for i, p in enumerate(doc.paragraphs) if p.text.startswith('(A)'))
@@ -94,7 +94,7 @@ def test_matching_prompt_style_is_registered_and_applied(tmp_path):
 	"""
 	exam_data = _matching_yaml()
 	output_path = tmp_path / "matching_style.docx"
-	docx_exam_builder.build_document(exam_data, str(output_path))
+	yaml_to_exam_docx.build_document(exam_data, str(output_path))
 	doc = docx.Document(str(output_path))
 	style = doc.styles['Matching Prompt']
 	assert style.base_style.name == 'Question Heading'
@@ -120,7 +120,7 @@ def test_matching_question_emits_no_choice_tables(tmp_path):
 	"""
 	exam_data = _matching_yaml()
 	output_path = tmp_path / "matching_no_tables.docx"
-	docx_exam_builder.build_document(exam_data, str(output_path))
+	yaml_to_exam_docx.build_document(exam_data, str(output_path))
 	doc = docx.Document(str(output_path))
 	body_text = "\n".join(p.text for p in doc.paragraphs)
 	# the question has no `table` field -- nothing should produce a docx table
@@ -136,7 +136,7 @@ def test_matching_question_layout_override_respected(tmp_path):
 	exam_data = _matching_yaml()
 	exam_data['sections'][0]['questions'][0]['layout'] = 2
 	output_path = tmp_path / "matching_layout.docx"
-	docx_exam_builder.build_document(exam_data, str(output_path))
+	yaml_to_exam_docx.build_document(exam_data, str(output_path))
 	doc = docx.Document(str(output_path))
 	body_text = "\n".join(p.text for p in doc.paragraphs)
 	# all three lettered options still render under the override
@@ -161,7 +161,7 @@ def test_legacy_matching_terms_key_raises(tmp_path):
 	}
 	output_path = tmp_path / "legacy.docx"
 	with pytest.raises(ValueError, match="matching_terms"):
-		docx_exam_builder.build_document(exam_data, str(output_path))
+		yaml_to_exam_docx.build_document(exam_data, str(output_path))
 
 
 #============================================
@@ -173,7 +173,7 @@ def test_matching_question_advances_counter_by_prompt_span(tmp_path):
 		'choices': ['one', 'two', 'three', 'four'],
 	})
 	output_path = tmp_path / "matching_counter.docx"
-	docx_exam_builder.build_document(exam_data, str(output_path))
+	yaml_to_exam_docx.build_document(exam_data, str(output_path))
 	doc = docx.Document(str(output_path))
 	body_text = "\n".join(p.text for p in doc.paragraphs)
 	assert 'Q1-3.' in body_text

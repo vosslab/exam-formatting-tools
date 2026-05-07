@@ -14,13 +14,14 @@ import lxml.html
 import yaml
 
 # Local Repo Modules
-import html_exam_docx_builder
+import ef_tools.cli_checks
+import ef_tools.html_parse
 import ef_tools.rdkit_render
 
 
-TAKE_QUESTION_XPATH = html_exam_docx_builder.TAKE_QUESTION_XPATH
-IMAGE_CLASS_XPATH = html_exam_docx_builder.IMAGE_CLASS_XPATH
-INLINE_TAGS = html_exam_docx_builder.INLINE_TAGS
+TAKE_QUESTION_XPATH = ef_tools.html_parse.TAKE_QUESTION_XPATH
+IMAGE_CLASS_XPATH = ef_tools.html_parse.IMAGE_CLASS_XPATH
+INLINE_TAGS = ef_tools.html_parse.INLINE_TAGS
 CHOICE_ITEM_XPATH = (
 	".//div[contains(concat(' ', normalize-space(@class), ' '), ' cleaned-choice-item ')]"
 )
@@ -58,8 +59,8 @@ def parse_args() -> argparse.Namespace:
 		help="Input cleaned HTML file(s), in document order."
 	)
 	parser.add_argument(
-		"-o", "--output", dest="output_file", required=True,
-		help="Output YAML file path, which must not already exist."
+		"-o", "--output", dest="output_file", default=None,
+		help="Output YAML file path. Defaults to <first-input-stem>.yml in CWD."
 	)
 	parser.add_argument(
 		"-t", "--title", dest="title", default="Final Exam",
@@ -199,7 +200,7 @@ def compute_rdkit_out_dir(html_path: str, doc_root) -> str:
 		src = image.get("src", "")
 		if not src or src.startswith(("http://", "https://")):
 			continue
-		image_path = html_exam_docx_builder.resolve_image_path(html_path, src)
+		image_path = ef_tools.html_parse.resolve_image_path(html_path, src)
 		out_dir = os.path.dirname(image_path)
 		if out_dir:
 			return out_dir
@@ -297,7 +298,7 @@ def resolve_images(
 		src = image.get("src", "")
 		if not src:
 			continue
-		image_path = html_exam_docx_builder.resolve_image_path(html_path, src)
+		image_path = ef_tools.html_parse.resolve_image_path(html_path, src)
 		images.append(image_path)
 	if script_scope is not None and rdkit_out_dir is not None:
 		images.extend(resolve_rdkit_canvases(html_path, element, script_scope, rdkit_out_dir))
@@ -350,8 +351,8 @@ def remove_statement_noise(element) -> None:
 		if tag in ("script", "style", "input", "h5"):
 			remove_node(child)
 			continue
-		text = html_exam_docx_builder.text_from_element(child)
-		if html_exam_docx_builder.is_question_code(text):
+		text = ef_tools.html_parse.text_from_element(child)
+		if ef_tools.html_parse.is_question_code(text):
 			remove_node(child)
 
 
@@ -406,7 +407,7 @@ def parse_question(
 	prompts_list = []
 	choices_list = []
 	for child in body:
-		if html_exam_docx_builder.has_choice_labels(child) or child.xpath(CHOICE_ITEM_XPATH):
+		if ef_tools.html_parse.has_choice_labels(child) or child.xpath(CHOICE_ITEM_XPATH):
 			choices = parse_choices(html_path, child, question_div, rdkit_out_dir)
 			continue
 		if is_matching_block(child):
@@ -450,7 +451,7 @@ def parse_html_file(path: str) -> dict:
 	for question_div in html_doc.xpath(TAKE_QUESTION_XPATH):
 		questions.append(parse_question(path, question_div, rdkit_out_dir))
 	section = {
-		"heading": html_exam_docx_builder.extract_document_title(path),
+		"heading": ef_tools.html_parse.extract_document_title(path),
 		"questions": questions,
 	}
 	return section
@@ -474,8 +475,16 @@ def build_yaml(input_files: list[str], title: str, date: str) -> dict:
 def main() -> None:
 	"""Main entry point."""
 	args = parse_args()
-	if os.path.exists(args.output_file):
-		raise FileExistsError(f"Output file already exists: {args.output_file}")
+	# validate every input HTML extension
+	for input_file in args.input_files:
+		ef_tools.cli_checks.require_extensions(input_file, ('.html', '.htm'), 'input')
+	# resolve default output (first input's stem) and validate extension
+	output_file = args.output_file
+	if output_file is None:
+		output_file = ef_tools.cli_checks.default_output_path(args.input_files[0], '.yml')
+	ef_tools.cli_checks.require_extensions(output_file, ('.yml', '.yaml'), 'output')
+	if os.path.exists(output_file):
+		raise FileExistsError(f"Output file already exists: {output_file}")
 	if args.date is None:
 		date = datetime.date.today().isoformat()
 	else:
@@ -490,9 +499,10 @@ def main() -> None:
 			return dumper.represent_scalar("tag:yaml.org,2002:str", value, style='"')
 		return dumper.represent_scalar("tag:yaml.org,2002:str", value)
 	yaml.add_representer(str, _str_representer, Dumper=yaml.SafeDumper)
-	with open(args.output_file, "w", encoding="utf-8") as handle:
+	with open(output_file, "w", encoding="utf-8") as handle:
 		yaml.safe_dump(exam_data, handle, sort_keys=False, allow_unicode=False)
-	print(f"Exam YAML written to {args.output_file}")
+	question_count = sum(len(section.get("questions", [])) for section in exam_data["sections"])
+	print(f"Exam YAML written to {output_file} ({question_count} questions)")
 
 
 #============================================

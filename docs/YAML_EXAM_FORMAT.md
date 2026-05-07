@@ -2,7 +2,7 @@
 
 Version 1.0 -- exam-formatting-tools
 
-This document specifies the YAML exam format used by [docx_exam_builder.py](../docx_exam_builder.py) and [html_exam_docx_builder.py](../html_exam_docx_builder.py). It serves as the canonical reference for both human authors and machine readers/writers, including qti-package-maker engines.
+This document specifies the YAML exam format used by [yaml_to_exam_docx.py](../yaml_to_exam_docx.py). It serves as the canonical reference for both human authors and machine readers/writers, including qti-package-maker engines.
 
 ## Overview
 
@@ -382,4 +382,4 @@ These qti item fields have no equivalent in exam YAML:
 
 Exam YAML is a **print-document format**, not an assessment interchange format. Round-tripping through exam YAML loses answer keys, item metadata, and section structure. Use exam YAML as a one-way export target for generating printable exams, not as a lossless storage format.
 
-The recommended pipeline for LMS delivery is: source format -> qti-package-maker -> QTI/Blackboard. The recommended pipeline for print exams is: source format -> qti-package-maker -> bbq_text -> [bbq_to_exam_yaml.py](../bbq_to_exam_yaml.py) -> exam YAML -> [docx_exam_builder.py](../docx_exam_builder.py) -> DOCX.
+The recommended pipeline for LMS delivery is: source format -> qti-package-maker -> QTI/Blackboard. The recommended pipeline for print exams is: source format -> qti-package-maker -> bbq_text -> [bbq_to_exam_yaml.py](../bbq_to_exam_yaml.py) -> exam YAML -> [yaml_to_exam_docx.py](../yaml_to_exam_docx.py) -> DOCX.

@@ -8,7 +8,12 @@ Supports MC, MA, MAT, and ORD question types.
 
 # Standard Library
 import argparse
+
+# Pip Modules
 import yaml
+
+# Local Repo Modules
+import ef_tools.cli_checks
 
 
 #============================================
@@ -28,8 +33,8 @@ def parse_args():
 	parser.add_argument(
 		'-o', '--output',
 		dest='output_file',
-		required=True,
-		help="Output YAML exam file"
+		default=None,
+		help="Output YAML exam file. Defaults to <input-stem>.yml in CWD."
 	)
 	parser.add_argument(
 		'-t', '--title',
@@ -178,14 +183,22 @@ def main():
 	"""
 	args = parse_args()
 
+	# validate input extension and resolve default output
+	ef_tools.cli_checks.require_extensions(args.input_file, ('.txt',), 'input')
+	output_file = args.output_file
+	if output_file is None:
+		output_file = ef_tools.cli_checks.default_output_path(args.input_file, '.yml')
+	ef_tools.cli_checks.require_extensions(output_file, ('.yml', '.yaml'), 'output')
+
 	# Read and convert
 	exam_dict = convert_bbq_to_yaml(args.input_file, args.exam_title)
 
 	# Write output as YAML
-	with open(args.output_file, 'w') as f:
+	with open(output_file, 'w') as f:
 		yaml.dump(exam_dict, f, default_flow_style=False, sort_keys=False)
 
-	print(f"Converted {args.input_file} to {args.output_file}")
+	question_count = sum(len(section.get('questions', [])) for section in exam_dict['sections'])
+	print(f"Exam YAML written to {output_file} ({question_count} questions)")
 
 
 if __name__ == '__main__':

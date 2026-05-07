@@ -122,17 +122,15 @@ def setup_styles(doc: docx.Document, styles: dict) -> None:
 	qh.paragraph_format.space_after = docx.shared.Inches(spacing['question_space_after'])
 	qh.paragraph_format.keep_with_next = True
 
-	# Question Follow: same as Question Heading but no space above
+	# Question Follow: inherits Question Heading. The artifact (e.g.
+	# ARTIFACTS/exam1.docx) only overrides space_before=0 on top of
+	# Question Heading; everything else (bold, italic, 11pt, indent,
+	# hanging, keep_with_next) is inherited. Mirror that here so changes
+	# to Question Heading propagate correctly.
 	qf = doc.styles.add_style('Question Follow', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
-	qf.base_style = normal
-	qf.font.bold = flags['question_bold']
-	qf.font.italic = flags['question_italic']
-	qf.font.size = docx.shared.Pt(sizes['question'])
-	qf.paragraph_format.left_indent = docx.shared.Inches(spacing['question_indent'])
-	qf.paragraph_format.first_line_indent = docx.shared.Inches(spacing['question_hanging'])
+	qf.base_style = qh
 	qf.paragraph_format.space_before = docx.shared.Pt(0)
 	qf.paragraph_format.space_after = docx.shared.Inches(spacing['question_space_after'])
-	qf.paragraph_format.keep_with_next = True
 
 	# Chapter Heading: colored, keep-with-next
 	ch = doc.styles.add_style('Chapter Heading', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)

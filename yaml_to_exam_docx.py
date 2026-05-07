@@ -19,6 +19,7 @@ import docx.enum.text
 # Local Repo Modules
 import ef_tools.layout
 import ef_tools.text_utils
+import ef_tools.cli_checks
 import ef_tools.style_loader
 import ef_tools.exam_defaults
 import ef_tools.question_utils
@@ -40,8 +41,8 @@ def parse_args() -> argparse.Namespace:
 		help="Input YAML file with exam data"
 	)
 	parser.add_argument(
-		'-o', '--output', dest='output_file', required=True,
-		help="Output DOCX file path (must not already exist)"
+		'-o', '--output', dest='output_file', default=None,
+		help="Output DOCX file path. Defaults to <input-stem>.docx in CWD."
 	)
 	args = parser.parse_args()
 	return args
@@ -64,7 +65,7 @@ def resolve_choice_layout(question: dict, items: list, layout_limits) -> tuple:
 
 
 #============================================
-def build_document(exam_data: dict, output_path: str) -> None:
+def build_document(exam_data: dict, output_path: str) -> int:
 	"""Build a complete DOCX exam document from YAML data.
 
 	Creates all styles, page layout, headers, and body content.
@@ -141,6 +142,7 @@ def build_document(exam_data: dict, output_path: str) -> None:
 
 	# --- sections and questions ---
 	question_counter = 1
+	question_total = 0
 	prev_element = 'chapter'
 	for section_data in sections:
 		# major section heading (Heading 2 level)
@@ -189,6 +191,7 @@ def build_document(exam_data: dict, output_path: str) -> None:
 			# blanks; choices_list is the lettered (A)/(B)/... options.
 			prompts_list = question.get('prompts_list', [])
 			question_span = max(1, len(prompts_list))
+			question_total += question_span
 			if question_span > 1:
 				question_prefix = f"Q{question_number}-{question_number + question_span - 1}. "
 			else:
@@ -272,18 +275,25 @@ def build_document(exam_data: dict, output_path: str) -> None:
 
 	# save document
 	doc.save(output_path)
+	return question_total
 
 
 #============================================
 def main():
 	"""Main entry point for DOCX exam builder."""
 	args = parse_args()
+	# validate input extension and resolve default output
+	ef_tools.cli_checks.require_extensions(args.input_file, ('.yml', '.yaml'), 'input')
+	output_file = args.output_file
+	if output_file is None:
+		output_file = ef_tools.cli_checks.default_output_path(args.input_file, '.docx')
+	ef_tools.cli_checks.require_extensions(output_file, ('.docx',), 'output')
 	# load YAML
 	with open(args.input_file, 'r') as f:
 		exam_data = yaml.safe_load(f)
-	# build document
-	build_document(exam_data, args.output_file)
-	print(f"Exam DOCX written to {args.output_file}")
+	# build document and report question count
+	question_count = build_document(exam_data, output_file)
+	print(f"Exam DOCX written to {output_file} ({question_count} questions)")
 
 
 #============================================

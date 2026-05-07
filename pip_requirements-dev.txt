@@ -1,5 +1,6 @@
 # Development dependencies
 bandit  # security linting for Python code
+numpy
 packaging  # version parsing/comparison helpers used by tooling/tests
 pyflakes  # static analysis lint checks
 pytest  # automated test runner

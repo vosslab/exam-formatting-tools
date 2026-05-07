@@ -2,37 +2,31 @@
 
 All commands assume the bootstrap pattern `source source_me.sh && python3 ...`.
 
+## Pipeline
+
+The pipeline is `<source format> -> exam YAML -> DOCX`. Every root script
+validates input/output extensions and reports the question count on success.
+`-o/--output` is optional; when omitted, the output is `<input-stem>` with
+the target extension in the current working directory.
+
 ## Build a DOCX exam from YAML
 
 ```bash
-source source_me.sh && python3 docx_exam_builder.py \
-    -i exam_data.yaml \
-    -o exam_output.docx
+source source_me.sh && python3 yaml_to_exam_docx.py -i exam_data.yml
 ```
 
 The YAML schema is documented in [docs/YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md).
 Style definitions come from [styles/exam_styles.yaml](../styles/exam_styles.yaml).
 
-Note: `docx_exam_builder.py` refuses to overwrite an existing output file
+Note: `yaml_to_exam_docx.py` refuses to overwrite an existing output file
 (it raises `FileExistsError`). To regenerate a shipped DOCX, write the new
 output to `/tmp/` first and then `cp` it into place:
 
 ```bash
-source source_me.sh && python3 docx_exam_builder.py \
-    -i Final_Exam/Final_Exam_2A_2B_combined.yaml \
+source source_me.sh && python3 yaml_to_exam_docx.py \
+    -i Final_Exam/Final_Exam_2A_2B_combined.yml \
     -o /tmp/_regen_combined.docx
 cp /tmp/_regen_combined.docx Final_Exam/Final_Exam_2A_2B_combined.docx
-```
-
-## Build a DOCX exam directly from cleaned Blackboard HTML
-
-Combine one or more cleaned HTML exports into a single styled DOCX exam:
-
-```bash
-source source_me.sh && python3 html_exam_docx_builder.py \
-    -i Final_Exam/Cleaned_Final_Exam_2A.html Final_Exam/Cleaned_Final_Exam_2B.html \
-    -o final_combined.docx \
-    -t "Final Exam"
 ```
 
 Image-based answer choices are laid out horizontally using paragraph tab stops
@@ -40,12 +34,11 @@ Image-based answer choices are laid out horizontally using paragraph tab stops
 
 ## Convert question banks to exam YAML
 
-Blackboard cleaned HTML to YAML:
+Blackboard cleaned HTML to YAML (one or more files; first input's stem
+drives the default output name):
 
 ```bash
-source source_me.sh && python3 html_to_exam_yaml.py \
-    -i Cleaned_Final_Exam_2A.html \
-    -o exam_2A.yaml
+source source_me.sh && python3 html_to_exam_yaml.py -i Cleaned_Final_Exam_2A.html
 ```
 
 Matching questions are emitted as `prompts_list` plus `choices_list`; see [docs/YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md) for the schema.
@@ -55,19 +48,19 @@ RDKit HTML5 canvas widgets in the cleaned HTML are auto-rendered to PNG (named `
 Blackboard `.bbq` export to YAML:
 
 ```bash
-source source_me.sh && python3 bbq_to_exam_yaml.py -i export.bbq -o exam.yaml
+source source_me.sh && python3 bbq_to_exam_yaml.py -i export.txt
 ```
 
 Oklahoma export to YAML:
 
 ```bash
-source source_me.sh && python3 okla_to_exam_yaml.py -i export.txt -o exam.yaml
+source source_me.sh && python3 okla_to_exam_yaml.py -i export.txt
 ```
 
 ## Convert DOCX back to YAML
 
 ```bash
-source source_me.sh && python3 docx_to_exam_yaml.py -i exam.docx -o exam.yaml
+source source_me.sh && python3 docx_to_exam_yaml.py -i exam.docx
 ```
 
 ## Run the test suite

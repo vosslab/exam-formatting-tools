@@ -2,8 +2,24 @@
 
 ## 2026-05-07
 
+### Additions and New Features
+
+- Added `ef_tools/cli_checks.py` with two helpers: `require_extensions(path, allowed, role)` raises `ValueError` when a CLI input/output path has the wrong extension, and `default_output_path(input_path, new_ext)` derives an output basename in the current working directory by swapping the extension. Both helpers are wired into every root script so a wrong-format input fails loudly at startup instead of silently producing a near-empty file (the bug behind yesterday's confusion when `html_exam_docx_builder.py` was given a `.yml` input and wrote only the front page).
+- Added `ef_tools/html_parse.py` containing the shared HTML parsing constants (`TAKE_QUESTION_XPATH`, `IMAGE_CLASS_XPATH`, `INLINE_TAGS`, `QUESTION_CODE_RE`, `CHOICE_PREFIX_RE`) and helpers (`extract_document_title`, `is_question_code`, `strip_choice_prefix`, `resolve_image_path`, `text_from_element`, `has_choice_labels`) extracted from the now-deleted `html_exam_docx_builder.py`. Consumed by `html_to_exam_yaml.py`.
+
+### Behavior or Interface Changes
+
+- Renamed `docx_exam_builder.py` to `yaml_to_exam_docx.py` (via `git mv`) so every root script reads as `<input-format>_to_exam_<output-format>.py` and the input/output direction is unambiguous at `ls`. Updated all references in `tools/measure_image_choices.py`, `tests/test_docx_choice_styles.py`, `tests/test_yaml_to_exam_docx_matching.py` (renamed from `test_docx_exam_builder_matching.py`), `README.md`, `docs/USAGE.md`, and `docs/YAML_EXAM_FORMAT.md`.
+- All five root scripts (`bbq_to_exam_yaml.py`, `docx_to_exam_yaml.py`, `html_to_exam_yaml.py`, `okla_to_exam_yaml.py`, `yaml_to_exam_docx.py`) now make `-o/--output` optional. When omitted, output defaults to `<input-stem>` with the target extension in the current working directory (for `html_to_exam_yaml.py`, the first input's stem). Final CLI line is standardized to `Exam YAML written to <path> (NN questions)` or `Exam DOCX written to <path> (NN questions)`.
+- All five root scripts now validate input and output extensions via `ef_tools.cli_checks.require_extensions` before doing any work. Allowed extensions: `bbq_to_exam_yaml.py` `.txt -> .yml/.yaml`; `docx_to_exam_yaml.py` `.docx -> .yml/.yaml`; `html_to_exam_yaml.py` `.html/.htm -> .yml/.yaml` (each input file is checked); `okla_to_exam_yaml.py` `.txt -> .yml/.yaml`; `yaml_to_exam_docx.py` `.yml/.yaml -> .docx`.
+
+### Removals and Deprecations
+
+- Deleted `html_exam_docx_builder.py` (and its test `tests/test_html_exam_docx_builder.py`). The HTML-to-DOCX direct path duplicated work already covered by `html_to_exam_yaml.py` followed by `yaml_to_exam_docx.py` and was the source of yesterday's silent-empty-DOCX bug when fed a YAML file. Anyone wanting HTML to DOCX now runs the two-step pipeline. Also removed the `test_add_choice_label_paragraph_routes_image_choices_through_tabbed` test in `tests/test_docx_builder_image_choices.py` (the only remaining caller of `html_exam_docx_builder.add_choice_label_paragraph`).
+
 ### Fixes and Maintenance
 
+- Restored `Question Heading` and `Question Follow` styles to match the legacy ODT/DOCX artifacts in `ARTIFACTS/`. `Question Heading` is now bold italic at 11pt with hanging indent 0.2 in / -0.2 in, space-before 0.12 in, space-after 0.05 in; `Question Follow` now inherits from `Question Heading` and only overrides `space_before=0`, mirroring the artifact's `<w:basedOn w:val="QuestionHeading"/>` plus single-property override pattern. Verified against `ARTIFACTS/exam1.docx` (`<w:b/><w:i/><w:sz w:val="22"/>` and `<w:ind w:hanging="288" w:start="288"/>`). Updated `styles/exam_styles.yaml` (`sizes.question: 11`, `style_flags.question_bold/italic: true`, `spacing.question_indent: 0.2`, `question_hanging: -0.2`, `question_heading_space_before: 0.12`, `question_space_after: 0.05`) and refactored `Question Follow` setup in `ef_tools/docx_builder.py` to base on `Question Heading` instead of `Normal`. `Matching Prompt` keeps its existing explicit `bold=False/italic=False` overrides, so it still renders normal weight/style and now correctly inherits the new 11pt size from its parent (matching the artifact, where `Question` style inherits size from `QuestionHeading`).
 - `html_to_exam_yaml.py` now registers a custom string representer that emits double-quoted YAML scalars for any string containing an apostrophe, instead of single-quoted with the `''` escape. The doubled-apostrophe form is valid YAML 1.1/1.2 and round-trips correctly through `yaml.safe_load`, but some lenient/legacy YAML validators flag `Chargaff''s` and `it''s` as syntax errors. Switching to double-quoted style produces `"Chargaff's"` literally, which every validator accepts. Strings without apostrophes keep PyYAML's default plain style, so the diff is limited to lines that previously carried `''`.
 
 ## 2026-05-06
