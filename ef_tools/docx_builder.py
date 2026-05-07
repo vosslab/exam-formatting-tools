@@ -424,10 +424,10 @@ def add_choice_content(para, choice, image_width: float = None,
 # image than a naive cursor calculation predicts; values are set by viewing
 # the rendered DOCX, not computed from page width.
 IMAGE_CHOICE_MAX_WIDTH_BY_COLS = {
-	2: 2.96,
-	3: 1.90,
-	4: 1.32,
-	5: 0.96,
+	2: 3.30,
+	3: 2.07,
+	4: 1.49,
+	5: 1.13,
 }
 
 

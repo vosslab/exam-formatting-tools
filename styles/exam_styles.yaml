@@ -55,7 +55,7 @@ page:
   header_right_tab: 7.3
   boilerplate_tab: 1.4
   image_max_width: 5.6
-  choice_image_max_width: 3.00
+  choice_image_max_width: 3.40
   choice_image_max_height: 2.00
 
 layout_limits:

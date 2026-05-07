@@ -110,10 +110,15 @@ the cursor past its tab stop and wrapping to a new line:
 
 | Columns | Image width cap |
 | --- | --- |
-| 2 | 2.96in |
-| 3 | 1.90in |
-| 4 | 1.32in |
-| 5 | 0.96in |
+| 2 | 3.30in |
+| 3 | 2.07in |
+| 4 | 1.49in |
+| 5 | 1.13in |
+
+Caps are tuned via `tools/measure_image_choices.py` so each image's right
+edge sits ~0.02in inside the next tab stop. Re-run that tool after
+changing any of `IMAGE_CHOICE_MAX_WIDTH_BY_COLS`, `layout_tab_stops`, or
+`choice_indent`.
 
 The cap dominates `choice_image_max_width` and `choice_image_max_height`
 in `styles/exam_styles.yaml` for any layout where the per-column budget
