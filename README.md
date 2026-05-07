@@ -18,6 +18,9 @@ source source_me.sh && python3 yaml_to_exam_docx.py -i Cleaned_Final_Exam_2A.yml
 - [docs/INSTALL.md](docs/INSTALL.md): Setup steps and dependencies.
 - [docs/USAGE.md](docs/USAGE.md): How to run each script with practical examples.
 - [docs/YAML_EXAM_FORMAT.md](docs/YAML_EXAM_FORMAT.md): Exam YAML schema and rendering rules.
+- [docs/CODE_ARCHITECTURE.md](docs/CODE_ARCHITECTURE.md): Component map and data flow.
+- [docs/FILE_STRUCTURE.md](docs/FILE_STRUCTURE.md): Directory map and where to add new work.
+- [docs/RELATED_PROJECTS.md](docs/RELATED_PROJECTS.md): Sibling repositories and integration points.
 - [docs/CHANGELOG.md](docs/CHANGELOG.md): Change history.
 - [docs/ROADMAP.md](docs/ROADMAP.md): Planned and in-progress work.
 - [docs/AUTHORS.md](docs/AUTHORS.md): Maintainers.
