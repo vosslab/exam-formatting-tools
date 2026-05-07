@@ -17,7 +17,7 @@ import ef_tools.text_utils
 DEFAULT_MAX_CHARS_5 = 17
 DEFAULT_MAX_CHARS_4 = 23
 DEFAULT_MAX_CHARS_3 = 30
-DEFAULT_MAX_CHARS_2 = 49
+DEFAULT_MAX_CHARS_2 = 42
 
 # default tab stop positions for each choices layout (in inches)
 CHOICES_TAB_STOPS = {

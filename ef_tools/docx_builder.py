@@ -6,6 +6,7 @@ dict (loaded from styles/exam_styles.yaml) rather than being hardcoded.
 """
 
 # Standard Library
+import re
 import datetime
 
 # Pip Modules
@@ -331,27 +332,55 @@ def add_rich_text_runs(para, text: str) -> None:
 	decoded = ef_tools.text_utils.decode_html_entities(text)
 	segments = ef_tools.text_utils.parse_rich_text(decoded)
 	for segment_text, tags in segments:
+		# drop hard-break segments and collapse stray newlines to spaces;
+		# paragraph-level splitting belongs to add_rich_text_paragraphs
 		if segment_text == "\n":
-			run = para.add_run()
-			run.add_break()
 			continue
-		text_parts = segment_text.split("\n")
-		for index, text_part in enumerate(text_parts):
-			if index > 0:
-				break_run = para.add_run()
-				break_run.add_break()
-			if not text_part:
-				continue
-			run = para.add_run(text_part)
-			# only set run-level overrides for rich text tags
-			if 'b' in tags:
-				run.font.bold = True
-			if 'i' in tags:
-				run.font.italic = True
-			if 'sub' in tags:
-				run.font.subscript = True
-			if 'sup' in tags:
-				run.font.superscript = True
+		flat_text = segment_text.replace("\n", " ")
+		if not flat_text:
+			continue
+		run = para.add_run(flat_text)
+		# only set run-level overrides for rich text tags
+		if 'b' in tags:
+			run.font.bold = True
+		if 'i' in tags:
+			run.font.italic = True
+		if 'sub' in tags:
+			run.font.subscript = True
+		if 'sup' in tags:
+			run.font.superscript = True
+
+
+# regex to split text on hard paragraph breaks: literal \n or <br> tags
+_PARAGRAPH_BREAK_RE = re.compile(r'(?:\r?\n|<br\s*/?>)+', re.IGNORECASE)
+
+
+#============================================
+def add_rich_text_paragraphs(doc, style_name: str, text: str,
+		prefix: str = '') -> object:
+	"""Split text on hard breaks (\\n and <br>) into separate paragraphs.
+
+	Each piece becomes its own paragraph styled with style_name. The
+	optional prefix is added as a plain run on the first paragraph only.
+	An empty input still emits one paragraph (carrying just the prefix)
+	so callers can rely on at least one paragraph being created.
+
+	Returns the last paragraph created.
+	"""
+	pieces = _PARAGRAPH_BREAK_RE.split(text)
+	# keep only pieces with visible content; preserve at least one slot
+	pieces = [piece for piece in pieces if piece.strip()]
+	if not pieces:
+		pieces = ['']
+	last_para = None
+	for index, piece in enumerate(pieces):
+		para = doc.add_paragraph()
+		para.style = doc.styles[style_name]
+		if index == 0 and prefix:
+			para.add_run(prefix)
+		add_rich_text_runs(para, piece)
+		last_para = para
+	return last_para
 
 
 #============================================
@@ -584,7 +613,6 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 		tab_style: Tab stop layout (3, 4, or 5) from CHOICES_TAB_STOPS.
 		items_per_row: Number of choices per line (may differ from tab_style).
 	"""
-	para = doc.add_paragraph()
 	# any image in the list forces a vertical stack so the image and
 	# its caption stay on one line per choice
 	has_images = any(ef_tools.layout.choice_image(choice) for choice in choices)
@@ -593,35 +621,34 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 		tab_style = 1
 	# select the appropriate style via the central resolver, which
 	# always returns a concrete Choices N (never the bare Choice base)
-	para.style = doc.styles[ef_tools.layout.choices_style_name(tab_style)]
-	# vertical stack: one choice per line, no tabs
-	if items_per_row <= 1:
-		for i, choice in enumerate(choices):
-			if i > 0:
-				run_br = para.add_run()
-				run_br.add_break()
-			letter = chr(ord('A') + i)
+	style_name = ef_tools.layout.choices_style_name(tab_style)
+	# group choices into rows so each row becomes its own paragraph
+	# (hard breaks). items_per_row<=1 means one choice per row.
+	row_size = max(1, items_per_row)
+	rows = [choices[start:start + row_size]
+		for start in range(0, len(choices), row_size)]
+	for row_index, row_choices in enumerate(rows):
+		para = doc.add_paragraph()
+		para.style = doc.styles[style_name]
+		# rows after the first should sit flush against the prior row;
+		# all rows except the last drop trailing space so the choices
+		# group reads as one unit visually
+		if row_index > 0:
+			para.paragraph_format.space_before = docx.shared.Pt(0)
+		if row_index < len(rows) - 1:
+			para.paragraph_format.space_after = docx.shared.Pt(0)
+		for col_index, choice in enumerate(row_choices):
+			# global letter index across all rows
+			letter = chr(ord('A') + row_index * row_size + col_index)
+			# tab before this choice (except first in each row)
+			if col_index > 0:
+				para.add_run("\t")
 			# bold letter prefix (only run-level override needed)
 			bold_run = para.add_run(f"({letter}) ")
 			bold_run.bold = True
 			# choice content inherits font size from style
-			add_choice_content(para, choice, image_width=image_width, image_height=image_height)
-		return
-	# multi-column layout
-	for i, choice in enumerate(choices):
-		letter = chr(ord('A') + i)
-		# line break before new rows (after first row)
-		if i > 0 and i % items_per_row == 0:
-			run_br = para.add_run()
-			run_br.add_break()
-		# tab before this choice (except first in each row)
-		if i > 0 and i % items_per_row != 0:
-			para.add_run("\t")
-		# bold letter prefix (only run-level override needed)
-		bold_run = para.add_run(f"({letter}) ")
-		bold_run.bold = True
-		# choice content inherits font size from style
-		add_choice_content(para, choice, image_width=image_width, image_height=image_height)
+			add_choice_content(para, choice,
+				image_width=image_width, image_height=image_height)
 
 
 #============================================

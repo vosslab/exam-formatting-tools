@@ -251,12 +251,10 @@ def build_document(exam_data: dict, output_path: str) -> int:
 				stripped = ef_tools.text_utils.strip_number_prefix(statement)
 				# select style based on previous element
 				style_name = ef_tools.question_utils.select_question_style(prev_element)
-				para = doc.add_paragraph()
-				para.style = doc.styles[style_name]
-				# add number prefix (bold+italic inherited from style)
-				para.add_run(question_prefix)
-				# add statement text with rich text support
-				ef_tools.docx_builder.add_rich_text_runs(para, stripped)
+				# split statement on \n / <br> into separate paragraphs
+				# (hard breaks) instead of soft Word line breaks
+				ef_tools.docx_builder.add_rich_text_paragraphs(
+					doc, style_name, stripped, prefix=question_prefix)
 				prev_element = 'question'
 			# matching layout matches reference artifacts in ARTIFACTS/:
 			# lettered (A)/(B)/... choices come FIRST as the answer key,
@@ -272,10 +270,9 @@ def build_document(exam_data: dict, output_path: str) -> int:
 				prev_element = 'choices'
 			if prompts_list:
 				for index, prompt in enumerate(prompts_list):
-					prompt_para = doc.add_paragraph()
-					prompt_para.style = doc.styles['Matching Prompt']
-					prompt_para.add_run(f"___ {question_number + index}. ")
-					ef_tools.docx_builder.add_rich_text_runs(prompt_para, prompt)
+					prompt_prefix = f"___ {question_number + index}. "
+					ef_tools.docx_builder.add_rich_text_paragraphs(
+						doc, 'Matching Prompt', prompt, prefix=prompt_prefix)
 				prev_element = 'choices'
 			# images (before choices, after question text)
 			image_paths = []
