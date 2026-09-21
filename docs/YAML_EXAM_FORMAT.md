@@ -165,6 +165,10 @@ answer key first, matching the reference exam style in `ARTIFACTS/`.
 Do not embed `A. ... B. ...` enumerations inside `statement` -- put the
 options in `choices_list` so the builder formats them consistently.
 
+Ordering questions (bbq `ORD`) use the same block: `prompts_list` holds
+`Position 1`, `Position 2`, ... and `choices_list` holds the shuffled items,
+so the student writes the letter of the item that belongs at each position.
+
 ### Auto-layout algorithm
 
 When `layout` is omitted, the builder selects a `Choices N` paragraph
@@ -214,7 +218,9 @@ Override with an explicit `layout` value when needed:
     - "Reduction"
 ```
 
-Images are embedded in the DOCX with their original aspect ratio preserved. The image path is relative to the working directory.
+Images are embedded in the DOCX with their original aspect ratio preserved. A relative image path (question `image`/`images` or a choice `image`) is resolved against the directory of the YAML file, so a YAML and its `<stem>_files/` folder move together. Absolute paths pass through unchanged.
+
+bptools tables (gels, chi-square critical values, test-cross counts, metabolic pathways, genotype grids) are rendered to PNG by [bbq_to_exam_yaml.py](../bbq_to_exam_yaml.py) and [bbq_tasks_to_exam_yaml.py](../bbq_tasks_to_exam_yaml.py) through `qti_package_maker.html_to_image` and listed under `images` (or as a choice `image`); the images render after the full statement text.
 
 For cleaned Blackboard HTML exports, use [html_to_exam_yaml.py](../html_to_exam_yaml.py) to create YAML first; it preserves statement images as `images` and image-based answer choices as structured choice objects.
 
@@ -363,7 +369,7 @@ A write engine should:
    - **MC**: `statement` + `choices` (answer_text is lost since exam YAML has no answer key)
    - **MA**: same as MC (multiple correct answers lost)
    - **MATCH**: emit `prompts_list` and `choices_list` directly (statement stays in `statement`; do not encode as a `table`)
-   - **ORDER**: `statement` + `choices` (ordering information lost)
+   - **ORDER**: `prompts_list` of `Position N` labels + shuffled `choices_list` (the correct order lives only in the sibling answer key)
    - **NUM**: `statement` only (numeric answer/tolerance lost)
    - **FIB**: `statement` only (fill-in answers lost)
 
@@ -384,4 +390,4 @@ These qti item fields have no equivalent in exam YAML:
 
 Exam YAML is a **print-document format**, not an assessment interchange format. Round-tripping through exam YAML loses answer keys, item metadata, and section structure. Use exam YAML as a one-way export target for generating printable exams, not as a lossless storage format.
 
-The recommended pipeline for LMS delivery is: source format -> qti-package-maker -> QTI/Blackboard. The recommended pipeline for print exams is: source format -> qti-package-maker -> bbq_text -> [bbq_to_exam_yaml.py](../bbq_to_exam_yaml.py) -> exam YAML -> [yaml_to_exam_docx.py](../yaml_to_exam_docx.py) -> DOCX.
+The recommended pipeline for LMS delivery is: source format -> qti-package-maker -> QTI/Blackboard. The recommended pipeline for print exams is: source format -> qti-package-maker -> bbq_text -> [bbq_to_exam_yaml.py](../bbq_to_exam_yaml.py) -> exam YAML -> [yaml_to_exam_docx.py](../yaml_to_exam_docx.py) -> DOCX. For one question per bptools generator, [bbq_tasks_to_exam_yaml.py](../bbq_tasks_to_exam_yaml.py) runs the generators from a website task CSV and writes the exam YAML directly (see [USAGE.md](USAGE.md)). Both bbq converters write a sibling `<stem>-key.txt` answer key, since exam YAML itself carries no answers.

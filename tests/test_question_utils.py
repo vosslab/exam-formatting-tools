@@ -18,6 +18,14 @@ def test_select_question_style_after_chapter():
 
 
 #============================================
+def test_question_span_matching_block_spans_prompts():
+	"""A matching block spans one row per prompt; MC spans one row."""
+	matching = {"statement": "Match.", "prompts_list": ["a", "b", "c", "d"], "choices_list": ["w"]}
+	assert ef_tools.question_utils.question_span(matching) == 4
+	assert ef_tools.question_utils.question_span({"statement": "MC", "choices": ["a", "b"]}) == 1
+
+
+#============================================
 def test_count_total_questions_multiple_sections():
 	"""Test counting questions across multiple sections."""
 	sections = [

@@ -19,6 +19,7 @@ exam-formatting-tools/
 +- pip_requirements-dev.txt
 +- pip_extras.txt
 +- Brewfile
++- bbq_tasks_to_exam_yaml.py
 +- bbq_to_exam_yaml.py
 +- docx_to_exam_yaml.py
 +- html_to_exam_yaml.py
@@ -61,12 +62,16 @@ only; callers import submodules directly (e.g.
 ```text
 ef_tools/
 +- __init__.py
++- bbq_html.py          (bptools HTML -> exam text; tables -> PNG)
++- bbq_parse.py         (bbq line -> question + answer letters; key text)
++- bbq_tasks.py         (website task CSV contract; generate with retry)
 +- cli_checks.py        (input/output extension validation)
 +- docx_builder.py      (style setup, layout, page header)
 +- exam_defaults.py     (name line, score line)
++- exam_yaml_writer.py  (apostrophe-safe YAML dumper)
 +- html_parse.py        (HTML XPath, choice-prefix regex, helpers)
 +- layout.py            (auto_layout_for_choices)
-+- question_utils.py    (style selection, count helpers)
++- question_utils.py    (style selection, question_span, count helpers)
 +- rdkit_render.py      (canvas-to-PNG via rdkit)
 +- style_loader.py      (load styles/exam_styles.yaml)
 +- text_utils.py        (visible-width scoring, number-prefix stripping)
@@ -118,12 +123,15 @@ tests/
 +- test_docx_*.py                   (DOCX builder/styles/layout tests)
 +- test_yaml_to_exam_docx_matching.py
 +- test_zip_grade.py
-`- test_<module>.py                 (per-ef_tools module tests)
++- test_<module>.py                 (per-ef_tools module tests)
+`- e2e/
+   `- e2e_bbq_tasks_quiz.py         (real generators + Chromium + DOCX; outside pytest)
 ```
 
 Conventions in [PYTEST_STYLE.md](PYTEST_STYLE.md). End-to-end checks
-that exceed pytest's speed budget belong in `tests_e2e/` per
-[E2E_TESTS.md](E2E_TESTS.md) (folder not yet present).
+that exceed pytest's speed budget live in `tests/e2e/` per
+[E2E_TESTS.md](E2E_TESTS.md) and run with
+`source source_me.sh && python3 tests/e2e/e2e_bbq_tasks_quiz.py`.
 
 ### `devel/`
 
@@ -148,6 +156,8 @@ Listed in [.gitignore](../.gitignore):
 - `*.yaml` except `styles/*.yaml` (generated exam YAML; untracked)
 - `*.odt` (legacy ODT outputs; untracked)
 - `.~lock.*` (LibreOffice lock files)
+- `output_smoke/` (smoke and E2E run outputs)
+- `output_quiz/` (generated quiz/exam YAML, DOCX, key, and `*_files/` PNGs)
 
 ## Documentation map
 

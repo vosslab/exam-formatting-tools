@@ -25,6 +25,9 @@ import dataclasses
 # PIP3 modules
 import yaml
 
+# local repo modules
+import ef_tools.question_utils
+
 
 # ZipGrade form constants
 MAX_CHOICES = 5
@@ -121,20 +124,7 @@ def _statement_excerpt(question: dict) -> str:
 
 
 #============================================
-def _question_span(question: dict) -> int:
-	"""Number of numbered rows consumed by the question.
-
-	Mirrors the question_span logic in yaml_to_exam_docx.py:193-194 so the
-	row-budget check matches what the DOCX builder will actually emit.
-	"""
-	prompts_list = question.get('prompts_list', None)
-	if prompts_list:
-		return max(1, len(prompts_list))
-	return 1
-
-
-#============================================
-def _classify_question(question: dict) -> tuple:
+def classify_question(question: dict) -> tuple:
 	"""Classify a single question per the severity matrix.
 
 	Returns (Severity, rule_id, message). For OK questions, rule_id and
@@ -228,8 +218,8 @@ def validate(exam_data: dict) -> list:
 		# explicit number override mirrors builder behavior
 		if 'number' in question:
 			question_counter = question['number']
-		span = _question_span(question)
-		severity, rule_id, message = _classify_question(question)
+		span = ef_tools.question_utils.question_span(question)
+		severity, rule_id, message = classify_question(question)
 		if severity is not Severity.OK:
 			issue = Issue(
 				severity=severity,
@@ -303,8 +293,8 @@ def filter_exam(exam_data: dict) -> tuple:
 	for section_index, question_index, question in _iter_questions(exam_data):
 		if 'number' in question:
 			question_counter = question['number']
-		span = _question_span(question)
-		severity, _, _ = _classify_question(question)
+		span = ef_tools.question_utils.question_span(question)
+		severity, _, _ = classify_question(question)
 		if severity is not Severity.OK:
 			drop_set.add((section_index, question_index))
 		question_counter += span
@@ -333,7 +323,7 @@ def filtered_total_rows(filtered_exam: dict) -> int:
 	"""
 	total = 0
 	for _, _, question in _iter_questions(filtered_exam):
-		total += _question_span(question)
+		total += ef_tools.question_utils.question_span(question)
 	return total
 
 

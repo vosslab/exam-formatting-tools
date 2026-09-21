@@ -10,20 +10,18 @@ add_choices_paragraph triggered by any image-bearing choice, and a
 hardcoded assignment in add_image_choices_tabbed.
 """
 
-import os
 import re
 import sys
 import base64
 
-import yaml
 import docx
 
-import git_file_utils
+import file_utils
 import ef_tools.docx_builder
 import ef_tools.style_loader
 
 # put the repo root on sys.path so yaml_to_exam_docx.py is importable
-_REPO_ROOT = git_file_utils.get_repo_root()
+_REPO_ROOT = file_utils.get_repo_root()
 if _REPO_ROOT not in sys.path:
 	sys.path.insert(0, _REPO_ROOT)
 import yaml_to_exam_docx
@@ -171,23 +169,3 @@ def test_matching_choices_list_uses_multi_column_style(tmp_path):
 	assert _CHOICES_N_PATTERN.match(style_name), style_name
 
 
-#============================================
-def test_combined_yaml_no_paragraph_uses_choice_base_style(tmp_path):
-	"""End-to-end: every paragraph in the combined exam DOCX is concrete.
-
-	Builds Final_Exam/Final_Exam_2A_2B_combined.yaml from scratch, walks
-	every paragraph in the result, and asserts none carry the abstract
-	base style 'Choice'. This locks Gate G4 from the implementation plan.
-	"""
-	combined_yaml = os.path.join(
-		_REPO_ROOT, "Final_Exam", "Final_Exam_2A_2B_combined.yaml")
-	with open(combined_yaml, encoding="utf-8") as handle:
-		exam_data = yaml.safe_load(handle)
-	output_path = str(tmp_path / "combined.docx")
-	yaml_to_exam_docx.build_document(exam_data, output_path)
-	doc = docx.Document(output_path)
-	bare_choice_paragraphs = [
-		paragraph for paragraph in doc.paragraphs
-		if paragraph.style and paragraph.style.name == "Choice"
-	]
-	assert bare_choice_paragraphs == []

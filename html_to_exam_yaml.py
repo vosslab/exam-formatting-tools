@@ -11,11 +11,11 @@ import re
 
 # Pip Modules
 import lxml.html
-import yaml
 
 # Local Repo Modules
 import ef_tools.cli_checks
 import ef_tools.html_parse
+import ef_tools.exam_yaml_writer
 import ef_tools.rdkit_render
 
 
@@ -472,6 +472,23 @@ def build_yaml(input_files: list[str], title: str, date: str) -> dict:
 
 
 #============================================
+def relativize_image_paths(exam_data: dict, yaml_dir: str) -> None:
+	"""Rewrite every image path in exam_data relative to yaml_dir, in place.
+
+	Covers question-level `images` and structured choice `image` fields.
+	"""
+	for section in exam_data["sections"]:
+		for question in section.get("questions", []):
+			if "images" in question:
+				question["images"] = [
+					os.path.relpath(path, yaml_dir) for path in question["images"]
+				]
+			for choice in question.get("choices", []):
+				if isinstance(choice, dict) and choice.get("image"):
+					choice["image"] = os.path.relpath(choice["image"], yaml_dir)
+
+
+#============================================
 def main() -> None:
 	"""Main entry point."""
 	args = parse_args()
@@ -490,17 +507,12 @@ def main() -> None:
 	else:
 		date = args.date
 	exam_data = build_yaml(args.input_files, args.title, date)
-	# Custom string representer: when a string contains an apostrophe, dump
-	# it as a double-quoted scalar instead of single-quoted. PyYAML's default
-	# single-quoted form escapes ' as '' (valid YAML 1.1/1.2), but some
-	# lenient/legacy validators reject the doubled form, so we sidestep it.
-	def _str_representer(dumper: yaml.SafeDumper, value: str):
-		if "'" in value:
-			return dumper.represent_scalar("tag:yaml.org,2002:str", value, style='"')
-		return dumper.represent_scalar("tag:yaml.org,2002:str", value)
-	yaml.add_representer(str, _str_representer, Dumper=yaml.SafeDumper)
-	with open(output_file, "w", encoding="utf-8") as handle:
-		yaml.safe_dump(exam_data, handle, sort_keys=False, allow_unicode=False)
+	# image paths are stored relative to the YAML file so the YAML and its
+	# media folder can move together (yaml_to_exam_docx.py resolves them
+	# against the YAML's directory)
+	yaml_dir = os.path.dirname(os.path.abspath(output_file))
+	relativize_image_paths(exam_data, yaml_dir)
+	ef_tools.exam_yaml_writer.write_exam_yaml(exam_data, output_file)
 	question_count = sum(len(section.get("questions", [])) for section in exam_data["sections"])
 	print(f"Exam YAML written to {output_file} ({question_count} questions)")
 

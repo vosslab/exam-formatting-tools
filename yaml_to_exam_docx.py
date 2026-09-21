@@ -113,7 +113,34 @@ def resolve_choice_layout(question: dict, items: list, layout_limits) -> tuple:
 
 
 #============================================
-def build_document(exam_data: dict, output_path: str) -> int:
+def resolve_media_path(path: str, base_dir: str) -> str:
+	"""Resolve an image path from exam YAML against the YAML file's directory.
+
+	Absolute paths pass through; relative paths are joined to base_dir so a
+	YAML file and its `<stem>_files/` folder can move together.
+	"""
+	if os.path.isabs(path):
+		return path
+	resolved = os.path.normpath(os.path.join(base_dir, path))
+	return resolved
+
+
+#============================================
+def resolve_choice_images(choices: list, base_dir: str) -> list:
+	"""Return a copy of choices with dict `image` paths resolved to base_dir."""
+	resolved = []
+	for choice in choices:
+		if isinstance(choice, dict) and choice.get('image', None):
+			updated = dict(choice)
+			updated['image'] = resolve_media_path(choice['image'], base_dir)
+			resolved.append(updated)
+		else:
+			resolved.append(choice)
+	return resolved
+
+
+#============================================
+def build_document(exam_data: dict, output_path: str, base_dir: str = '.') -> int:
 	"""Build a complete DOCX exam document from YAML data.
 
 	Creates all styles, page layout, headers, and body content.
@@ -122,6 +149,8 @@ def build_document(exam_data: dict, output_path: str) -> int:
 	Args:
 		exam_data: Dict from YAML input with exam structure.
 		output_path: Path for the output DOCX file.
+		base_dir: Directory that relative image paths in exam_data are
+			resolved against (the input YAML's directory).
 	"""
 	# enforce .docx extension
 	if not output_path.endswith('.docx'):
@@ -238,7 +267,7 @@ def build_document(exam_data: dict, output_path: str) -> int:
 			# prompts_list drives the question-number span and the numbered
 			# blanks; choices_list is the lettered (A)/(B)/... options.
 			prompts_list = question.get('prompts_list', [])
-			question_span = max(1, len(prompts_list))
+			question_span = ef_tools.question_utils.question_span(question)
 			question_total += question_span
 			if question_span > 1:
 				question_prefix = f"Q{question_number}-{question_number + question_span - 1}. "
@@ -259,7 +288,7 @@ def build_document(exam_data: dict, output_path: str) -> int:
 			# matching layout matches reference artifacts in ARTIFACTS/:
 			# lettered (A)/(B)/... choices come FIRST as the answer key,
 			# then numbered blanks the student fills in.
-			choices_list = question.get('choices_list', [])
+			choices_list = resolve_choice_images(question.get('choices_list', []), base_dir)
 			if choices_list:
 				tab_style, items_per_row = resolve_choice_layout(
 					question, choices_list, layout_limits)
@@ -281,9 +310,10 @@ def build_document(exam_data: dict, output_path: str) -> int:
 				image_paths.append(image_path)
 			image_paths.extend(question.get('images', []))
 			for current_image_path in image_paths:
-				if os.path.isfile(current_image_path):
+				resolved_image_path = resolve_media_path(current_image_path, base_dir)
+				if os.path.isfile(resolved_image_path):
 					# add image with auto aspect ratio, max width from styles
-					doc.add_picture(current_image_path, width=docx.shared.Inches(image_max_width))
+					doc.add_picture(resolved_image_path, width=docx.shared.Inches(image_max_width))
 					prev_element = 'image'
 			# table
 			table_data = question.get('table', None)
@@ -296,8 +326,10 @@ def build_document(exam_data: dict, output_path: str) -> int:
 				ef_tools.docx_builder.add_table(doc, columns, rows,
 					header_bg=table_bg, center_header=center_header)
 				prev_element = 'table'
-			# choices
+			# choices (image paths resolved against the YAML directory)
 			choices = question.get('choices', None)
+			if choices is not None:
+				choices = resolve_choice_images(choices, base_dir)
 			if choices is not None and len(choices) > 0:
 				if any(isinstance(choice, dict) and choice.get('image', None) for choice in choices):
 					ef_tools.docx_builder.add_image_choices_tabbed(
@@ -343,8 +375,9 @@ def main():
 	else:
 		with open(args.input_file, 'r') as f:
 			exam_data = yaml.safe_load(f)
-	# build document and report question count
-	question_count = build_document(exam_data, output_file)
+	# build document; relative image paths resolve against the YAML's folder
+	base_dir = os.path.dirname(os.path.abspath(args.input_file))
+	question_count = build_document(exam_data, output_file, base_dir)
 	print(f"Exam DOCX written to {output_file} ({question_count} questions)")
 
 

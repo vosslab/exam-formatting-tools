@@ -81,11 +81,56 @@ Matching questions are emitted as `prompts_list` plus `choices_list`; see [docs/
 
 RDKit HTML5 canvas widgets in the cleaned HTML are auto-rendered to PNG (named `rdkit_<canvas_id>.png`) inside the existing Blackboard `*_files/` directory and emitted as standard `images:` entries; nothing extra to configure on the command line.
 
-Blackboard `.bbq` export to YAML:
+bptools bbq text (`bbq-*-questions.txt`) to YAML plus an answer key:
 
 ```bash
-source source_me.sh && python3 bbq_to_exam_yaml.py -i export.txt
+source source_me.sh && python3 bbq_to_exam_yaml.py -i bbq-chargaff-questions.txt
 ```
+
+MC and MA keep their choices; MAT becomes `prompts_list` plus a shuffled
+`choices_list`; ORD becomes position blanks (`Position 1`, `Position 2`, ...)
+plus shuffled items. NUM, FIB, and FIB_PLUS have no print form and are
+skipped. Drawing tables (gels, chi-square tables) are rendered to
+`<stem>_files/*.png` through the sibling `qti-package-maker` checkout (see
+[docs/INSTALL.md](INSTALL.md)). The answer key lands in `<stem>-key.txt`.
+
+## Build a quiz or exam from a bptools task CSV
+
+`bbq_tasks_to_exam_yaml.py` reads the website task CSV format unchanged
+(`subject,topic,script,flags,input,notes`, aliases from the website
+`bbq_settings.yml`) and contributes **one question per resolved task**. A
+list alias such as `YMATCH` expands to two scripts and therefore two
+questions. Each generator runs with `-d 1 -x 1`; an unusable candidate
+(skipped bbq type, or exam-mode rejection) triggers a fresh run, up to three
+attempts, then the task is reported as `SKIPPED` on stderr and left out.
+
+```csv
+subject,topic,script,flags,input,notes
+genetics,dna_structure,{bp_root}/molecular_biology-problems/chargaff_dna_percent.py,,,
+genetics,dna_structure,YMCS,,{bp_mcs}/biochemistry/dna_structure.yml,
+genetics,mendelian,YMATCH,,{bp_match}/inheritance/genetics_terminology.yml,
+genetics,dna_profiling,{bp_root}/dna_profiling-problems/who_father_html.py,--easy,,
+```
+
+Quiz (default: any MC/MA/MAT/ORD, any number of choices):
+
+```bash
+source source_me.sh && python3 bbq_tasks_to_exam_yaml.py -q -t "Genetics Quiz 1" \
+    -i ~/nsh/PROBLEMS/biology-problems-website/bbq_control/task_files/genetics_tasks1.csv \
+    -s ~/nsh/PROBLEMS/biology-problems-website/bbq_control/bbq_settings.yml \
+    -o output_quiz/genetics_quiz1.yml
+source source_me.sh && python3 yaml_to_exam_docx.py -i output_quiz/genetics_quiz1.yml
+```
+
+Exam (`-e`): only questions that pass the ZipGrade A-E rules are kept;
+generators with fixed six-choice flags (`-c 6`) are skipped after three
+attempts, so edit their flags in the CSV.
+
+Outputs: `<stem>.yml`, `<stem>-key.txt` (one line per question block, e.g.
+`1. B   c555_9c1d   chargaff_dna_percent.py` or
+`Q5-8. 5=C 6=A 7=D 8=B   ce62_1dbe   yaml_match_to_bbq.py (genetic_disorders)`),
+and `<stem>_files/*.png` for rendered tables. The CSV `topic` column becomes
+the chapter heading whenever it changes.
 
 Oklahoma export to YAML:
 

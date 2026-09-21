@@ -19,6 +19,12 @@ share its pipeline conventions.
 - Recommended pipeline for print exams: source format -> qti-package-maker
   -> bbq_text -> [bbq_to_exam_yaml.py](../bbq_to_exam_yaml.py) -> exam YAML
   -> [yaml_to_exam_docx.py](../yaml_to_exam_docx.py) -> DOCX.
+- Imported at runtime: [ef_tools/bbq_html.py](../ef_tools/bbq_html.py)
+  uses `qti_package_maker.html_to_image.selectors` (drawing-table detector)
+  and `qti_package_maker.html_to_image.render_table.TableRenderer`
+  (headless Chromium screenshot) to turn bptools gel and data-drawing
+  tables into PNGs. The sibling checkout at `~/nsh/PROBLEMS/qti-package-maker`
+  is added to `PYTHONPATH` by `source_me.sh`; see [INSTALL.md](INSTALL.md).
 
 ## biology-problems
 
@@ -26,9 +32,22 @@ share its pipeline conventions.
 - Role: Authoring repository for biology question banks; uses
   qti-package-maker via `bptools` to emit BBQ/QTI output.
 - How this repo uses it: biology-problems is one upstream content
-  source for the converters in this repo. The repo style and Python
-  conventions are kept in sync with biology-problems' style guides
-  (tabs, snake_case, no try/except, etc.).
+  source for the converters in this repo, and
+  [bbq_tasks_to_exam_yaml.py](../bbq_tasks_to_exam_yaml.py) runs its
+  generator scripts directly (`-d 1 -x 1`) to build a quiz with one
+  question per task. The repo style and Python conventions are kept in
+  sync with biology-problems' style guides (tabs, snake_case, no
+  try/except, etc.).
+
+## biology-problems-website
+
+- Repository: https://github.com/vosslab/biology-problems-website
+- Role: MkDocs site that batch-runs bptools generators from task CSVs
+  (`bbq_control/task_files/*.csv`, aliases in `bbq_control/bbq_settings.yml`).
+- How this repo uses it: the same task CSV and settings file feed
+  [bbq_tasks_to_exam_yaml.py](../bbq_tasks_to_exam_yaml.py) unchanged;
+  [ef_tools/bbq_tasks.py](../ef_tools/bbq_tasks.py) mirrors the CSV
+  contract of its `run_bbq_tasks.py`.
 
 ## Known gaps
 

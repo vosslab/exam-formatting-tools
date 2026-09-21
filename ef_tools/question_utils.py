@@ -34,6 +34,30 @@ assert select_question_style('image') == 'Question Follow'
 
 
 #============================================
+def question_span(question: dict) -> int:
+	"""Number of numbered rows one question block consumes.
+
+	Matching and ordering blocks use prompts_list; each prompt consumes one
+	question number, so a 4-prompt block spans 4 rows. Every other question
+	spans 1. This is the single owner of that rule: the DOCX builder, the
+	ZipGrade checks, total counts, and the answer key all call it.
+
+	Args:
+		question: One question dict from exam YAML.
+
+	Returns:
+		Row count, at least 1.
+	"""
+	# prompts_list is optional; absent or empty means a single-row question
+	prompts_list = question.get('prompts_list', [])
+	span = max(1, len(prompts_list))
+	return span
+
+assert question_span({}) == 1
+assert question_span({'prompts_list': ['a', 'b', 'c']}) == 3
+
+
+#============================================
 def count_total_questions(sections: list) -> int:
 	"""Count total number of questions across all sections.
 
@@ -48,10 +72,7 @@ def count_total_questions(sections: list) -> int:
 		questions = section.get('questions', [])
 		for question in questions:
 			if isinstance(question, dict):
-				# matching items use prompts_list; each prompt consumes one
-				# question slot, so a 4-prompt block counts as 4 questions.
-				prompts_list = question.get('prompts_list', [])
-				total += max(1, len(prompts_list))
+				total += question_span(question)
 			else:
 				total += 1
 	return total

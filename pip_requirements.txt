@@ -1,5 +1,6 @@
 lxml  # Fast XML and HTML parsing with XPath support
 pillow  # Image I/O and processing for aspect ratio detection
+playwright  # Headless Chromium used to rasterize bptools drawing tables to PNG
 python-docx  # Read and write Microsoft Word .docx files
 pyyaml  # YAML parsing and serialization
 rdkit  # Cheminformatics toolkit; renders SMILES from HTML5 canvas widgets to PNG
