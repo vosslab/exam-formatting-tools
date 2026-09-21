@@ -105,7 +105,7 @@ output lands in `/tmp/image_choice_measure/`.
 ```text
 tests/
 +- conftest.py
-+- git_file_utils.py
++- file_utils.py
 +- check_ascii_compliance.py        (single-file ASCII checker)
 +- fix_ascii_compliance.py          (single-file ASCII fixer)
 +- fix_whitespace.py                (single-file whitespace fixer)
