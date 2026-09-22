@@ -40,6 +40,15 @@ def test_element_to_inline_html_keeps_prose_after_subscript() -> None:
 
 
 #============================================
+def test_element_to_inline_html_preserves_code_markup() -> None:
+	"""Code and teletype spans survive Blackboard HTML conversion."""
+	element = lxml.html.fromstring(
+		"<span>Use <code>ATGC</code> and <tt>GCTA</tt>.</span>")
+	result = html_to_exam_yaml.element_to_inline_html(element)
+	assert result == "Use <code>ATGC</code> and <tt>GCTA</tt>."
+
+
+#============================================
 def test_clean_choice_html_removes_letter_prefix() -> None:
 	"""Test exported choice letter cleanup."""
 	result = html_to_exam_yaml.clean_choice_html("A. <b>metal ion</b>")

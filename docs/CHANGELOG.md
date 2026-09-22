@@ -4,6 +4,11 @@
 
 ### Additions and New Features
 
+- DOCX output now uses Atkinson Hyperlegible Next for regular text and Atkinson Hyperlegible Mono
+  for `<code>`/`<tt>` runs. Both supported HTML import paths preserve those tags. Added a
+  `Question Number` character style for the 2pt outlined question label.
+- HTML drawing tables rasterized through Chromium now use the configured Atkinson Hyperlegible
+  Next and Mono fonts, matching the DOCX text styles.
 - Added `ef_tools/docx_images.py`, which now owns every picture sizing and placement rule and replaces the sizing helpers that lived in `docx_builder.py` (which was at 958 of the 1000-line limit). It holds two sizing models as two types rather than two branches of one function. `DrawingSizer(scale)` sizes a renderer-produced drawing as `pixels / the PNG's own resolution * scale`, with no bounding box and no clamp. `FitSizer(max_width, max_height, strip_height, strip_min_aspect)` scales an ordinary image to fill a box, and owns the wide-strip height rule. Both expose `kwargs`, `width_inches`, `narrowed`, `row_height` and `fits_columns`, so the layout code never asks which kind it holds.
 - `ef_tools.bbq_html.write_table_pngs` now autocrops the white margin around each rendered drawing (`autocrop_white_border`, a `PIL.ImageChops` bbox plus a 2px bleed so hairline borders are not shaved) and saves the result carrying `RENDER_DPI` in the PNG's pHYs chunk. Cropping changes no pixels-per-inch, so the printed size of the content inside is untouched; only dead margin disappears. The linear-digest restriction maps lose 21% of their height (272 to 214 px) and their surrounding box; the sequence strips are already tight and are unchanged.
 - `ef_tools.docx_images.set_run_baseline_center` adds a signed run-level `w:position` to every inline picture so it centers on its text line, matching LibreOffice's Align Objects -> Base line centered. The As Character anchor is unchanged.
@@ -11,6 +16,9 @@
 
 ### Behavior or Interface Changes
 
+- Question Heading and Question Follow are now regular, non-italic styles. The question label
+  remains selectable text inside a 2pt black rectangular border; matching prompt numbers remain
+  unchanged.
 - Every rendered drawing in a document now prints at one inches-per-pixel. Verified on a 25-question genetics quiz: all 29 drawings share `0.003646 in/px` (0.7 / 192), so every 48px table row prints at exactly 0.175 in wherever it appears. A drawing wider than the text column overflows the right margin rather than shrink; the instructor resizes those few by hand. `styles/exam_styles.yaml` gains `table_image_scale: 0.7` as the single global knob.
 - `image_max_width`, `choice_image_max_width/height`, `choice_strip_max_width`, `prompt_image_max_height` and `prompt_strip_max_height` no longer apply to rendered drawings; they remain the `FitSizer` boxes for ordinary images. For drawings, `IMAGE_CHOICE_MAX_WIDTH_BY_COLS` became a fit test instead of a cap: a choice row too wide for its columns stacks one per line, which keeps every drawing at the shared scale. The five blood-typing panels now stack at 2.1 in each instead of being squeezed to 1.13 in.
 - The layout helpers take one `sizer` argument in place of `image_width`, `image_height`, `strip_height`, `strip_min_aspect` and `source_dpi`: `add_choice_content`, `add_choices_paragraph`, `add_matching_prompt(s)`, and `add_image_choices_tabbed` (whose `wide_image_width` became `wide_sizer`). The launcher builds the sizers once and `pick_sizer` chooses between them on the presence of `html_table`.
@@ -24,6 +32,10 @@
 
 ### Developer Tests and Notes
 
+- Added focused coverage for the 2pt number border, regular Question Heading/Follow styles, Atkinson
+  font assignments, code-markup preservation, and monospace DOCX runs; 67 focused tests passed.
+  Visual rendering was unavailable because headless LibreOffice aborted even for an unstyled DOCX,
+  and Quick Look could not start in this sandbox.
 - `tests/test_docx_builder_image_choices.py` gains the relative-precision contract (drawings of four different pixel widths all report the same inches-per-pixel, at exactly `px / 192 * 0.7`), plus coverage for unclamped overflow, resolution read from the PNG, the missing-resolution error, the column fit test, and the baseline offset. `tests/test_bbq_html.py` covers autocrop, a blank render left intact, and the pHYs round trip; its `FakeRenderer` and the one in `tests/test_bbq_parse.py` now return real PNG bytes, because the writer decodes what the renderer hands it.
 - PNG stores resolution in pixels per metre, so 192 dpi round-trips as 191.9986. The residue is far below one EMU of rendered width; the tests allow for it rather than rounding it away.
 - Full lane green: 1522 passed.

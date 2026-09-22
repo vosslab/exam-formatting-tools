@@ -9,11 +9,9 @@ choice_visible_width), avoiding orphan rows.
 import ef_tools.text_utils
 
 
-# default visible-width budgets for auto-layout, empirically measured
-# at 10pt Liberation Sans with bold "(A) " prefix, minus 1 safety
-# margin. Legacy 'max_chars_*' naming is preserved for backward
-# compatibility with styles/exam_styles.yaml; the values are
-# interpreted as width budgets, not raw character counts.
+# Default visible-width budgets for auto-layout. The weighted score is
+# an approximation rather than a measurement of the installed DOCX font.
+# Legacy 'max_chars_*' names remain for compatibility with the style YAML.
 DEFAULT_MAX_CHARS_5 = 17
 # Four columns leave only about 17 visible-width units in the last column;
 # the lower budget prevents a long answer from wrapping below its label.

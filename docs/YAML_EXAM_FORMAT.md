@@ -71,13 +71,18 @@ Inline HTML tags are supported for formatting within statement and choice text:
 | `<strong>`, `</strong>` | Bold (alias for `<b>`) | `<strong>key term</strong>` |
 | `<i>`, `</i>` | Italic | `<i>in vivo</i>` |
 | `<em>`, `</em>` | Italic (alias for `<i>`) | `<em>emphasis</em>` |
+| `<code>`, `</code>` | Atkinson Hyperlegible Mono | `<code>ATGC</code>` |
+| `<tt>`, `</tt>` | Atkinson Hyperlegible Mono (legacy alias) | `<tt>ATGC</tt>` |
 | `<span style="color: #RRGGBB;">`, `</span>` | Hex text color | `<span style="color: #ba372a;">FALSE</span>` |
 
 Engines writing exam YAML should preserve these inline HTML tags verbatim in statement and choice text. HTML entities (e.g., `&deg;`) should also be preserved as-is; the builder decodes them at render time. Color spans preserve only the six- or three-digit hexadecimal `color` declaration; unrelated span CSS is discarded.
 
 ### Question numbering
 
-Questions are auto-numbered sequentially starting at 1, across all sections. The format is always `##. Question text` (period after number).
+Questions are auto-numbered sequentially starting at 1, across all sections. The text label remains
+`##.` (period after number); DOCX output draws a 2pt rectangular outline around that label. Matching
+question ranges such as `Q1-3.` use the same outline. Matching prompt numbers such as `___ 1.` remain
+unboxed.
 
 The `number` field overrides the counter value only. Example: `number: 15` makes the next question "15." and continues from there. It does not change the period format.
 
@@ -207,12 +212,13 @@ rendered glyphs, not their serialized YAML length.
 | Layout | Items per row | Max visible width | Tab-stop position |
 | --- | --- | --- | --- |
 | Choices 5 | 5 | 17 | 1.53in, 2.93in, 4.33in, 5.73in |
-| Choices 4 | 4 | 23 | 1.88in, 3.63in, 5.38in |
+| Choices 4 | 4 | 17 | 1.88in, 3.63in, 5.38in |
 | Choices 3 | 3 | 30 | 2.46in, 4.80in |
 | Choices 2 | 2 | 49 | 3.78in (two columns) |
 
-Width budgets are empirically measured at 10pt Liberation Sans with
-bold `(A) ` prefix. Tab-stop positions in `layout_tab_stops`
+Width scores use approximate character weights and do not measure the
+installed DOCX font directly. The thresholds are configured in
+`layout_limits`. Tab-stop positions in `layout_tab_stops`
 (`styles/exam_styles.yaml`) are pre-offset by `choice_indent` (0.13in)
 because OOXML measures tab stops from the page left margin, not from
 the paragraph indent -- without the offset the first column gap would

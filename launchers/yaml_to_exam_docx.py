@@ -330,7 +330,8 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 				# split statement on \n / <br> into separate paragraphs
 				# (hard breaks) instead of soft Word line breaks
 				ef_tools.docx_builder.add_rich_text_paragraphs(
-					doc, style_name, stripped, prefix=question_prefix)
+					doc, style_name, stripped, prefix=question_prefix,
+					boxed_prefix=True)
 				prev_element = 'question'
 			# matching layout matches reference artifacts in ARTIFACTS/:
 			# lettered (A)/(B)/... choices come FIRST as the answer key,

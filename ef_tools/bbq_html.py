@@ -3,13 +3,15 @@
 bptools question text arrives as HTML: a leading `<p>CRC</p>` code, `<p>`
 and `<h6>` blocks, colored `<span>` wrappers, and drawing `<table>`s (gels,
 chi-square critical values, test-cross counts). The DOCX builder understands
-only the inline tags in ef_tools.text_utils (sub, sup, b, strong, i, em), so
+only the inline tags in ef_tools.text_utils (sub, sup, b, strong, i, em,
+code, tt), so
 this module reduces the HTML to that vocabulary and pulls drawing tables out
 for the rasterized fallback; the original table HTML remains available for
 the optional native DOCX table backend.
 """
 
 # Standard Library
+import functools
 import io
 import os
 import re
@@ -21,6 +23,7 @@ import PIL.ImageChops
 
 # local repo modules
 import ef_tools.html_parse
+import ef_tools.style_loader
 import qti_package_maker.html_to_image.selectors
 import qti_package_maker.html_to_image.render_table
 
@@ -40,7 +43,7 @@ AUTOCROP_BLEED_PX = 2
 
 
 # tags whose content is re-emitted wrapped in the same bare tag
-INLINE_KEEP_TAGS = ('sub', 'sup', 'b', 'strong', 'i', 'em')
+INLINE_KEEP_TAGS = ('sub', 'sup', 'b', 'strong', 'i', 'em', 'code', 'tt')
 # tags that only add a paragraph boundary around their content
 BLOCK_TAGS = ('p', 'div', 'ul', 'ol')
 # section headings become their own bold line
@@ -48,7 +51,7 @@ HEADING_TAGS = ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
 # empty tags that become a line break
 BREAK_TAGS = ('br', 'hr')
 # tags dropped entirely, keeping their text
-UNWRAP_TAGS = ('span', 'font', 'a', 'u', 'small', 'big', 'code', 'tt')
+UNWRAP_TAGS = ('span', 'font', 'a', 'u', 'small', 'big')
 
 # whitespace normalization
 _SPACE_RUN_RE = re.compile(r'[ \t]+')
@@ -221,7 +224,8 @@ def clean_inline_html(html: str) -> str:
 	Block tags become newlines (the DOCX builder turns each newline into a
 	paragraph), `<h1>`-`<h6>` become bold lines, `<hr>` a line break, `<li>`
 	a dash bullet, non-color styling wrappers are dropped, HTML comments
-	vanish, and sub/sup/b/strong/i/em plus hex text-color spans are kept.
+	vanish, and sub/sup/b/strong/i/em/code/tt plus hex text-color spans are
+	kept.
 	Any other tag raises ValueError.
 
 	Args:
@@ -311,6 +315,22 @@ def _write_rendered_png(png_bytes: bytes, png_path: str) -> None:
 
 
 #============================================
+@functools.lru_cache(maxsize=1)
+def _html_table_font_style() -> str:
+	"""Return the exam font rules for Chromium-rendered drawing tables."""
+	fonts = ef_tools.style_loader.load_styles()['fonts']
+	primary = fonts['primary'].replace('"', '\\"')
+	monospace = fonts['monospace'].replace('"', '\\"')
+	return (
+		'<style>'
+		f'table {{ font-family: "{primary}", sans-serif; }}'
+		'table [style*="monospace" i], table code, table tt '
+		f'{{ font-family: "{monospace}", monospace !important; }}'
+		'</style>'
+	)
+
+
+#============================================
 def write_table_pngs(table_htmls: list, renderer: object, media_dir: str, stem: str) -> list:
 	"""Rasterize drawing tables to PNG files beside the exam YAML.
 
@@ -328,7 +348,8 @@ def write_table_pngs(table_htmls: list, renderer: object, media_dir: str, stem: 
 	yaml_dir = os.path.dirname(os.path.abspath(media_dir))
 	paths = []
 	for index, table_html in enumerate(table_htmls, start=1):
-		png_bytes = renderer.render_table_png(table_html)
+		styled_table_html = _html_table_font_style() + table_html
+		png_bytes = renderer.render_table_png(styled_table_html)
 		png_path = os.path.join(media_dir, f"{stem}_table_{index}.png")
 		_write_rendered_png(png_bytes, png_path)
 		paths.append(os.path.relpath(png_path, yaml_dir))

@@ -30,11 +30,11 @@ def set_font_with_fallback(style: object, primary: str, fallback: str) -> None:
 
 	python-docx only supports a single font name. This sets the primary
 	font and adds the fallback as hAnsi/cs font for cross-platform
-	compatibility (Liberation Sans on Linux, Arial on Windows/Mac).
+	compatibility.
 
 	Args:
 		style: A python-docx paragraph or character style.
-		primary: Primary font name (e.g., 'Liberation Sans').
+		primary: Primary font name (e.g., 'Atkinson Hyperlegible Next').
 		fallback: Fallback font name (e.g., 'Arial').
 	"""
 	style.font.name = primary
@@ -54,6 +54,19 @@ def set_font_with_fallback(style: object, primary: str, fallback: str) -> None:
 	rfonts.set(docx.oxml.ns.qn('w:ascii'), primary)
 	rfonts.set(docx.oxml.ns.qn('w:hAnsi'), fallback)
 	rfonts.set(docx.oxml.ns.qn('w:cs'), fallback)
+
+
+#============================================
+def set_character_style_border(style: object, width_pt: float,
+		padding_pt: float) -> None:
+	"""Set a rectangular border around text using a character style."""
+	rpr = style.element.get_or_add_rPr()
+	border = docx.oxml.OxmlElement('w:bdr')
+	border.set(docx.oxml.ns.qn('w:val'), 'single')
+	border.set(docx.oxml.ns.qn('w:sz'), str(int(round(width_pt * 8))))
+	border.set(docx.oxml.ns.qn('w:space'), str(int(round(padding_pt))))
+	border.set(docx.oxml.ns.qn('w:color'), '000000')
+	rpr.append(border)
 
 
 #============================================
@@ -78,7 +91,7 @@ def parse_hex_color(hex_str: str) -> docx.shared.RGBColor:
 def setup_styles(doc: docx.Document, styles: dict) -> None:
 	"""Create all named exam styles in the document.
 
-	Reads font, size, color, spacing, and style_flags values from
+	Reads font, size, color, spacing, border, and style_flags values from
 	the styles dict (loaded from styles/exam_styles.yaml).
 
 	Args:
@@ -90,6 +103,7 @@ def setup_styles(doc: docx.Document, styles: dict) -> None:
 	colors = styles['colors']
 	spacing = styles['spacing']
 	flags = styles['style_flags']
+	borders = styles['borders']
 
 	# modify the built-in Normal style as our base
 	normal = doc.styles['Normal']
@@ -124,15 +138,33 @@ def setup_styles(doc: docx.Document, styles: dict) -> None:
 	qh.paragraph_format.space_after = docx.shared.Inches(spacing['question_space_after'])
 	qh.paragraph_format.keep_with_next = True
 
-	# Question Follow: inherits Question Heading. The artifact (e.g.
-	# ARTIFACTS/exam1.docx) only overrides space_before=0 on top of
-	# Question Heading; everything else (bold, italic, 11pt, indent,
-	# hanging, keep_with_next) is inherited. Mirror that here so changes
-	# to Question Heading propagate correctly.
+	# Question Follow inherits Question Heading and removes the leading
+	# space, keeping all question text visually consistent.
 	qf = doc.styles.add_style('Question Follow', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
 	qf.base_style = qh
 	qf.paragraph_format.space_before = docx.shared.Pt(0)
 	qf.paragraph_format.space_after = docx.shared.Inches(spacing['question_space_after'])
+
+	# Inline code uses a dedicated character style so source text remains
+	# selectable and editable in Word.
+	code_style = doc.styles.add_style(
+		'Exam Code', docx.enum.style.WD_STYLE_TYPE.CHARACTER)
+	set_font_with_fallback(
+		code_style, fonts['monospace'], fonts['monospace_fallback'])
+
+	# The question label stays a text run while the character style supplies
+	# its outline independently of the question paragraph's regular weight.
+	question_number_style = doc.styles.add_style(
+		'Question Number', docx.enum.style.WD_STYLE_TYPE.CHARACTER)
+	set_font_with_fallback(
+		question_number_style, fonts['primary'], fonts['fallback'])
+	question_number_style.font.bold = False
+	question_number_style.font.italic = False
+	set_character_style_border(
+		question_number_style,
+		borders['question_label_width_pt'],
+		borders['question_label_padding_pt'],
+	)
 
 	# Chapter Heading: colored, keep-with-next
 	ch = doc.styles.add_style('Chapter Heading', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
@@ -319,9 +351,9 @@ def setup_header(doc: docx.Document, section: object, date_str: str, styles: dic
 def add_rich_text_runs(para: object, text: str) -> None:
 	"""Add styled runs to a paragraph, parsing inline HTML tags.
 
-	Handles <sub>, <sup>, <b>, <strong>, <i>, <em> tags by creating
-	separate runs with appropriate font properties. HTML entities are
-	decoded first, then rich text tags are parsed.
+	Handles <sub>, <sup>, <b>, <strong>, <i>, <em>, <code>, and <tt>
+	tags by creating separate runs with appropriate font properties.
+	HTML entities are decoded first, then rich text tags are parsed.
 
 	Font size, base bold, and base italic come from the paragraph style.
 	Only rich text tags add run-level overrides.
@@ -342,6 +374,8 @@ def add_rich_text_runs(para: object, text: str) -> None:
 		if not flat_text:
 			continue
 		run = para.add_run(flat_text)
+		if 'code' in tags:
+			run.style = 'Exam Code'
 		# only set run-level overrides for rich text tags
 		if 'b' in tags:
 			run.font.bold = True
@@ -362,11 +396,13 @@ _PARAGRAPH_BREAK_RE = re.compile(r'(?:\r?\n|<br\s*/?>)+', re.IGNORECASE)
 
 #============================================
 def add_rich_text_paragraphs(doc: object, style_name: str, text: str,
-		prefix: str = '') -> object:
+		prefix: str = '', boxed_prefix: bool = False) -> object:
 	"""Split text on hard breaks (\\n and <br>) into separate paragraphs.
 
 	Each piece becomes its own paragraph styled with style_name. The
-	optional prefix is added as a plain run on the first paragraph only.
+	optional prefix is added to the first paragraph only. When boxed_prefix
+	is true, the trimmed prefix uses the Question Number character style and
+	any trailing separator remains outside the border.
 	An empty input still emits one paragraph (carrying just the prefix)
 	so callers can rely on at least one paragraph being created.
 
@@ -385,7 +421,15 @@ def add_rich_text_paragraphs(doc: object, style_name: str, text: str,
 		para = doc.add_paragraph()
 		para.style = doc.styles[current_style_name]
 		if index == 0 and prefix:
-			para.add_run(prefix)
+			if boxed_prefix:
+				label_text = prefix.rstrip()
+				separator = prefix[len(label_text):]
+				label_run = para.add_run(label_text)
+				label_run.style = 'Question Number'
+				if separator:
+					para.add_run(separator)
+			else:
+				para.add_run(prefix)
 		add_rich_text_runs(para, piece)
 		last_para = para
 	return last_para

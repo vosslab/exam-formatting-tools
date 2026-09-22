@@ -1,8 +1,8 @@
 """Text utility functions for exam formatting.
 
 Provides HTML entity decoding, number prefix stripping, and rich text
-parsing for inline HTML tags (sub, sup, b, strong, i, em, and hex-color
-spans).
+parsing for inline HTML tags (sub, sup, b, strong, i, em, code, tt, and
+hex-color spans).
 """
 
 # Standard Library
@@ -56,7 +56,7 @@ assert strip_number_prefix("No prefix here") == "No prefix here"
 # matches the supported inline tags and span wrappers. Color spans are
 # handled separately below so the active tag can carry its hex value.
 _RICH_TEXT_TAG_PATTERN = re.compile(
-	r'(<br\s*/?>|</?(?:sub|sup|b|strong|i|em)>|</?span\b[^>]*>)',
+	r'(<br\s*/?>|</?(?:sub|sup|b|strong|i|em|code|tt)>|</?span\b[^>]*>)',
 	re.IGNORECASE,
 )
 
@@ -70,6 +70,7 @@ _SPAN_COLOR_RE = re.compile(
 _TAG_ALIASES = {
 	'strong': 'b',
 	'em': 'i',
+	'tt': 'code',
 }
 
 
@@ -79,9 +80,9 @@ def parse_rich_text(text: str) -> list:
 
 	Splits text on supported HTML tags and returns a list of
 	(text, tags) tuples where tags is a frozenset of active formatting
-	 tag names. Supported tags: sub, sup, b, strong, i, em, and hex-color
-	 spans, represented as ``color:#RRGGBB`` in the active tag set.
-	Tags strong and em are normalized to b and i respectively.
+	tag names. Supported tags: sub, sup, b, strong, i, em, code, tt, and
+	hex-color spans, represented as ``color:#RRGGBB`` in the active tag set.
+	Tags strong and em are normalized to b and i; tt is normalized to code.
 
 	Does not handle nested tags of the same type or malformed HTML.
 	HTML entities (e.g., &Delta;) are NOT processed here -- use
@@ -158,7 +159,7 @@ assert parse_rich_text("<em>y</em>") == [
 #============================================
 # pattern to strip supported inline tags while preserving inner text
 _INLINE_TAG_STRIP_PATTERN = re.compile(
-	r'</?(?:sub|sup|b|strong|i|em)>',
+	r'</?(?:sub|sup|b|strong|i|em|code|tt)>',
 	re.IGNORECASE,
 )
 # pattern to collapse runs of whitespace to a single space

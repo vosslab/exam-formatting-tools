@@ -60,6 +60,18 @@ def test_parse_rich_text_em_normalizes_to_i() -> None:
 
 
 #============================================
+def test_parse_rich_text_code_and_tt_use_monospace_tag() -> None:
+	"""Code and legacy teletype markup share the monospace tag."""
+	result = ef_tools.text_utils.parse_rich_text(
+		"<code>ATGC</code> <tt>GCTA</tt>")
+	assert result == [
+		("ATGC", frozenset({"code"})),
+		(" ", frozenset()),
+		("GCTA", frozenset({"code"})),
+	]
+
+
+#============================================
 def test_parse_rich_text_color_span() -> None:
 	"""A bptools hex color becomes a run-level color tag."""
 	result = ef_tools.text_utils.parse_rich_text(
@@ -91,6 +103,13 @@ def test_choice_visible_text_strips_supported_inline_tags() -> None:
 	"""Inline tags strip to their inner text without the markup."""
 	result = ef_tools.text_utils.choice_visible_text("H<sub>2</sub>O")
 	assert result == "H2O"
+
+
+#============================================
+def test_choice_visible_text_strips_code_markup() -> None:
+	"""Code formatting does not alter the text used for choice layout."""
+	result = ef_tools.text_utils.choice_visible_text("<code>ATGC</code>")
+	assert result == "ATGC"
 
 
 #============================================

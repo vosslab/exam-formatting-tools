@@ -27,6 +27,8 @@ INLINE_TAGS = {
 	"strong",
 	"i",
 	"em",
+	"code",
+	"tt",
 	"sub",
 	"sup",
 }

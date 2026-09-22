@@ -77,6 +77,14 @@ def test_clean_inline_html_preserves_color_spans_and_splits_paragraphs() -> None
 
 
 #============================================
+def test_clean_inline_html_preserves_code_markup() -> None:
+	"""Code and teletype spans survive bptools HTML conversion."""
+	cleaned = ef_tools.bbq_html.clean_inline_html(
+		'<p>Use <code>ATGC</code> and <tt>GCTA</tt>.</p>')
+	assert cleaned == 'Use <code>ATGC</code> and <tt>GCTA</tt>.'
+
+
+#============================================
 def test_clean_inline_html_drops_non_color_span_css() -> None:
 	"""Unrelated span CSS is not promoted into the printable contract."""
 	cleaned = ef_tools.bbq_html.clean_inline_html(

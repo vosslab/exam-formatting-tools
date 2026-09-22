@@ -7,22 +7,31 @@ This reference describes the current DOCX styles loaded from [../styles/exam_sty
 | Style | Size | Weight | Main use |
 | --- | ---: | --- | --- |
 | Normal | 10pt | normal | Default body text and table content |
-| Heading 1 | 18pt | bold, centered | Exam title |
+| Heading 1 | 18pt | bold, left-aligned | Exam title |
 | Exam Heading 2 | 14pt | bold italic | Major section labels |
 | Chapter Heading | 13pt | bold, purple | Topic or chapter headings |
 | Header | 8pt | normal | Page number, date, and student line |
 
-The primary font is Liberation Sans with Arial fallback. Headers use Liberation Sans Narrow with Arial Narrow fallback. Page margins are 0.6 inches, and the header distance is 0.5 inches.
+Regular text, headings, choices, and page headers use Atkinson Hyperlegible Next. Inline `<code>` and
+`<tt>` text uses Atkinson Hyperlegible Mono. The DOCX records these font names without embedding
+the font files, so they must be installed wherever the exam is opened. An instructor can apply IBM
+Plex Sans Condensed manually in Word after generation. Page margins are 0.6 inches, and the header
+distance is 0.5 inches.
 
 ## Question styles
 
 ### Question Heading
 
-Question Heading is 11pt bold italic with a 0.2 inch left indent and a -0.2 inch hanging indent. It keeps the question lead-in with the following content, with 0.12 inches before and 0.05 inches after.
+Question Heading is 11pt regular text with a 0.2 inch left indent and a -0.2 inch hanging indent.
+The complete question label (for example, `3.` or `Q1-3.`) has a black rectangular outline with a
+2pt border and 2pt padding. It keeps the question lead-in with the following content, with 0.12
+inches before and 0.05 inches after.
 
 ### Question Follow
 
-Question Follow inherits Question Heading and removes the leading space. The builder selects it after a chapter heading, image, or table, and for subsequent hard-break paragraphs within one question stem, so consecutive question text stays compact.
+Question Follow inherits Question Heading and removes the leading space. It is also regular and
+non-italic. The builder selects it after a chapter heading, image, or table, and for subsequent
+hard-break paragraphs within one question stem, so consecutive question text stays compact.
 
 ### Matching Prompt
 
@@ -52,6 +61,9 @@ The layout algorithm scores visible text width and selects a concrete `Choices N
 - Wide one-row sequence strips with an aspect ratio of at least 4.0 use a 0.40 inch height cap.
 - Full-width image choices require the more conservative `choice_strip_min_aspect` threshold (8.0 in the shipped style), keeping shorter matching panels in the ordinary choice layout.
 - Question-level data tables are built as DOCX tables; native HTML table conversion is isolated in `docx_table_builder.py` and is opt-in. The native backup accepts simple logical cell grids, while browser-positioned drawings and `colgroup` layout tables retain their PNG fallback.
+- HTML drawing tables rasterized through Chromium use Atkinson Hyperlegible Next for regular
+  table text and Atkinson Hyperlegible Mono for code or explicitly monospace content. Both fonts
+  must be installed on the machine generating the PNGs.
 
 ## Page header
 
