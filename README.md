@@ -23,7 +23,9 @@ The latest recorded website-task acceptance run processed 87 tasks into 82 quest
 ## Screenshots
 
 <!-- screenshots:begin (managed by screenshot-docs) -->
-![Rendered gel-electrophoresis figure from a generated exam](docs/screenshots/generated_exam_gel.png)
+![First full page of a generated Genetics Quiz 1 DOCX](docs/screenshots/genetics_quiz1_page1.png)
+
+![Rendered gel-electrophoresis problem asset from the generated exam](docs/screenshots/generated_exam_gel.png)
 <!-- screenshots:end -->
 
 ## Quick start
