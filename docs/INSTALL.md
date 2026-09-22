@@ -1,60 +1,42 @@
 # Install
 
+Installation makes the local Python dependencies available and enables the launcher commands. The core HTML, DOCX, and Oklahoma conversions use the dependencies in [../pip_requirements.txt](../pip_requirements.txt); BBQ table conversion adds sibling-repository requirements.
+
 ## Requirements
 
-- Python 3.12 (Homebrew on macOS, or system Python on Linux)
-- Bash shell (the bootstrap `source_me.sh` targets Bash semantics)
+- Python 3.12 is the documented working runtime.
+- Bash is required for [../source_me.sh](../source_me.sh), which loads the repository environment and sets `PYTHONPATH`.
+- Runtime packages come from [../pip_requirements.txt](../pip_requirements.txt); development tools come from [../pip_requirements-dev.txt](../pip_requirements-dev.txt).
+- Playwright Chromium is needed when BBQ drawing tables are rasterized.
 
-## Python dependencies
+## Install steps
 
-Install the runtime dependencies listed in [pip_requirements.txt](../pip_requirements.txt):
-
-```bash
-pip install -r pip_requirements.txt
-```
-
-Runtime packages:
-
-- `lxml`: HTML and XML parsing for Blackboard exports.
-- `pillow`: image I/O and aspect-ratio detection for inline answer images.
-- `python-docx`: Word `.docx` reading and writing.
-- `pyyaml`: YAML parsing and serialization.
-- `rdkit`: cheminformatics toolkit; renders RDKit HTML5 canvas widgets to PNG when converting cleaned Blackboard exports. Installed via the `rdkit` pip wheel; no Homebrew formula required.
-- `playwright`: headless Chromium that rasterizes bptools drawing tables (gels, chi-square
-  tables) to PNG for the bbq converters. After the pip install, fetch the browser once:
+From the repository root, install runtime and development dependencies:
 
 ```bash
+source source_me.sh
+python3 -m pip install -r pip_requirements.txt
+python3 -m pip install -r pip_requirements-dev.txt
 playwright install chromium
 ```
 
-## Sibling repositories (bbq converters only)
+The `playwright install chromium` step is needed for table-image rendering and the real-generator E2E workflow. It is not needed for a YAML-to-DOCX run that already has its image files.
 
-[bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) and
-[bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py) import `qti_package_maker.html_to_image` from a
-sibling checkout and run generator scripts from `biology-problems`:
+## Sibling repositories
 
-- `~/nsh/PROBLEMS/qti-package-maker` (added to `PYTHONPATH` by `source_me.sh` when present)
-- `~/nsh/PROBLEMS/biology-problems` (path set as `bp_root` in the repo's
-  [bbq_settings.yml](../bbq_settings.yml))
+The BBQ converters import `qti_package_maker.html_to_image` and may run generators from `biology-problems`:
 
-For development (running the test suite, linters), also install:
+- `~/nsh/PROBLEMS/qti-package-maker` is added to `PYTHONPATH` by [../source_me.sh](../source_me.sh) when present.
+- The `paths` section of [../bbq_settings.yml](../bbq_settings.yml) points at the `biology-problems` generator tree and can be overridden with `-s`.
+- The HTML-to-YAML and YAML-to-DOCX paths do not require the biology-problems generator tree.
 
-```bash
-pip install -r pip_requirements-dev.txt
-```
+## Verify install
 
-## Environment bootstrap
-
-This repo uses a `source_me.sh` bootstrap script that exports `PYTHONUNBUFFERED=1`,
-`PYTHONDONTWRITEBYTECODE=1`, and prepends the `qti-package-maker` sibling checkout to
-`PYTHONPATH` when it exists. Run all repo-local Python via:
+Check the runtime imports and launcher help:
 
 ```bash
-source source_me.sh && python3 <script>.py
+source source_me.sh && python3 -c "import lxml, PIL, docx, yaml, rdkit, playwright"
+source source_me.sh && python3 launchers/yaml_to_exam_docx.py --help
 ```
 
-## Verify the install
-
-```bash
-source source_me.sh && python3 -m pytest tests/ -q
-```
+For the repository test lane, use the commands in [DEVELOPMENT.md](DEVELOPMENT.md).

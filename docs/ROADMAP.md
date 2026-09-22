@@ -1,37 +1,23 @@
 # Roadmap
 
-Forward-looking work for `exam-formatting-tools`. Current pipeline is
-`<source format> -> exam YAML -> DOCX`; for setup and command-line usage
-see [INSTALL.md](INSTALL.md) and [USAGE.md](USAGE.md).
+This roadmap records evidence-backed follow-up work for the source-to-YAML-to-DOCX exam pipeline. Current commands and supported behavior live in [USAGE.md](USAGE.md); unresolved symptoms belong in [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ## Current state
 
-- DOCX is the printable output. Builders read styles from
-  [styles/exam_styles.yaml](../styles/exam_styles.yaml) and emit Word documents
-  via [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py).
-- Five converter scripts feed the YAML stage: BBQ, DOCX, HTML, Oklahoma, and the
-  reverse DOCX-to-YAML round-trip.
-- ZipGrade compatibility tooling lives in
-  [validate_zip_grade_yaml.py](../launchers/validate_zip_grade_yaml.py) and the
-  `--zip-grade` flag on `yaml_to_exam_docx.py`.
+- Seven launchers cover BBQ task CSV, BBQ text, DOCX, Blackboard HTML, Oklahoma, ZipGrade validation, and YAML-to-DOCX conversion.
+- Matching prompts and choices can carry images, including rendered table drawings, pedigrees, and sequence strips.
+- The DOCX builder reads layout values from [../styles/exam_styles.yaml](../styles/exam_styles.yaml).
+- The 2026-09-21 changelog records the current task-CSV, answer-key, table-rendering, and E2E workflow.
 
 ## Near-term
 
-- Image-choice layout tuning is data-driven via `devel/measure_image_choices.py`;
-  re-run after any change to `IMAGE_CHOICE_MAX_WIDTH_BY_COLS`,
-  `layout_tab_stops`, or `choice_indent`.
-- Keep [docs/YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md) in sync with the
-  qti-package-maker mapping notes when round-trip rules shift.
-
-## Known gaps
-
-- `docs/TROUBLESHOOTING.md` would help with recurring DOCX rendering
-  surprises (refuse-to-overwrite policy, image-choice column counts).
+- Add a real end-to-end check for the Blackboard HTML path, which currently relies on the manual smoke commands in [USAGE.md](USAGE.md).
+- Preserve source placement when table images occur in the middle of a statement instead of appending them after the cleaned text.
+- Keep the task-CSV acceptance run aligned with the website's current task files and generator flags.
+- Re-run [../devel/measure_image_choices.py](../devel/measure_image_choices.py) when image-choice caps, tab stops, or choice indentation changes.
 
 ## Out of scope
 
-- Direct ODT output. The legacy ODT pipeline was removed; do not
-  reintroduce it. Word-compatible DOCX is the only printable target.
-- Re-adding a one-shot HTML-to-DOCX path. The two-step
-  `html_to_exam_yaml.py` + `yaml_to_exam_docx.py` pipeline is the
-  supported flow (see `docs/CHANGELOG.md` 2026-05-07).
+- Direct ODT output is not part of the current printable pipeline.
+- A one-shot HTML-to-DOCX path is not planned; use `html_to_exam_yaml.py` followed by `yaml_to_exam_docx.py`.
+- Automatic trimming of six-choice questions is not planned because the YAML format does not store enough answer-key information to choose a distractor safely.

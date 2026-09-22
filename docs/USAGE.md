@@ -4,7 +4,7 @@ All commands assume the bootstrap pattern `source source_me.sh && python3 ...`.
 
 ## Pipeline
 
-The pipeline is `<source format> -> exam YAML -> DOCX`. Every root script
+The pipeline is `<source format> -> exam YAML -> DOCX`. Every launcher
 validates input/output extensions and reports the question count on success.
 `-o/--output` is optional; when omitted, the output is `<input-stem>` with
 the target extension in the current working directory.
@@ -15,7 +15,7 @@ the target extension in the current working directory.
 source source_me.sh && python3 launchers/yaml_to_exam_docx.py -i exam_data.yml
 ```
 
-The YAML schema is documented in [docs/YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md).
+The YAML schema is documented in [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md).
 Style definitions come from [styles/exam_styles.yaml](../styles/exam_styles.yaml).
 
 Note: `yaml_to_exam_docx.py` refuses to overwrite an existing output file
@@ -30,7 +30,7 @@ cp /tmp/_regen_combined.docx Final_Exam/Final_Exam_2A_2B_combined.docx
 ```
 
 Image-based answer choices are laid out horizontally using paragraph tab stops
-(no DOCX tables); see [docs/YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md).
+(no DOCX tables); see [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md).
 
 ## Validate ZipGrade compatibility
 
@@ -77,7 +77,7 @@ drives the default output name):
 source source_me.sh && python3 launchers/html_to_exam_yaml.py -i Cleaned_Final_Exam_2A.html
 ```
 
-Matching questions are emitted as `prompts_list` plus `choices_list`; see [docs/YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md) for the schema.
+Matching questions are emitted as `prompts_list` plus `choices_list`; see [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md) for the schema.
 
 RDKit HTML5 canvas widgets in the cleaned HTML are auto-rendered to PNG (named `rdkit_<canvas_id>.png`) inside the existing Blackboard `*_files/` directory and emitted as standard `images:` entries; nothing extra to configure on the command line.
 
@@ -92,7 +92,7 @@ MC and MA keep their choices; MAT becomes `prompts_list` plus a shuffled
 plus shuffled items. NUM, FIB, and FIB_PLUS have no print form and are
 skipped. Drawing tables (gels, chi-square tables) are rendered to
 `<stem>_files/*.png` through the sibling `qti-package-maker` checkout (see
-[docs/INSTALL.md](INSTALL.md)). The answer key lands in `<stem>-key.txt`.
+[INSTALL.md](INSTALL.md)). The answer key lands in `<stem>-key.txt`.
 
 ## Build a quiz or exam from a bptools task CSV
 

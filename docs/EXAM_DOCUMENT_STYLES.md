@@ -1,248 +1,58 @@
-# ODT exam styles reference
+# Exam document styles
 
-Style definitions extracted from `ARTIFACTS/2025_genetics_final_exam2.odt` (December 2024) and `ARTIFACTS/exam1-midtermA2-best_version.odt` (2019).
+This reference describes the current DOCX styles loaded from [../styles/exam_styles.yaml](../styles/exam_styles.yaml) and applied by [../ef_tools/docx_builder.py](../ef_tools/docx_builder.py). Legacy ODT artifacts remain useful as visual references, but the ODT builder is not part of the supported pipeline.
 
-## Page layouts
+## Base styles
 
-| Layout | Usage | Width | Height | Top | Bottom | Left | Right |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Mpm1 (Standard) | Body pages | 8.5in | 11in | 0.6in | 0.6in | 0.6in | 0.6in |
-| Mpm2 (First Page) | Title page | 8.5in | 11in | 0.5in | 0.5in | 1.0in | 1.0in |
-| Mpm3 (HTML) | HTML import | 8.5in | 11in | 0.39in | 0.39in | 0.79in | 0.39in |
+| Style | Size | Weight | Main use |
+| --- | ---: | --- | --- |
+| Normal | 10pt | normal | Default body text and table content |
+| Heading 1 | 18pt | bold, centered | Exam title |
+| Exam Heading 2 | 14pt | bold italic | Major section labels |
+| Chapter Heading | 13pt | bold, purple | Topic or chapter headings |
+| Header | 8pt | normal | Page number, date, and student line |
 
-All layouts use portrait orientation, `lr-tb` writing mode, and standard letter size.
+The primary font is Liberation Sans with Arial fallback. Headers use Liberation Sans Narrow with Arial Narrow fallback. Page margins are 0.6 inches, and the header distance is 0.5 inches.
 
-### Master pages
-
-- **Standard**: uses Mpm1 layout (body pages)
-- **First Page**: uses Mpm2 layout, next style is Standard
-- **HTML**: uses Mpm3 layout
-
-## Base text style (Standard)
-
-| Property | Value |
-| --- | --- |
-| Font family | Liberation Sans |
-| Font size | 11pt |
-| Font type | swiss, variable pitch |
-| Line height | 110% |
-| Bottom margin | 0.05in |
-| Top margin | 0in |
-| Language | en-US |
-
-## Paragraph styles
+## Question styles
 
 ### Question Heading
 
-Parent: Standard. Used for the bold/italic lead-in line before a question.
-
-| Property | Value |
-| --- | --- |
-| Font weight | bold |
-| Font style | italic |
-| Font size | 11pt |
-| Left margin | 0.2in |
-| Text indent | -0.2in (hanging) |
-| Top margin | 0.15in |
-| Bottom margin | 0.02in |
-| Keep with next | always |
-| Auto text indent | false |
-| Text autospace | none |
-
-Auto-selected when the previous element is another question or choices.
-
-### Question
-
-Parent: Question Heading. Used for the question body text.
-
-| Property | Value |
-| --- | --- |
-| Font weight | normal |
-| Font style | normal |
-| Line height | 125% |
-| Left margin | 0.2in |
-| Text indent | -0.2in (hanging) |
-| Top margin | 0in |
-| Bottom margin | 0.07in |
-| Keep with next | auto |
-| Orphans | 2 |
-| Widows | 2 |
-| Tab stops | 0.5in, 3.5in |
+Question Heading is 11pt bold italic with a 0.2 inch left indent and a -0.2 inch hanging indent. It keeps the question lead-in with the following content, with 0.12 inches before and 0.05 inches after.
 
 ### Question Follow
 
-Parent: Standard. Used for the first question after an image, table, or chapter heading.
+Question Follow inherits Question Heading and removes the leading space. The builder selects it after a chapter heading, image, or table so the first question in a new visual section does not receive an unnecessary gap.
 
-Auto-selected when the previous element is an image, table, or chapter heading.
+### Matching Prompt
 
-## Automatic question style selection
+Matching Prompt is 11pt normal text with a 0.2 inch left indent and a -0.2 inch hanging indent. It uses 1.25 line spacing, 0.07 inches before, and tab stops at 0.5 and 3.5 inches for two-column prompt rows. A prompt may carry an image after its numbered blank.
 
-The `odt_exam_builder.py` module automatically selects the appropriate question
-style based on what precedes the question in the document:
+## Choice styles
 
-| Previous element | Selected style | Usage |
-| --- | --- | --- |
-| Another question statement | Question Heading | Normal flow between questions |
-| Choices paragraph | Question Heading | Normal flow after multiple choice |
-| Chapter/section heading | Question Follow | First question in a section |
-| Table | Question Follow | First question after a matching table |
-| Image | Question Follow | First question after an embedded image |
+Choice paragraphs use a 0.13 inch left indent and 10pt text. The concrete `Choices 2` through `Choices 5` styles inherit the base Choice style and receive their tab stops from `layout_tab_stops` in the YAML configuration:
 
-This auto-selection reduces spacing and visual awkwardness when questions follow
-non-question elements (especially images and tables), while maintaining standard
-formatting for questions in normal sequential flow.
+| Columns | Tab stops in inches |
+| ---: | --- |
+| 2 | 3.78 |
+| 3 | 2.46, 4.80 |
+| 4 | 1.88, 3.63, 5.38 |
+| 5 | 1.53, 2.93, 4.33, 5.73 |
 
-### Choices (base)
+The layout algorithm scores visible text width and selects a concrete `Choices N` style. Text and image choices use paragraph tab stops; they do not use DOCX tables. Image choices are capped by column count and preserve their aspect ratio.
 
-Parent: Standard. Base style for multiple-choice answer lines.
+## Images and tables
 
-| Property | Value |
-| --- | --- |
-| Font size | 10pt |
-| Left margin | 0.15in |
-| Text indent | -0.05in |
-| Writing mode | page |
+- A standalone question image is capped at 5.6 inches wide.
+- Image choices use a 3.40 inch global width ceiling, a 2.00 inch height ceiling, and lower per-column caps in the builder.
+- Matching-prompt images use a 1.40 inch height cap.
+- Wide one-row sequence strips with an aspect ratio of at least 4.0 use a 0.40 inch height cap.
+- Question-level data tables are built as DOCX tables; answer-choice rows remain inline tabbed paragraphs.
 
-### Choices3 (2 columns of choices)
+## Page header
 
-Parent: Choices.
+Body pages use the Header style with page numbering, the exam date, and a student name line separated by configured tab stops. The first page receives a separate header configuration so the title and student information do not inherit the body-page header.
 
-| Tab stop | Position |
-| --- | --- |
-| 1 | 2.33in |
-| 2 | 4.67in |
+## Source of truth
 
-### Choices4 (3 columns of choices)
-
-Parent: Choices.
-
-| Tab stop | Position |
-| --- | --- |
-| 1 | 1.75in |
-| 2 | 3.50in |
-| 3 | 5.25in |
-
-### Choices5 (4 columns of choices)
-
-Parent: Choices.
-
-| Tab stop | Position |
-| --- | --- |
-| 1 | 1.40in |
-| 2 | 2.80in |
-| 3 | 4.20in |
-| 4 | 5.60in |
-
-### Warning
-
-Parent: Standard. Dark background block for warnings or special notices.
-
-| Property | Value |
-| --- | --- |
-| Background color | #333333 |
-| Fill | solid |
-| Shadow | none |
-
-### Preformatted Text
-
-Parent: Standard. Monospace block for code or fixed-width content.
-
-| Property | Value |
-| --- | --- |
-| Font family | Courier New |
-| Font size | 10pt |
-| Font pitch | fixed |
-| Top margin | 0in |
-| Bottom margin | 0in |
-
-### Table Contents
-
-Parent: Standard. Text inside table cells.
-
-| Property | Value |
-| --- | --- |
-| Line height | 90% |
-| Top margin | 0in |
-| Bottom margin | 0in |
-| Line numbering | disabled |
-
-### Table Heading
-
-Parent: Standard. Bold centered text for table header rows.
-
-## Heading styles
-
-| Style | Font size | Weight | Notes |
-| --- | --- | --- | --- |
-| Heading (base) | 14pt | normal | Liberation Sans, keep-with-next, top 0.17in, bottom 0.08in |
-| Heading 1 | 115% | bold | Exam title |
-| Heading 2 | 14pt | bold italic | Section divider, bottom border |
-| Heading 3 | 12pt | bold | Subsection |
-| Heading 4 | 11pt | bold | Chapter headings (e.g., "Chapter 1 -- Foundations") |
-
-## Table cell colors
-
-Used for answer-key tables and grading indicators.
-
-| Color | Hex | RGB | Meaning |
-| --- | --- | --- | --- |
-| Light red | #ffe6e6 | 255, 230, 230 | Incorrect answer |
-| Light blue | #e6f3ff | 230, 243, 255 | Correct answer |
-| Light green | #e6ffe6 | 230, 255, 230 | Partial credit |
-| Light gray | #f2f2f2 | 242, 242, 242 | Header / neutral |
-
-Common table cell properties: vertical-align middle, padding 0.0194in, border none.
-
-## List / numbering styles
-
-Four list styles found: WWNum1, WWNum2, RTF_Num 2, RTF_Num 3.
-
-Typical level formatting:
-
-| Level | Format | Suffix | Tab stop | Indent | Margin |
-| --- | --- | --- | --- | --- | --- |
-| 1 | 1, 2, 3 | . | 0.5in | -0.25in | 0.5in |
-| 2 | a, b, c | . | 1.0in | -0.25in | 1.0in |
-| 3 | i, ii, iii | . | 1.5in | -0.25in | 1.5in |
-
-## Font families
-
-| Font | Role |
-| --- | --- |
-| Liberation Sans | Primary exam font (questions, headings, body) |
-| Liberation Serif | Secondary body text |
-| Courier New | Monospace / preformatted text |
-| Times New Roman | Fallback serif |
-| OpenSymbol | Special characters and symbols |
-| WenQuanYi Zen Hei | Asian text fallback |
-
-## Document structure patterns
-
-Typical exam document order:
-
-1. First Page master page with wider margins
-2. Exam title in Heading 1 style
-3. Student info line (name, score) in Standard style
-4. Section headers in Heading 4 (e.g., "Chapter 1 -- Foundations")
-5. Question Heading paragraph (bold italic lead-in)
-6. Question paragraph (question body, 125% line height)
-7. Choices3/4/5 paragraph (tab-separated answer options)
-8. Tables with colored cells for matching or answer keys
-9. Embedded images anchored in table cells or paragraphs
-
-## ODT technical notes
-
-- ODT files are ZIP archives containing `styles.xml`, `content.xml`, `meta.xml`, `manifest.xml`
-- Named styles live in `styles.xml` under `office:styles`
-- Automatic (per-element) styles live in `content.xml` under `office:automatic-styles`
-- The 2025 final exam has 1,731 automatic styles; the 2019 exam has 628
-- Key XML namespaces: `fo:` (formatting objects), `style:` (style properties), `text:` (text content), `draw:` (graphics), `table:` (tables)
-- `odfpy` is not currently installed; use `lxml` + `zipfile` for manipulation
-
-## Future tools
-
-Planned tools to work with these styles:
-
-- **odt_exam_builder.py**: generate properly-styled ODT exams from question data
-- **extract_odt_styles.py**: extract and compare styles across ODT files
-- **propagate_odt_styles.py**: apply a source ODT's styles to target ODT files
+Edit [../styles/exam_styles.yaml](../styles/exam_styles.yaml) for stable layout values. Keep rendering behavior in [../ef_tools/docx_builder.py](../ef_tools/docx_builder.py), choice-width decisions in [../ef_tools/layout.py](../ef_tools/layout.py), and the exam field contract in [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md). Use [../tests/test_docx_choice_styles.py](../tests/test_docx_choice_styles.py) and the focused builder tests for demonstrated style invariants.

@@ -1,176 +1,103 @@
 # Code architecture
 
-Exam-formatting-tools converts third-party question banks into a shared
-exam YAML format and renders them to printable DOCX. The pipeline is
-intentionally one-way at the format level: many converters write YAML;
-one builder reads YAML and emits DOCX.
+Exam-formatting-tools converts question-bank exports into a shared exam YAML format and renders that format as a printable DOCX. Several converters write YAML; one builder reads YAML and produces the final document.
 
 ## Overview
 
-- Repo version is in [VERSION](../VERSION) (also tracked in
-  `pyproject.toml` when present); current value `26.02`.
-- Source code is licensed `LICENSE.LGPL_v3`; non-code material
-  (docs, prose) is licensed `LICENSE.CC_BY_4_0`. See the
-  Licensing section in [REPO_STYLE.md](REPO_STYLE.md) for the policy.
-- Python 3.12 throughout; activate the repo environment with
-  `source source_me.sh && python3 ...` (see [INSTALL.md](INSTALL.md)).
+- The current repository version is `26.09`, recorded in [../VERSION](../VERSION).
+- Source code uses [../LICENSE.LGPL-3.0](../LICENSE.LGPL-3.0); documentation uses [../LICENSE.CC-BY-4.0](../LICENSE.CC-BY-4.0).
+- Python commands use `source source_me.sh && python3 ...`.
+- The printable target is DOCX. ODT and direct HTML-to-DOCX paths are removed.
 
 ## Major components
 
-### Launchers (entry points)
+### CLI launchers
 
-Single-purpose CLIs in `launchers/`, each with a `#!/usr/bin/env python3`
-shebang and standard `-i/--input` and optional `-o/--output` flags
-validated by [cli_checks.py](../ef_tools/cli_checks.py).
+The single-purpose entry points live in `launchers/`. They validate input and output extensions with [../ef_tools/cli_checks.py](../ef_tools/cli_checks.py), and optional output paths default to the input stem in the current directory.
 
-| Script | Direction | Allowed extensions |
+| Script | Primary direction | Main output |
 | --- | --- | --- |
-| [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) | Website task CSV -> one generated question per task -> YAML + key | `.csv` -> `.yml` / `.yaml` |
-| [bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py) | bptools bbq text -> YAML + key | `.txt` -> `.yml` / `.yaml` |
-| [docx_to_exam_yaml.py](../launchers/docx_to_exam_yaml.py) | DOCX -> YAML (round-trip) | `.docx` -> `.yml` / `.yaml` |
-| [html_to_exam_yaml.py](../launchers/html_to_exam_yaml.py) | Cleaned Blackboard HTML -> YAML | `.html` / `.htm` -> `.yml` / `.yaml` |
-| [okla_to_exam_yaml.py](../launchers/okla_to_exam_yaml.py) | Oklahoma export -> YAML | `.txt` -> `.yml` / `.yaml` |
-| [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py) | Exam YAML -> printable DOCX | `.yml` / `.yaml` -> `.docx` |
-| [validate_zip_grade_yaml.py](../launchers/validate_zip_grade_yaml.py) | YAML linter (ZipGrade compatibility) | `.yml` / `.yaml` -> `.yml` / `.yaml` (with `-o`) |
+| [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) | Website task CSV -> generated questions | YAML, answer key, media directory |
+| [bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py) | bptools BBQ text -> exam data | YAML, answer key, media directory |
+| [docx_to_exam_yaml.py](../launchers/docx_to_exam_yaml.py) | DOCX -> exam data | YAML |
+| [html_to_exam_yaml.py](../launchers/html_to_exam_yaml.py) | Cleaned Blackboard HTML -> exam data | YAML and referenced media |
+| [okla_to_exam_yaml.py](../launchers/okla_to_exam_yaml.py) | Oklahoma export -> exam data | YAML |
+| [validate_zip_grade_yaml.py](../launchers/validate_zip_grade_yaml.py) | Exam YAML validation/filtering | Report or filtered YAML |
+| [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py) | Exam YAML -> printable document | DOCX |
 
-### Shared library: `ef_tools/`
+### Shared library
 
-Reusable modules. No public re-exports from `ef_tools/__init__.py` per
-the repo's `__init__.py` policy in
-[PYTHON_STYLE.md](PYTHON_STYLE.md); callers import submodules directly.
+The `ef_tools/` package contains reusable parsing, validation, rendering, and layout code. Modules are imported directly; `ef_tools/__init__.py` is not a re-export facade.
 
-| Module | Role |
-| --- | --- |
-| [bbq_html.py](../ef_tools/bbq_html.py) | bptools HTML -> exam inline text; drawing-table extraction and PNG writing via `qti_package_maker.html_to_image` |
-| [bbq_parse.py](../ef_tools/bbq_parse.py) | bbq line -> question dict + answer letters (MC/MA/MAT/ORD); answer-key formatter |
-| [bbq_tasks.py](../ef_tools/bbq_tasks.py) | Website task-CSV contract (aliases, list scripts, `-y` inputs); one generator run per candidate with retry |
-| [cli_checks.py](../ef_tools/cli_checks.py) | Input/output extension validation; default output path resolution |
-| [docx_builder.py](../ef_tools/docx_builder.py) | Style setup, rich text runs, choice/image-choice layouts, tables, page header |
-| [exam_defaults.py](../ef_tools/exam_defaults.py) | Default name line, scoring sections, score-line formatter |
-| [exam_yaml_writer.py](../ef_tools/exam_yaml_writer.py) | YAML dumper that double-quotes strings containing apostrophes |
-| [html_parse.py](../ef_tools/html_parse.py) | XPath constants, inline-tag set, choice-prefix regex; helpers for HTML-to-YAML |
-| [layout.py](../ef_tools/layout.py) | `auto_layout_for_choices` width-budget algorithm; `Choices N` style picker |
-| [question_utils.py](../ef_tools/question_utils.py) | Style selection between Question Heading / Follow; `question_span` (rows per block) and total-question count |
-| [rdkit_render.py](../ef_tools/rdkit_render.py) | Render RDKit canvas widgets to PNG via `rdkit.Chem.Draw.MolToFile` |
-| [style_loader.py](../ef_tools/style_loader.py) | Load [exam_styles.yaml](../styles/exam_styles.yaml) into a styles dict |
-| [text_utils.py](../ef_tools/text_utils.py) | Number-prefix stripping; visible-width scoring for HTML/entity-aware text |
-| [zip_grade.py](../ef_tools/zip_grade.py) | Severity classification, line-tracking YAML loader, filter, report formatter |
+- [../ef_tools/bbq_tasks.py](../ef_tools/bbq_tasks.py) resolves task-CSV aliases and retries one generator candidate per task.
+- [../ef_tools/bbq_parse.py](../ef_tools/bbq_parse.py) parses MC, MA, MAT, and ORD BBQ records, creates answer keys, and owns shared table-image attachment.
+- [../ef_tools/bbq_html.py](../ef_tools/bbq_html.py) cleans inline HTML and rasterizes statement, choice, and matching-prompt tables through `qti_package_maker`.
+- [../ef_tools/html_parse.py](../ef_tools/html_parse.py) owns Blackboard HTML selectors, inline-tag handling, and choice-prefix parsing.
+- [../ef_tools/docx_builder.py](../ef_tools/docx_builder.py) creates styles, rich text, tables, text choices, image choices, and matching prompts.
+- [../ef_tools/layout.py](../ef_tools/layout.py) scores visible choice width and selects the `Choices 2` through `Choices 5` paragraph style.
+- [../ef_tools/question_utils.py](../ef_tools/question_utils.py) owns question-block spans, numbering totals, and question-style selection.
+- [../ef_tools/rdkit_render.py](../ef_tools/rdkit_render.py) turns supported RDKit HTML canvas widgets into PNG files.
+- [../ef_tools/zip_grade.py](../ef_tools/zip_grade.py) classifies questions, tracks source lines, filters nonconforming questions, and reports row totals.
 
 ### Style configuration
 
-[exam_styles.yaml](../styles/exam_styles.yaml) is the single
-source of truth for all DOCX rendering values: page margins, font sizes,
-indents, tab stops, colors, and per-column image-choice width caps.
-Builders read this dict instead of hardcoding values, so layout tuning
-is data-driven.
-
-### Tools
-
-[measure_image_choices.py](../devel/measure_image_choices.py) is
-the calibration rig for image-choice column sizing. It generates noise
-PNGs, builds a one-question-per-col-count exam through the production
-DOCX builder, renders to PNG via LibreOffice and ImageMagick, and prints
-a per-column-count table comparing rendered right edges to target tab
-stops. Re-run after any change to
-`IMAGE_CHOICE_MAX_WIDTH_BY_COLS`, `layout_tab_stops`, or
-`choice_indent`.
-
-### Tests
-
-Pytest under `tests`. Conventions in
-[PYTEST_STYLE.md](PYTEST_STYLE.md) and slow end-to-end checks in
-[E2E_TESTS.md](E2E_TESTS.md). Repo-wide gates:
-[test_pyflakes_code_lint.py](../tests/test_pyflakes_code_lint.py),
-[test_ascii_compliance.py](../tests/test_ascii_compliance.py),
-[test_shebangs.py](../tests/test_shebangs.py),
-[test_bandit_security.py](../tests/test_bandit_security.py).
+[../styles/exam_styles.yaml](../styles/exam_styles.yaml) is the data source for page margins, fonts, spacing, colors, tab stops, image dimensions, and choice-layout limits. The DOCX builder reads this configuration instead of duplicating layout constants.
 
 ## Data flow
 
-Primary use case: convert a Blackboard HTML export to a printable exam.
+The primary Blackboard path is:
 
 ```text
-Blackboard HTML
-   |
-   |  html_to_exam_yaml.py (uses ef_tools.html_parse, ef_tools.rdkit_render)
-   v
-Exam YAML  (schema in docs/YAML_EXAM_FORMAT.md)
-   |
-   |  optional: validate_zip_grade_yaml.py (uses ef_tools.zip_grade)
-   |    -> reports ZipGrade [ERROR] / [FIXABLE] issues by source line
-   |    -> with -o, writes a filtered YAML containing only OK questions
-   |
-   |  yaml_to_exam_docx.py (uses ef_tools.docx_builder, ef_tools.layout,
-   |                        ef_tools.style_loader)
-   |    -> reads styles/exam_styles.yaml
-   |    -> with --zip-grade, drops ERROR + FIXABLE before building
-   v
+Cleaned Blackboard HTML
+    |
+    | html_to_exam_yaml.py
+    v
+Exam YAML
+    |
+    | optional: validate_zip_grade_yaml.py or yaml_to_exam_docx.py --zip-grade
+    v
+Filtered or original YAML
+    |
+    | yaml_to_exam_docx.py
+    | ef_tools.docx_builder + styles/exam_styles.yaml
+    v
 Printable DOCX
 ```
 
-A reverse round-trip is provided by
-[docx_to_exam_yaml.py](../launchers/docx_to_exam_yaml.py) for re-extracting an
-existing DOCX into the YAML format.
-
-Second use case: one question per bptools generator, straight from the
-website task CSV.
+The task-CSV path adds external biology content and table rendering:
 
 ```text
-genetics_tasks1.csv + bbq_settings.yml
-   |
-   |  bbq_tasks_to_exam_yaml.py
-   |    -> ef_tools.bbq_tasks: resolve aliases, run each generator (-d 1 -x 1),
-   |       retry up to 3 times until a candidate parses and fits the mode
-   |    -> ef_tools.bbq_parse: bbq line -> question + answer letters
-   |    -> ef_tools.bbq_html: clean inline HTML; drawing tables -> PNG
-   |       (qti_package_maker.html_to_image, headless Chromium)
-   v
-Exam YAML + <stem>-key.txt + <stem>_files/*.png
-   |
-   |  yaml_to_exam_docx.py (image paths resolved against the YAML's folder)
-   v
+biology-problems-website task CSV + bbq_settings.yml
+    |
+    | bbq_tasks_to_exam_yaml.py
+    | ef_tools.bbq_tasks -> generator candidates
+    | ef_tools.bbq_parse -> question records and answer keys
+    | ef_tools.bbq_html -> cleaned text and PNG table media
+    v
+Exam YAML + answer key + <stem>_files/*.png
+    |
+    | yaml_to_exam_docx.py
+    v
 Printable DOCX
 ```
 
-Row numbering (a matching block spans one row per prompt) has one owner,
-`ef_tools.question_utils.question_span`, used by the DOCX builder, the
-ZipGrade checks, total counts, and the answer key.
+Matching blocks use one number per prompt. `question_span()` is the shared owner used by the DOCX builder, ZipGrade checks, question totals, and answer-key formatting. Prompt and choice objects may carry images, so pedigrees and sequence strips remain visible in print.
 
 ## Testing and verification
 
-- Full suite: `source source_me.sh && python3 -m pytest tests/ -q`.
-- Lint gates run as part of the suite and can be invoked individually:
-  `tests/test_pyflakes_code_lint.py`, `tests/test_ascii_compliance.py`,
-  `tests/test_shebangs.py`, `tests/test_bandit_security.py`.
-- Image-choice calibration is run manually via
-  `devel/measure_image_choices.py`; see the docstring for the outputs in
-  `/tmp/image_choice_measure/`.
+- The fast suite runs with `source source_me.sh && python3 -m pytest tests/ -q`.
+- Repo-wide gates include [../tests/test_markdown_links.py](../tests/test_markdown_links.py), [../tests/test_ascii_compliance.py](../tests/test_ascii_compliance.py), [../tests/test_pyflakes_code_lint.py](../tests/test_pyflakes_code_lint.py), and [../tests/test_shebangs.py](../tests/test_shebangs.py).
+- The real-generator workflow runs outside pytest through [../tests/e2e/e2e_bbq_tasks_quiz.py](../tests/e2e/e2e_bbq_tasks_quiz.py).
+- Image-choice calibration is a maintainer check in [../devel/measure_image_choices.py](../devel/measure_image_choices.py).
 
 ## Extension points
 
-- New input format: add `launchers/<format>_to_exam_yaml.py` that
-  emits the YAML schema documented in
-  [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md). Reuse
-  `ef_tools.cli_checks` for argument validation.
-- New paragraph or choice style: add to
-  [exam_styles.yaml](../styles/exam_styles.yaml) and wire into
-  [docx_builder.py](../ef_tools/docx_builder.py) `setup_styles`.
-- New question type: extend the YAML schema doc and the question loop in
-  [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py); add a sample to
-  [test_yaml_to_exam_docx_matching.py](../tests/test_yaml_to_exam_docx_matching.py).
-- New compatibility check (analogous to ZipGrade): add a sibling module
-  to [zip_grade.py](../ef_tools/zip_grade.py) and a root-level
-  validator script.
+- Add a converter under `launchers/` and emit the schema in [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md).
+- Add reusable parsing or rendering behavior under `ef_tools/` with focused tests under `tests/`.
+- Add DOCX layout values to [../styles/exam_styles.yaml](../styles/exam_styles.yaml), then wire the behavior through [../ef_tools/docx_builder.py](../ef_tools/docx_builder.py).
+- Add a compatibility validator beside [../ef_tools/zip_grade.py](../ef_tools/zip_grade.py) and expose it through a launcher.
 
 ## Known gaps
 
-- The only end-to-end check is
-  [e2e_bbq_tasks_quiz.py](../tests/e2e/e2e_bbq_tasks_quiz.py)
-  (bptools task CSV -> YAML -> DOCX). The Blackboard HTML path still relies
-  on the manual smoke commands in [USAGE.md](USAGE.md).
-- bptools table images render after the full statement text, even when the
-  source placed the table mid-statement (e.g. gel before the background
-  paragraphs).
-- Container packaging is not in scope; no `docs/CONTAINER.md` exists.
-- `docs/TROUBLESHOOTING.md` would benefit from real recurring symptoms
-  (overwrite-refusal, image-column overflow) once cataloged.
+- The task-CSV path has a recorded end-to-end check; the Blackboard HTML path still relies on the manual smoke commands in [USAGE.md](USAGE.md).
+- Table images are appended after statement text even when the source table appears in the middle of a statement.

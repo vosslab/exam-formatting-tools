@@ -1,55 +1,30 @@
 # Related projects
 
-Sibling repositories that integrate with `exam-formatting-tools` or
-share its pipeline conventions.
+Visitors use this repository to turn biology question-bank sources into printable, image-aware exams. The projects below support upstream authoring, adjacent delivery, or the same conversion workflow.
 
-## qti-package-maker
+## Confirmed related projects
 
-- Repository: https://github.com/vosslab/qti-package-maker
-- Role: Builds QTI packages and bbq_text exports from authored question
-  banks. Its `MATCH(question_text, prompts_list, choices_list)` and MC
-  item shape are the source of the matching schema in
-  [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md).
-- How this repo uses it: bbq_text from qti-package-maker is the input
-  to [bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py); the YAML schema in
-  [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md) is designed to be a
-  lossy-but-faithful print export of qti-package-maker items (see the
-  "qti-package-maker compatibility" section of that file for the field
-  mapping).
-- Recommended pipeline for print exams: source format -> qti-package-maker
-  -> bbq_text -> [bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py) -> exam YAML
-  -> [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py) -> DOCX.
-- Imported at runtime: [ef_tools/bbq_html.py](../ef_tools/bbq_html.py)
-  uses `qti_package_maker.html_to_image.selectors` (drawing-table detector)
-  and `qti_package_maker.html_to_image.render_table.TableRenderer`
-  (headless Chromium screenshot) to turn bptools gel and data-drawing
-  tables into PNGs. The sibling checkout at `~/nsh/PROBLEMS/qti-package-maker`
-  is added to `PYTHONPATH` by `source_me.sh`; see [INSTALL.md](INSTALL.md).
+### qti-package-maker
 
-## biology-problems
+- Relationship: companion/interoperability tool
+- Link: https://github.com/vosslab/qti-package-maker
+- Why visitors may care: It produces the BBQ text and shared assessment formats consumed by this repository, and it supplies the table-image renderer used by the BBQ converters.
+- Evidence: The local [INSTALL.md](INSTALL.md), [bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py), and [../pip_extras.txt](../pip_extras.txt) identify the sibling import; the project's official README describes BBQ, QTI, HTML, and exam-YAML outputs.
 
-- Repository: https://github.com/vosslab/biology-problems
-- Role: Authoring repository for biology question banks; uses
-  qti-package-maker via `bptools` to emit BBQ/QTI output.
-- How this repo uses it: biology-problems is one upstream content
-  source for the converters in this repo, and
-  [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) runs its
-  generator scripts directly (`-d 1 -x 1`) to build a quiz with one
-  question per task. The repo style and Python conventions are kept in
-  sync with biology-problems' style guides (tabs, snake_case, no
-  try/except, etc.).
+### biology-problems
 
-## biology-problems-website
+- Relationship: upstream content source
+- Link: https://github.com/vosslab/biology-problems
+- Why visitors may care: It provides the biology generator scripts that task-CSV workflows run to produce one question per task for a quiz or exam.
+- Evidence: The local [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) resolves generator paths from [../bbq_settings.yml](../bbq_settings.yml); the official project documents standalone biochemistry, genetics, molecular biology, and related question generators.
 
-- Repository: https://github.com/vosslab/biology-problems-website
-- Role: MkDocs site that batch-runs bptools generators from task CSVs
-  (`bbq_control/task_files/*.csv`, aliases in `bbq_control/bbq_settings.yml`).
-- How this repo uses it: the same task CSV and settings file feed
-  [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) unchanged;
-  [ef_tools/bbq_tasks.py](../ef_tools/bbq_tasks.py) mirrors the CSV
-  contract of its `run_bbq_tasks.py`.
+### biology-problems-website
 
-## Known gaps
+- Relationship: same-workflow implementation
+- Link: https://github.com/vosslab/biology-problems-website
+- Why visitors may care: Its task CSV and alias settings are the input contract for batch-selecting biology generators before printing the resulting exam.
+- Evidence: The local [bbq_tasks.py](../ef_tools/bbq_tasks.py) mirrors the website task contract, and the official repository exposes the `bbq_control` task and settings directories.
 
-- Add direct links once `docs/COOKBOOK.md` exists and shows a full
-  source-to-print example.
+## Evidence notes
+
+The relationship claims combine current local imports, launcher help text, [../bbq_settings.yml](../bbq_settings.yml), and the official repositories linked above. The external projects remain useful because they define content or interchange formats consumed by this pipeline, not merely because they use Python.
