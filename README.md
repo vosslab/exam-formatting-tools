@@ -23,7 +23,7 @@ The latest recorded website-task acceptance run processed 87 tasks into 82 quest
 ## Screenshots
 
 <!-- screenshots:begin (managed by screenshot-docs) -->
-![Rendered biology figures from a generated exam, including a gel, restriction map, and matching sequence strip](docs/screenshots/generated_exam_media.png)
+![Rendered gel-electrophoresis figure from a generated exam](docs/screenshots/generated_exam_gel.png)
 <!-- screenshots:end -->
 
 ## Quick start
