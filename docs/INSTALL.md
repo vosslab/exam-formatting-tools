@@ -29,8 +29,8 @@ playwright install chromium
 
 ## Sibling repositories (bbq converters only)
 
-[bbq_tasks_to_exam_yaml.py](../bbq_tasks_to_exam_yaml.py) and
-[bbq_to_exam_yaml.py](../bbq_to_exam_yaml.py) import `qti_package_maker.html_to_image` from a
+[bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) and
+[bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py) import `qti_package_maker.html_to_image` from a
 sibling checkout and run generator scripts from `biology-problems`:
 
 - `~/nsh/PROBLEMS/qti-package-maker` (added to `PYTHONPATH` by `source_me.sh` when present)

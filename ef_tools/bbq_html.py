@@ -28,9 +28,6 @@ BLOCK_TAGS = ('p', 'div', 'ul', 'ol')
 HEADING_TAGS = ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
 # empty tags that become a line break
 BREAK_TAGS = ('br', 'hr')
-# longest cell text still treated as one token of a sequence strip
-# (covers 5'- and -3' end labels)
-SEQUENCE_TOKEN_MAX_CHARS = 8
 # tags dropped entirely, keeping their text
 UNWRAP_TAGS = ('span', 'font', 'a', 'u', 'small', 'big', 'code', 'tt')
 
@@ -79,71 +76,6 @@ def split_question_code(html: str) -> tuple:
 	root.text = (root.text or '') + tail
 	remaining = _serialize(root)
 	return text, remaining
-
-
-#============================================
-def pull_tables(html: str) -> tuple:
-	"""Remove every table from html and return them separately for rendering.
-
-	bptools uses tables as drawings: gels, chi-square critical values,
-	metabolic pathways with arrows, genotype grids. Most carry bgcolor or
-	border cell styles (qti_package_maker's drawing detector), but pathway
-	and genotype tables style only the table element, so every table is
-	rasterized rather than flattened to text.
-
-	Args:
-		html: Statement or choice HTML.
-
-	Returns:
-		(html_without_tables, [table_html, ...]) in document order.
-	"""
-	root = _parse(html)
-	tables = []
-	# outermost tables only: a nested table (agglutination wells inside a
-	# tray table) is part of its parent's drawing
-	for table in root.xpath('.//table[not(ancestor::table)]'):
-		flat_text = single_row_table_text(table)
-		if flat_text is None:
-			tables.append(qti_package_maker.html_to_image.selectors.outer_html(table))
-		# splice text (flattened sequence, or nothing) plus the tail back in
-		parent = table.getparent()
-		previous = table.getprevious()
-		spliced = (flat_text or '') + (table.tail or '')
-		if previous is not None:
-			previous.tail = (previous.tail or '') + spliced
-		else:
-			parent.text = (parent.text or '') + spliced
-		parent.remove(table)
-	remaining = _serialize(root)
-	return remaining, tables
-
-
-#============================================
-def single_row_table_text(table: lxml.html.HtmlElement) -> str | None:
-	"""Flatten a one-row, text-only table (a DNA sequence strip) to a string.
-
-	bptools draws sequences such as 5'-ANNN-3' as a single table row with
-	one monospace cell per token. Those read fine as inline text, so they
-	are joined instead of rasterized. Any other table returns None.
-	"""
-	rows = table.xpath('.//tr')
-	if len(rows) != 1:
-		return None
-	cells = rows[0].xpath('./td|./th')
-	# a strip has several short token cells; one wide cell is a drawing
-	if len(cells) < 2:
-		return None
-	pieces = []
-	for cell in cells:
-		# text-only cells: nested block or table content means a drawing
-		if cell.xpath('.//table|.//img|.//br|.//div|.//p'):
-			return None
-		piece = cell.text_content().replace(' ', '').strip()
-		if len(piece) > SEQUENCE_TOKEN_MAX_CHARS:
-			return None
-		pieces.append(piece)
-	flat_text = ''.join(pieces)
-	return flat_text
 
 
 #============================================
@@ -230,7 +162,7 @@ def clean_inline_html(html: str) -> str:
 
 
 #============================================
-def write_table_pngs(table_htmls: list, renderer, media_dir: str, stem: str) -> list:
+def write_table_pngs(table_htmls: list, renderer: object, media_dir: str, stem: str) -> list:
 	"""Rasterize drawing tables to PNG files beside the exam YAML.
 
 	Args:

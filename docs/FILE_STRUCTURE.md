@@ -19,17 +19,11 @@ exam-formatting-tools/
 +- pip_requirements-dev.txt
 +- pip_extras.txt
 +- Brewfile
-+- bbq_tasks_to_exam_yaml.py
-+- bbq_to_exam_yaml.py
-+- docx_to_exam_yaml.py
-+- html_to_exam_yaml.py
-+- okla_to_exam_yaml.py
-+- yaml_to_exam_docx.py
-+- validate_zip_grade_yaml.py
 +- .gitignore
 +- ef_tools/
 +- styles/
-+- tools/
++- launchers/   (CLI entry points: *_to_exam_*.py, validate_zip_grade_yaml.py)
++- tools/       (TOOLS_README.md only; standalone utilities go here)
 +- tests/
 +- devel/
 +- docs/
@@ -41,8 +35,8 @@ exam-formatting-tools/
 | [README.md](../README.md) | Project intro, quick start, doc index |
 | [AGENTS.md](../AGENTS.md) | AI-agent rules and Python environment notes |
 | [VERSION](../VERSION) | Single source of truth for the repo version (CalVer `0Y.0M`) |
-| [LICENSE.LGPL_v3](../LICENSE.LGPL_v3) | License for source code |
-| [LICENSE.CC_BY_4_0](../LICENSE.CC_BY_4_0) | License for non-code material (docs, prose) |
+| `LICENSE.LGPL_v3` | License for source code |
+| `LICENSE.CC_BY_4_0` | License for non-code material (docs, prose) |
 | [source_me.sh](../source_me.sh) | Bootstrap script; activates the repo Python environment |
 | [pip_requirements.txt](../pip_requirements.txt) | Standard runtime Python dependencies |
 | [pip_requirements-dev.txt](../pip_requirements-dev.txt) | Developer-only dependencies (pytest, pyflakes, etc.) |
@@ -85,19 +79,25 @@ styles/
 `- exam_styles.yaml     (page margins, fonts, sizes, tab stops, colors)
 ```
 
-[styles/exam_styles.yaml](../styles/exam_styles.yaml) is the single
+[exam_styles.yaml](../styles/exam_styles.yaml) is the single
 source of truth for DOCX rendering values; whitelisted in
 [.gitignore](../.gitignore) so it is tracked despite the global
 `*.yaml` exclusion.
 
-### `tools/`
+### `launchers/`
 
 ```text
-tools/
-`- measure_image_choices.py   (image-choice column-cap calibration rig)
+launchers/
++- bbq_tasks_to_exam_yaml.py
++- bbq_to_exam_yaml.py
++- docx_to_exam_yaml.py
++- html_to_exam_yaml.py
++- okla_to_exam_yaml.py
++- validate_zip_grade_yaml.py
+`- yaml_to_exam_docx.py
 ```
 
-Run via `source source_me.sh && python3 tools/measure_image_choices.py`;
+CLI scripts that import the `ef_tools` package (see [CODE_ARCHITECTURE.md](CODE_ARCHITECTURE.md)). Run via `source source_me.sh && python3 launchers/<script>.py`. The image-choice calibration rig lives at `devel/measure_image_choices.py`;
 output lands in `/tmp/image_choice_measure/`.
 
 ### `tests/`
@@ -137,12 +137,17 @@ that exceed pytest's speed budget live in `tests/e2e/` per
 
 ```text
 devel/
-+- commit_changelog.py
-`- submit_to_pypi.py
++- DEVEL_README.md              (index of the vendored maintainer scripts)
++- measure_image_choices.py     (image-choice column-cap calibration rig; repo-local)
++- setup_playwright.sh          (browser install helper; repo-local)
++- commit_changelog.py, rotate_changelog.py, query_changelog.py, changelog_*.py
++- bump_version.py, version_*.py, make_release.py, clean_build.sh, dist_clean.sh
+`- graphify_*.py, markdown_section_sizes.py, flatten_broken_md_links.py
 ```
 
-Maintainer scripts for changelog commits and PyPI release. Not part of
-the runtime path.
+Maintainer and repository-engineering scripts; the vendored ones are
+described in [DEVEL_README.md](../devel/DEVEL_README.md). Not part of the
+runtime path.
 
 ## Generated artifacts
 
@@ -188,11 +193,11 @@ and the two `LICENSE.*` files.
 
 | Adding... | Place it in... |
 | --- | --- |
-| New input-format converter | `<format>_to_exam_yaml.py` at the repo root |
+| New input-format converter | `launchers/<format>_to_exam_yaml.py` |
 | New library helper | `ef_tools/<module>.py` (one purpose per module) |
-| New DOCX style values | [styles/exam_styles.yaml](../styles/exam_styles.yaml) |
+| New DOCX style values | [exam_styles.yaml](../styles/exam_styles.yaml) |
 | New unit test | `tests/test_<module>.py`, mirroring the source module name |
-| New end-to-end script | `tests_e2e/e2e_<name>.{sh,py}` (create folder when needed) |
-| New calibration tool | `tools/<tool>.py` |
+| New end-to-end script | `tests/e2e/e2e_<name>.{sh,py}` |
+| New calibration or maintainer script | `devel/<script>.py` |
 | New documentation | `docs/<TOPIC>.md` (ALL CAPS with underscores) |
 | New maintainer script | `devel/<script>.py` |

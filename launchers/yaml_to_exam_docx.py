@@ -97,7 +97,7 @@ def apply_zip_grade_filter(exam_data: dict, source_path: str) -> dict:
 
 
 #============================================
-def resolve_choice_layout(question: dict, items: list, layout_limits) -> tuple:
+def resolve_choice_layout(question: dict, items: list, layout_limits: object) -> tuple:
 	"""Pick (tab_style, items_per_row) for a list of choice items.
 
 	An integer `layout` on the question bypasses auto-sizing; otherwise
@@ -356,7 +356,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.') -> in
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Main entry point for DOCX exam builder."""
 	args = parse_args()
 	# validate input extension and resolve default output

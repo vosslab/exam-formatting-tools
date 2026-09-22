@@ -2,13 +2,13 @@
 
 Version 1.0 -- exam-formatting-tools
 
-This document specifies the YAML exam format used by [yaml_to_exam_docx.py](../yaml_to_exam_docx.py). It serves as the canonical reference for both human authors and machine readers/writers, including qti-package-maker engines.
+This document specifies the YAML exam format used by [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py). It serves as the canonical reference for both human authors and machine readers/writers, including qti-package-maker engines.
 
 ## Overview
 
 The format describes a printable exam document with sections, questions, choices, images, and tables. It uses sensible defaults (auto-numbering, auto-layout) so minimal YAML produces a complete exam.
 
-To check whether an exam will fit a ZipGrade A-E bubble form, run [validate_zip_grade_yaml.py](../validate_zip_grade_yaml.py); to build a DOCX containing only ZipGrade-compatible questions, pass `--zip-grade` to [yaml_to_exam_docx.py](../yaml_to_exam_docx.py). See [USAGE.md](USAGE.md) for both commands.
+To check whether an exam will fit a ZipGrade A-E bubble form, run [validate_zip_grade_yaml.py](../launchers/validate_zip_grade_yaml.py); to build a DOCX containing only ZipGrade-compatible questions, pass `--zip-grade` to [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py). See [USAGE.md](USAGE.md) for both commands.
 
 ## Top-level fields
 
@@ -117,7 +117,7 @@ the cursor past its tab stop and wrapping to a new line:
 | 4 | 1.49in |
 | 5 | 1.13in |
 
-Caps are tuned via `tools/measure_image_choices.py` so each image's right
+Caps are tuned via `devel/measure_image_choices.py` so each image's right
 edge sits ~0.02in inside the next tab stop. Re-run that tool after
 changing any of `IMAGE_CHOICE_MAX_WIDTH_BY_COLS`, `layout_tab_stops`, or
 `choice_indent`.
@@ -220,9 +220,9 @@ Override with an explicit `layout` value when needed:
 
 Images are embedded in the DOCX with their original aspect ratio preserved. A relative image path (question `image`/`images` or a choice `image`) is resolved against the directory of the YAML file, so a YAML and its `<stem>_files/` folder move together. Absolute paths pass through unchanged.
 
-bptools tables (gels, chi-square critical values, test-cross counts, metabolic pathways, genotype grids) are rendered to PNG by [bbq_to_exam_yaml.py](../bbq_to_exam_yaml.py) and [bbq_tasks_to_exam_yaml.py](../bbq_tasks_to_exam_yaml.py) through `qti_package_maker.html_to_image` and listed under `images` (or as a choice `image`); the images render after the full statement text.
+bptools tables (gels, chi-square critical values, test-cross counts, metabolic pathways, genotype grids) are rendered to PNG by [bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py) and [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) through `qti_package_maker.html_to_image` and listed under `images` (or as a choice `image`); the images render after the full statement text.
 
-For cleaned Blackboard HTML exports, use [html_to_exam_yaml.py](../html_to_exam_yaml.py) to create YAML first; it preserves statement images as `images` and image-based answer choices as structured choice objects.
+For cleaned Blackboard HTML exports, use [html_to_exam_yaml.py](../launchers/html_to_exam_yaml.py) to create YAML first; it preserves statement images as `images` and image-based answer choices as structured choice objects.
 
 RDKit HTML5 canvas widgets are also handled: when a `<canvas class="cleaned-statement-media">` is paired with an inline `initRDKitModule()` script, [ef_tools/rdkit_render.py](../ef_tools/rdkit_render.py) extracts the SMILES literal and renders a PNG into the existing `*_files/` directory. The PNG path is added to the standard `images` list (or to a structured choice `image` field for canvas-based answer choices), so the YAML schema is unchanged.
 
@@ -390,4 +390,4 @@ These qti item fields have no equivalent in exam YAML:
 
 Exam YAML is a **print-document format**, not an assessment interchange format. Round-tripping through exam YAML loses answer keys, item metadata, and section structure. Use exam YAML as a one-way export target for generating printable exams, not as a lossless storage format.
 
-The recommended pipeline for LMS delivery is: source format -> qti-package-maker -> QTI/Blackboard. The recommended pipeline for print exams is: source format -> qti-package-maker -> bbq_text -> [bbq_to_exam_yaml.py](../bbq_to_exam_yaml.py) -> exam YAML -> [yaml_to_exam_docx.py](../yaml_to_exam_docx.py) -> DOCX. For one question per bptools generator, [bbq_tasks_to_exam_yaml.py](../bbq_tasks_to_exam_yaml.py) runs the generators from a website task CSV and writes the exam YAML directly (see [USAGE.md](USAGE.md)). Both bbq converters write a sibling `<stem>-key.txt` answer key, since exam YAML itself carries no answers.
+The recommended pipeline for LMS delivery is: source format -> qti-package-maker -> QTI/Blackboard. The recommended pipeline for print exams is: source format -> qti-package-maker -> bbq_text -> [bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py) -> exam YAML -> [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py) -> DOCX. For one question per bptools generator, [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) runs the generators from a website task CSV and writes the exam YAML directly (see [USAGE.md](USAGE.md)). Both bbq converters write a sibling `<stem>-key.txt` answer key, since exam YAML itself carries no answers.

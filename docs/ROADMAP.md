@@ -8,16 +8,16 @@ see [INSTALL.md](INSTALL.md) and [USAGE.md](USAGE.md).
 
 - DOCX is the printable output. Builders read styles from
   [styles/exam_styles.yaml](../styles/exam_styles.yaml) and emit Word documents
-  via [yaml_to_exam_docx.py](../yaml_to_exam_docx.py).
+  via [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py).
 - Five converter scripts feed the YAML stage: BBQ, DOCX, HTML, Oklahoma, and the
   reverse DOCX-to-YAML round-trip.
 - ZipGrade compatibility tooling lives in
-  [validate_zip_grade_yaml.py](../validate_zip_grade_yaml.py) and the
+  [validate_zip_grade_yaml.py](../launchers/validate_zip_grade_yaml.py) and the
   `--zip-grade` flag on `yaml_to_exam_docx.py`.
 
 ## Near-term
 
-- Image-choice layout tuning is data-driven via `tools/measure_image_choices.py`;
+- Image-choice layout tuning is data-driven via `devel/measure_image_choices.py`;
   re-run after any change to `IMAGE_CHOICE_MAX_WIDTH_BY_COLS`,
   `layout_tab_stops`, or `choice_indent`.
 - Keep [docs/YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md) in sync with the

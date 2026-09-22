@@ -42,7 +42,7 @@ def _matching_yaml() -> dict:
 
 
 #============================================
-def test_matching_question_renders_prompts_blanks_and_choice_letters(tmp_path):
+def test_matching_question_renders_prompts_blanks_and_choice_letters(tmp_path: object) -> None:
 	"""prompts_list drives Q1-3. plus three blanks; choices_list renders A/B/C."""
 	exam_data = _matching_yaml()
 	output_path = tmp_path / "matching.docx"
@@ -67,7 +67,7 @@ def test_matching_question_renders_prompts_blanks_and_choice_letters(tmp_path):
 
 
 #============================================
-def test_matching_renders_choices_before_prompts(tmp_path):
+def test_matching_renders_choices_before_prompts(tmp_path: object) -> None:
 	"""Lettered choices_list must render before numbered prompt blanks.
 
 	Compares paragraph indices (not character offsets) so a stray '(A)'
@@ -85,7 +85,7 @@ def test_matching_renders_choices_before_prompts(tmp_path):
 
 
 #============================================
-def test_matching_prompt_style_is_registered_and_applied(tmp_path):
+def test_matching_prompt_style_is_registered_and_applied(tmp_path: object) -> None:
 	"""'Matching Prompt' style must exist in the doc and tag prompt paragraphs.
 
 	Locks the style name (so a typo can't silently fall back to Normal),
@@ -112,7 +112,7 @@ def test_matching_prompt_style_is_registered_and_applied(tmp_path):
 
 
 #============================================
-def test_matching_question_emits_no_choice_tables(tmp_path):
+def test_matching_question_emits_no_choice_tables(tmp_path: object) -> None:
 	"""Layout policy: matching choices_list must not become a docx table.
 
 	Pairs the no-table check with a positive choice-rendered check so a
@@ -131,7 +131,7 @@ def test_matching_question_emits_no_choice_tables(tmp_path):
 
 
 #============================================
-def test_matching_question_layout_override_respected(tmp_path):
+def test_matching_question_layout_override_respected(tmp_path: object) -> None:
 	"""An explicit `layout` integer drives choices_list column count."""
 	exam_data = _matching_yaml()
 	exam_data['sections'][0]['questions'][0]['layout'] = 2
@@ -146,7 +146,7 @@ def test_matching_question_layout_override_respected(tmp_path):
 
 
 #============================================
-def test_legacy_matching_terms_key_raises(tmp_path):
+def test_legacy_matching_terms_key_raises(tmp_path: object) -> None:
 	"""Legacy `matching_terms` schema must error loudly, not silently render."""
 	exam_data = {
 		'title': 'Legacy',
@@ -165,7 +165,7 @@ def test_legacy_matching_terms_key_raises(tmp_path):
 
 
 #============================================
-def test_matching_question_advances_counter_by_prompt_span(tmp_path):
+def test_matching_question_advances_counter_by_prompt_span(tmp_path: object) -> None:
 	"""A 3-prompt matching block followed by a question numbers the next as 4."""
 	exam_data = _matching_yaml()
 	exam_data['sections'][0]['questions'].append({
@@ -182,7 +182,7 @@ def test_matching_question_advances_counter_by_prompt_span(tmp_path):
 
 
 #============================================
-def test_yaml_safe_load_round_trip_matches_synthetic(tmp_path):
+def test_yaml_safe_load_round_trip_matches_synthetic(tmp_path: object) -> None:
 	"""Round-trip the synthetic exam_data through YAML to catch shape regressions."""
 	exam_data = _matching_yaml()
 	yaml_path = tmp_path / "exam.yaml"

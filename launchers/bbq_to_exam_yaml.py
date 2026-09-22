@@ -23,7 +23,7 @@ import qti_package_maker.html_to_image.render_table
 
 
 #============================================
-def parse_args():
+def parse_args() -> argparse.Namespace:
 	"""
 	Parse command-line arguments.
 	"""
@@ -83,7 +83,7 @@ def render_record_tables(records: list, output_file: str) -> None:
 
 
 #============================================
-def attach_rendered_tables(record: dict, renderer, media_dir: str, index: int) -> None:
+def attach_rendered_tables(record: dict, renderer: object, media_dir: str, index: int) -> None:
 	"""Render one record's tables and fill its image paths."""
 	code = record['answer']['code'] or f"q{index:03d}"
 	statement_paths = ef_tools.bbq_html.write_table_pngs(
@@ -125,7 +125,7 @@ def write_outputs(exam_dict: dict, records: list, output_file: str, source: str)
 
 
 #============================================
-def main():
+def main() -> None:
 	"""
 	Main function: parse args, read input, convert, write output.
 	"""

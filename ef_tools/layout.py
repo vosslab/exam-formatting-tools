@@ -64,7 +64,7 @@ def choices_style_name(tab_style: int) -> str:
 
 
 #============================================
-def choice_text(choice) -> str:
+def choice_text(choice: object) -> str:
 	"""Return display text for a string or structured choice.
 
 	Choice may be a plain string or a dict with optional ``text`` and
@@ -80,7 +80,7 @@ def choice_text(choice) -> str:
 
 
 #============================================
-def choice_image(choice) -> str:
+def choice_image(choice: object) -> str:
 	"""Return image path for a structured choice, or None if absent.
 
 	Plain string choices have no image; dict choices may omit the

@@ -20,7 +20,7 @@ DIPEPTIDE_SMILES = (
 
 
 #============================================
-def _build_rdkit_script(smiles: str):
+def _build_rdkit_script(smiles: str) -> object:
 	"""Return a parsed <script> element shaped like the cleaned export."""
 	body = (
 		"\n         /* */initRDKitModule().then(function(instance){"
@@ -34,7 +34,7 @@ def _build_rdkit_script(smiles: str):
 
 
 #============================================
-def test_extract_smiles_from_rdkit_script_returns_adenine():
+def test_extract_smiles_from_rdkit_script_returns_adenine() -> None:
 	"""SMILES literal is recovered verbatim from the inline RDKit script."""
 	script = _build_rdkit_script(ADENINE_SMILES)
 	result = ef_tools.rdkit_render.extract_smiles_from_rdkit_script(script)
@@ -42,7 +42,7 @@ def test_extract_smiles_from_rdkit_script_returns_adenine():
 
 
 #============================================
-def test_extract_smiles_preserves_charged_brackets_and_stereochemistry():
+def test_extract_smiles_preserves_charged_brackets_and_stereochemistry() -> None:
 	"""Bracketed atoms and @@ chirality markers survive extraction unchanged."""
 	script = _build_rdkit_script(DIPEPTIDE_SMILES)
 	result = ef_tools.rdkit_render.extract_smiles_from_rdkit_script(script)
@@ -50,7 +50,7 @@ def test_extract_smiles_preserves_charged_brackets_and_stereochemistry():
 
 
 #============================================
-def test_extract_smiles_returns_none_for_non_rdkit_script():
+def test_extract_smiles_returns_none_for_non_rdkit_script() -> None:
 	"""Scripts that do not call initRDKitModule are ignored, not parsed."""
 	wrapper = lxml.html.fromstring(
 		"<div><script>console.log('hello'); var smiles=\"ignored\";</script></div>"
@@ -61,7 +61,7 @@ def test_extract_smiles_returns_none_for_non_rdkit_script():
 
 
 #============================================
-def test_extract_smiles_raises_when_rdkit_script_lacks_literal():
+def test_extract_smiles_raises_when_rdkit_script_lacks_literal() -> None:
 	"""An RDKit script with no smiles=\"...\" assignment fails loudly."""
 	wrapper = lxml.html.fromstring(
 		"<div><script>initRDKitModule().then(function(i){RDKitModule=i;});</script></div>"
@@ -72,7 +72,7 @@ def test_extract_smiles_raises_when_rdkit_script_lacks_literal():
 
 
 #============================================
-def test_render_smiles_to_png_writes_nonempty_png(tmp_path):
+def test_render_smiles_to_png_writes_nonempty_png(tmp_path: object) -> None:
 	"""Rendering produces a PNG file under the requested directory."""
 	out_dir = tmp_path / "rdkit"
 	path = ef_tools.rdkit_render.render_smiles_to_png(
@@ -93,7 +93,7 @@ def test_render_smiles_to_png_writes_nonempty_png(tmp_path):
 
 
 #============================================
-def test_render_smiles_to_png_rejects_invalid_smiles(tmp_path):
+def test_render_smiles_to_png_rejects_invalid_smiles(tmp_path: object) -> None:
 	"""Invalid SMILES strings raise rather than producing a placeholder PNG."""
 	with pytest.raises(ValueError):
 		ef_tools.rdkit_render.render_smiles_to_png(

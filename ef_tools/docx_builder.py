@@ -24,7 +24,7 @@ import ef_tools.text_utils
 
 
 #============================================
-def set_font_with_fallback(style, primary: str, fallback: str) -> None:
+def set_font_with_fallback(style: object, primary: str, fallback: str) -> None:
 	"""Set font name on a style with a fallback font via XML.
 
 	python-docx only supports a single font name. This sets the primary
@@ -219,7 +219,7 @@ def setup_styles(doc: docx.Document, styles: dict) -> None:
 
 
 #============================================
-def add_page_number_field(paragraph) -> None:
+def add_page_number_field(paragraph: object) -> None:
 	"""Add 'Page X of Y' field codes to a paragraph using raw XML.
 
 	python-docx does not have native page number field support,
@@ -269,7 +269,7 @@ assert format_date_human('2026-01-01') == 'January 1, 2026'
 
 
 #============================================
-def setup_header(doc: docx.Document, section, date_str: str, styles: dict) -> None:
+def setup_header(doc: docx.Document, section: object, date_str: str, styles: dict) -> None:
 	"""Configure page header on body pages with page number, date, and name.
 
 	Sets up different first page header (empty) and body page header with
@@ -314,7 +314,7 @@ def setup_header(doc: docx.Document, section, date_str: str, styles: dict) -> No
 
 
 #============================================
-def add_rich_text_runs(para, text: str) -> None:
+def add_rich_text_runs(para: object, text: str) -> None:
 	"""Add styled runs to a paragraph, parsing inline HTML tags.
 
 	Handles <sub>, <sup>, <b>, <strong>, <i>, <em> tags by creating
@@ -356,7 +356,7 @@ _PARAGRAPH_BREAK_RE = re.compile(r'(?:\r?\n|<br\s*/?>)+', re.IGNORECASE)
 
 
 #============================================
-def add_rich_text_paragraphs(doc, style_name: str, text: str,
+def add_rich_text_paragraphs(doc: object, style_name: str, text: str,
 		prefix: str = '') -> object:
 	"""Split text on hard breaks (\\n and <br>) into separate paragraphs.
 
@@ -407,7 +407,7 @@ def fit_picture_kwargs(image_path: str, max_width: float,
 
 
 #============================================
-def _zero_inline_image_margins(run) -> None:
+def _zero_inline_image_margins(run: object) -> None:
 	"""Set distT/distB/distL/distR=0 on every <wp:inline> in this run.
 
 	Inline images in OOXML carry top/bottom/left/right distance attributes
@@ -424,7 +424,7 @@ def _zero_inline_image_margins(run) -> None:
 
 
 #============================================
-def add_choice_content(para, choice, image_width: float = None,
+def add_choice_content(para: object, choice: object, image_width: float = None,
 	image_height: float = None) -> None:
 	"""Add text and optional image content for one choice."""
 	choice_text = ef_tools.layout.choice_text(choice)
@@ -459,7 +459,7 @@ IMAGE_CHOICE_MAX_WIDTH_BY_COLS = {
 
 
 #============================================
-def _is_meaningful_alt(choice) -> bool:
+def _is_meaningful_alt(choice: object) -> bool:
 	"""True when a choice's text adds information beyond a placeholder.
 
 	Skips empty strings and the literal "image" so a row of placeholder

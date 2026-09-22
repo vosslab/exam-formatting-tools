@@ -19,7 +19,7 @@ import yaml
 import ef_tools.cli_checks
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
 	"""
 	Parse command-line arguments.
 	"""
@@ -223,7 +223,7 @@ def convert_okla_to_yaml(input_path: str, title: str) -> dict:
 #============================================
 
 
-def main():
+def main() -> None:
 	"""
 	Main entry point.
 	"""

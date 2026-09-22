@@ -12,7 +12,7 @@ the target extension in the current working directory.
 ## Build a DOCX exam from YAML
 
 ```bash
-source source_me.sh && python3 yaml_to_exam_docx.py -i exam_data.yml
+source source_me.sh && python3 launchers/yaml_to_exam_docx.py -i exam_data.yml
 ```
 
 The YAML schema is documented in [docs/YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md).
@@ -23,7 +23,7 @@ Note: `yaml_to_exam_docx.py` refuses to overwrite an existing output file
 output to `/tmp/` first and then `cp` it into place:
 
 ```bash
-source source_me.sh && python3 yaml_to_exam_docx.py \
+source source_me.sh && python3 launchers/yaml_to_exam_docx.py \
     -i Final_Exam/Final_Exam_2A_2B_combined.yml \
     -o /tmp/_regen_combined.docx
 cp /tmp/_regen_combined.docx Final_Exam/Final_Exam_2A_2B_combined.docx
@@ -43,14 +43,14 @@ rewrite) or `FIXABLE` (likely editable to fit). Both are non-OK; the
 linter exits non-zero unless every question is OK.
 
 ```bash
-source source_me.sh && python3 validate_zip_grade_yaml.py -i exam.yml
+source source_me.sh && python3 launchers/validate_zip_grade_yaml.py -i exam.yml
 ```
 
 Pass `-o` to write a filtered YAML containing only OK questions (drops
 both ERROR and FIXABLE; the original YAML is not modified):
 
 ```bash
-source source_me.sh && python3 validate_zip_grade_yaml.py \
+source source_me.sh && python3 launchers/validate_zip_grade_yaml.py \
     -i exam.yml -o exam_zipgrade.yml
 ```
 
@@ -60,7 +60,7 @@ and FIXABLE, prints a per-question removal report (line-anchored), and
 warns if the post-filter row total still exceeds 100:
 
 ```bash
-source source_me.sh && python3 yaml_to_exam_docx.py -i exam.yml -z
+source source_me.sh && python3 launchers/yaml_to_exam_docx.py -i exam.yml -z
 ```
 
 The flag never silently rewrites questions. A 6-choice question is
@@ -74,7 +74,7 @@ Blackboard cleaned HTML to YAML (one or more files; first input's stem
 drives the default output name):
 
 ```bash
-source source_me.sh && python3 html_to_exam_yaml.py -i Cleaned_Final_Exam_2A.html
+source source_me.sh && python3 launchers/html_to_exam_yaml.py -i Cleaned_Final_Exam_2A.html
 ```
 
 Matching questions are emitted as `prompts_list` plus `choices_list`; see [docs/YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md) for the schema.
@@ -84,7 +84,7 @@ RDKit HTML5 canvas widgets in the cleaned HTML are auto-rendered to PNG (named `
 bptools bbq text (`bbq-*-questions.txt`) to YAML plus an answer key:
 
 ```bash
-source source_me.sh && python3 bbq_to_exam_yaml.py -i bbq-chargaff-questions.txt
+source source_me.sh && python3 launchers/bbq_to_exam_yaml.py -i bbq-chargaff-questions.txt
 ```
 
 MC and MA keep their choices; MAT becomes `prompts_list` plus a shuffled
@@ -115,11 +115,11 @@ genetics,dna_profiling,{bp_root}/dna_profiling-problems/who_father_html.py,--eas
 Quiz (default: any MC/MA/MAT/ORD, any number of choices):
 
 ```bash
-source source_me.sh && python3 bbq_tasks_to_exam_yaml.py -q -t "Genetics Quiz 1" \
+source source_me.sh && python3 launchers/bbq_tasks_to_exam_yaml.py -q -t "Genetics Quiz 1" \
     -i ~/nsh/PROBLEMS/biology-problems-website/bbq_control/task_files/genetics_tasks1.csv \
     -s ~/nsh/PROBLEMS/biology-problems-website/bbq_control/bbq_settings.yml \
     -o output_quiz/genetics_quiz1.yml
-source source_me.sh && python3 yaml_to_exam_docx.py -i output_quiz/genetics_quiz1.yml
+source source_me.sh && python3 launchers/yaml_to_exam_docx.py -i output_quiz/genetics_quiz1.yml
 ```
 
 Exam (`-e`): only questions that pass the ZipGrade A-E rules are kept;
@@ -135,13 +135,13 @@ the chapter heading whenever it changes.
 Oklahoma export to YAML:
 
 ```bash
-source source_me.sh && python3 okla_to_exam_yaml.py -i export.txt
+source source_me.sh && python3 launchers/okla_to_exam_yaml.py -i export.txt
 ```
 
 ## Convert DOCX back to YAML
 
 ```bash
-source source_me.sh && python3 docx_to_exam_yaml.py -i exam.docx
+source source_me.sh && python3 launchers/docx_to_exam_yaml.py -i exam.docx
 ```
 
 ## Run the test suite

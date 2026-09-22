@@ -75,7 +75,7 @@ def resolve_image_path(html_path: str, src: str) -> str:
 
 
 #============================================
-def text_from_element(element) -> str:
+def text_from_element(element: object) -> str:
 	"""Extract normalized text from an HTML element."""
 	text = element.text_content()
 	text = re.sub(r"\s+", " ", text).strip()
@@ -83,7 +83,7 @@ def text_from_element(element) -> str:
 
 
 #============================================
-def has_choice_labels(element) -> bool:
+def has_choice_labels(element: object) -> bool:
 	"""Return whether an element contains exported multiple-choice labels."""
 	labels = element.xpath(".//label[.//input]")
 	result = len(labels) > 0

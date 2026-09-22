@@ -17,6 +17,10 @@ _repo_root = subprocess.check_output(
 ).strip()
 if _repo_root not in sys.path:
 	sys.path.insert(0, _repo_root)
+# the CLI scripts live in launchers/ and are imported as modules by tests
+_launchers_dir = os.path.join(_repo_root, "launchers")
+if _launchers_dir not in sys.path:
+	sys.path.insert(1, _launchers_dir)
 
 # the bbq converters import qti_package_maker from the sibling checkout;
 # mirror source_me.sh so `pytest tests/` works without sourcing it

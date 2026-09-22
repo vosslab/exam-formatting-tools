@@ -27,7 +27,7 @@ SMILES_RE = re.compile(r'(?<![\w"])smiles\s*=\s*"([^"]+)"')
 
 
 #============================================
-def extract_smiles_from_rdkit_script(script_element) -> str | None:
+def extract_smiles_from_rdkit_script(script_element: object) -> str | None:
 	"""Return the SMILES literal bound in an RDKit canvas script.
 
 	Args:

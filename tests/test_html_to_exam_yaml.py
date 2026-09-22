@@ -12,7 +12,7 @@ import html_to_exam_yaml
 
 
 #============================================
-def test_element_to_inline_html_preserves_subscript_ascii():
+def test_element_to_inline_html_preserves_subscript_ascii() -> None:
 	"""Test inline HTML conversion preserves subscript tags."""
 	element = lxml.html.fromstring("<span>H<sub>2</sub>O &amp; &Delta;G</span>")
 	result = html_to_exam_yaml.element_to_inline_html(element)
@@ -24,7 +24,7 @@ def test_element_to_inline_html_preserves_subscript_ascii():
 
 
 #============================================
-def test_element_to_inline_html_compacts_pretty_subscript():
+def test_element_to_inline_html_compacts_pretty_subscript() -> None:
 	"""Test pretty-printed subscript tags become compact inline notation."""
 	element = lxml.html.fromstring("<span>H <sub> 2 </sub> O</span>")
 	result = html_to_exam_yaml.element_to_inline_html(element)
@@ -32,7 +32,7 @@ def test_element_to_inline_html_compacts_pretty_subscript():
 
 
 #============================================
-def test_element_to_inline_html_keeps_prose_after_subscript():
+def test_element_to_inline_html_keeps_prose_after_subscript() -> None:
 	"""Test prose spacing after subscript tags is preserved."""
 	element = lxml.html.fromstring("<span>P<sub>i</sub> and pK<sub>a</sub> values</span>")
 	result = html_to_exam_yaml.element_to_inline_html(element)
@@ -40,14 +40,14 @@ def test_element_to_inline_html_keeps_prose_after_subscript():
 
 
 #============================================
-def test_clean_choice_html_removes_letter_prefix():
+def test_clean_choice_html_removes_letter_prefix() -> None:
 	"""Test exported choice letter cleanup."""
 	result = html_to_exam_yaml.clean_choice_html("A. <b>metal ion</b>")
 	assert result == "<b>metal ion</b>"
 
 
 #============================================
-def test_parse_question_with_text_choices():
+def test_parse_question_with_text_choices() -> None:
 	"""Test a small cleaned question parses into statement and choices."""
 	html_text = """
 	<div class="takeQuestionDiv">
@@ -68,7 +68,7 @@ def test_parse_question_with_text_choices():
 
 
 #============================================
-def test_parse_question_with_choice_image():
+def test_parse_question_with_choice_image() -> None:
 	"""Test a choice image is represented as structured YAML."""
 	html_text = """
 	<div class="takeQuestionDiv">
@@ -88,7 +88,7 @@ def test_parse_question_with_choice_image():
 
 
 #============================================
-def test_parse_question_with_cleaned_choice_item_image():
+def test_parse_question_with_cleaned_choice_item_image() -> None:
 	"""Test Blackboard image-choice divs become structured choices."""
 	html_text = """
 	<div class="takeQuestionDiv">
@@ -112,7 +112,7 @@ def test_parse_question_with_cleaned_choice_item_image():
 
 
 #============================================
-def test_parse_question_keeps_body_text_statement():
+def test_parse_question_keeps_body_text_statement() -> None:
 	"""Test raw li text before choices becomes the statement."""
 	html_text = """
 	<div class="takeQuestionDiv">
@@ -128,7 +128,7 @@ def test_parse_question_keeps_body_text_statement():
 
 
 #============================================
-def test_parse_matching_block_emits_prompts_and_choices_lists():
+def test_parse_matching_block_emits_prompts_and_choices_lists() -> None:
 	"""Matching blocks emit bptools-style prompts_list and choices_list.
 
 	The lead-in prose stays in `statement`, the lettered (A./B./...) options
@@ -175,7 +175,7 @@ def test_parse_matching_block_emits_prompts_and_choices_lists():
 
 
 #============================================
-def test_parse_question_preserves_text_after_inline_bold():
+def test_parse_question_preserves_text_after_inline_bold() -> None:
 	"""Statement text following an inline <b> child (the .tail) is kept."""
 	# Mirrors the Lineweaver-Burk question shape from
 	# Final_Exam/Cleaned_Final_Exam_2A.html:3485-3552.
@@ -200,7 +200,7 @@ def test_parse_question_preserves_text_after_inline_bold():
 
 
 #============================================
-def test_parse_question_preserves_text_after_inline_italic_sub():
+def test_parse_question_preserves_text_after_inline_italic_sub() -> None:
 	"""Statement text following <i>...<sub/></i> survives as a tail."""
 	# Mirrors the K'eq question shape: prose continues after the italic
 	# wrapper that contains a numeric character entity and a subscript.
@@ -227,7 +227,7 @@ def test_parse_question_preserves_text_after_inline_italic_sub():
 
 
 #============================================
-def test_is_matching_block_rejects_styled_hint_legend():
+def test_is_matching_block_rejects_styled_hint_legend() -> None:
 	"""A hint legend using bold inline-block spans must not look like matching.
 
 	Without the bordered/empty-marker check, `display:inline-block` styled
@@ -263,7 +263,7 @@ def test_is_matching_block_rejects_styled_hint_legend():
 
 
 #============================================
-def test_matching_marker_xpath_requires_border():
+def test_matching_marker_xpath_requires_border() -> None:
 	"""A bare display:inline-block empty span must not classify as a marker.
 
 	Locks the tightened MATCHING_PROMPT_MARKER_XPATH boundary directly:
@@ -282,7 +282,7 @@ def test_matching_marker_xpath_requires_border():
 
 
 #============================================
-def test_real_matching_question_still_yields_lists():
+def test_real_matching_question_still_yields_lists() -> None:
 	"""A realistic matching block (bordered empty marker) still classifies."""
 	# Marker styling matches the real cleaned HTML at
 	# Final_Exam/Cleaned_Final_Exam_2A.html:59 et al.
@@ -312,7 +312,7 @@ def test_real_matching_question_still_yields_lists():
 
 
 #============================================
-def test_parse_question_preserves_statement_image():
+def test_parse_question_preserves_statement_image() -> None:
 	"""A statement-body <img> survives the deep-copy + prune flow."""
 	html_text = """
 	<div class="takeQuestionDiv">
@@ -334,7 +334,7 @@ def test_parse_question_preserves_statement_image():
 
 
 #============================================
-def test_parse_question_renders_rdkit_canvas_to_png(tmp_path):
+def test_parse_question_renders_rdkit_canvas_to_png(tmp_path: object) -> None:
 	"""RDKit canvas widgets become PNG entries in the question images list."""
 	html_path = tmp_path / "Cleaned_sample.html"
 	# Write the HTML to disk so resolve_image_path / out-dir resolution
@@ -379,7 +379,7 @@ def test_parse_question_renders_rdkit_canvas_to_png(tmp_path):
 
 
 #============================================
-def test_compute_rdkit_out_dir_uses_existing_image_directory(tmp_path):
+def test_compute_rdkit_out_dir_uses_existing_image_directory(tmp_path: object) -> None:
 	"""When the doc has a cleaned image, RDKit PNGs share that directory."""
 	html_path = tmp_path / "Cleaned_exam.html"
 	images_dir = tmp_path / "exam_files"
@@ -398,7 +398,7 @@ def test_compute_rdkit_out_dir_uses_existing_image_directory(tmp_path):
 
 
 #============================================
-def test_compute_rdkit_out_dir_strips_cleaned_prefix(tmp_path):
+def test_compute_rdkit_out_dir_strips_cleaned_prefix(tmp_path: object) -> None:
 	"""Without an existing image, the stem fallback drops the Cleaned_ prefix."""
 	html_path = tmp_path / "Cleaned_Exam_2A.html"
 	html_path.write_text("<html><body></body></html>", encoding="utf-8")
@@ -408,7 +408,7 @@ def test_compute_rdkit_out_dir_strips_cleaned_prefix(tmp_path):
 
 
 #============================================
-def test_compute_rdkit_out_dir_uses_plain_stem_when_no_prefix(tmp_path):
+def test_compute_rdkit_out_dir_uses_plain_stem_when_no_prefix(tmp_path: object) -> None:
 	"""Without an existing image and without a Cleaned_ prefix, use the bare stem."""
 	html_path = tmp_path / "midterm.html"
 	html_path.write_text("<html><body></body></html>", encoding="utf-8")
@@ -418,7 +418,7 @@ def test_compute_rdkit_out_dir_uses_plain_stem_when_no_prefix(tmp_path):
 
 
 #============================================
-def test_resolve_rdkit_canvases_raises_when_canvas_has_no_script(tmp_path):
+def test_resolve_rdkit_canvases_raises_when_canvas_has_no_script(tmp_path: object) -> None:
 	"""A canvas with no matching RDKit script must fail loudly, not drop silently."""
 	# Canvas carries an explicit id so the failure is unambiguously the
 	# missing-script branch and not the falsy-id short-circuit.
@@ -436,7 +436,7 @@ def test_resolve_rdkit_canvases_raises_when_canvas_has_no_script(tmp_path):
 
 
 #============================================
-def test_find_rdkit_script_for_canvas_returns_none_when_id_missing():
+def test_find_rdkit_script_for_canvas_returns_none_when_id_missing() -> None:
 	"""Falsy canvas ids short-circuit and return None."""
 	result = html_to_exam_yaml.find_rdkit_script_for_canvas([], "")
 	assert result is None
@@ -445,7 +445,7 @@ def test_find_rdkit_script_for_canvas_returns_none_when_id_missing():
 
 
 #============================================
-def test_find_rdkit_script_for_canvas_returns_none_when_no_script_matches():
+def test_find_rdkit_script_for_canvas_returns_none_when_no_script_matches() -> None:
 	"""A non-empty script list with no matching id falls through to None."""
 	wrapper = lxml.html.fromstring(
 		"<div>"

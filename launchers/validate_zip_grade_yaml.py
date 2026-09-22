@@ -134,7 +134,7 @@ def filter_write(exam_data: dict, source_path: str, output_path: str) -> None:
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Main entry point."""
 	args = parse_args()
 	# validate input extension and resolve optional output

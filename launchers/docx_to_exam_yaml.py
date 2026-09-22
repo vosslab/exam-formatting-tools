@@ -395,7 +395,7 @@ def build_yaml_structure(doc: docx.Document, questions: list) -> dict:
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Main entry point for DOCX to YAML converter."""
 	args = parse_args()
 	# validate input extension and resolve default output

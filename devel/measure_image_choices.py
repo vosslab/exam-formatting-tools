@@ -33,9 +33,10 @@ REPO_ROOT = subprocess.check_output(
 	['git', 'rev-parse', '--show-toplevel'], text=True).strip()
 if REPO_ROOT not in sys.path:
 	sys.path.insert(0, REPO_ROOT)
+# the DOCX builder CLI lives in launchers/
+sys.path.insert(1, os.path.join(REPO_ROOT, 'launchers'))
 
 # local repo modules
-
 import yaml_to_exam_docx
 import ef_tools.style_loader
 
@@ -45,7 +46,7 @@ EMU_PER_INCH = 914400.0
 
 
 #============================================
-def parse_args():
+def parse_args() -> argparse.Namespace:
 	"""Parse command-line arguments."""
 	parser = argparse.ArgumentParser(
 		description="Render image-choice rows for cols 2-5 and report dead space.")
@@ -195,7 +196,7 @@ def build_summary(image_widths_by_cols: dict, tab_stops: dict,
 
 
 #============================================
-def main():
+def main() -> None:
 	"""Generate noise images, render docx, report dead space per column."""
 	args = parse_args()
 	output_dir = args.output_dir

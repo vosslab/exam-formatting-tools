@@ -102,7 +102,7 @@ class LineTrackingLoader(yaml.SafeLoader):
 	"""
 
 	#--------------------------------------------
-	def construct_mapping(self, node, deep=False):
+	def construct_mapping(self, node: object, deep: bool = False) -> dict:
 		mapping = super().construct_mapping(node, deep=deep)
 		# node.start_mark.line is 0-based; humans want 1-based
 		mapping['__line__'] = node.start_mark.line + 1
@@ -175,7 +175,7 @@ def classify_question(question: dict) -> tuple:
 
 
 #============================================
-def _iter_questions(exam_data: dict):
+def _iter_questions(exam_data: dict) -> object:
 	"""Yield (section_index, question_index, question) for real questions.
 
 	Skips inline-chapter pseudo-questions (a dict with 'chapter' but no
@@ -251,7 +251,7 @@ def validate(exam_data: dict) -> list:
 
 
 #============================================
-def _strip_line_markers(node) -> None:
+def _strip_line_markers(node: object) -> None:
 	"""Recursively delete '__line__' keys added by LineTrackingLoader."""
 	if isinstance(node, dict):
 		# pop the marker if present

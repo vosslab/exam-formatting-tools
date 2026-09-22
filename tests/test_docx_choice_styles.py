@@ -36,7 +36,7 @@ _PNG_BYTES = base64.b64decode(
 
 
 #============================================
-def _make_styled_doc():
+def _make_styled_doc() -> object:
 	"""Create a docx Document with the exam styles pre-loaded."""
 	styles = ef_tools.style_loader.load_styles()
 	doc = docx.Document()
@@ -45,7 +45,7 @@ def _make_styled_doc():
 
 
 #============================================
-def _write_png(tmp_path, name):
+def _write_png(tmp_path: object, name: object) -> object:
 	"""Write a tiny PNG to tmp_path/name and return its path."""
 	path = tmp_path / name
 	path.write_bytes(_PNG_BYTES)
@@ -53,7 +53,7 @@ def _write_png(tmp_path, name):
 
 
 #============================================
-def test_text_choices_use_concrete_choices_n_style():
+def test_text_choices_use_concrete_choices_n_style() -> None:
 	"""Four short text choices land on a Choices [2-5] style."""
 	doc = _make_styled_doc()
 	choices = ["yes", "no", "maybe", "unknown"]
@@ -65,7 +65,7 @@ def test_text_choices_use_concrete_choices_n_style():
 
 
 #============================================
-def test_long_text_choices_avoid_bare_choice_style():
+def test_long_text_choices_avoid_bare_choice_style() -> None:
 	"""Single-column (vertical stack) layout still uses Choices N, not Choice."""
 	doc = _make_styled_doc()
 	# tab_style=1 used to map to bare 'Choice'; it now maps to Choices 2
@@ -78,7 +78,7 @@ def test_long_text_choices_avoid_bare_choice_style():
 
 
 #============================================
-def test_mixed_text_image_choices_avoid_bare_choice_style(tmp_path):
+def test_mixed_text_image_choices_avoid_bare_choice_style(tmp_path: object) -> None:
 	"""Mixed text+image choices route through Choices N, not bare Choice."""
 	image_path = _write_png(tmp_path, "mix.png")
 	choices = [
@@ -95,7 +95,7 @@ def test_mixed_text_image_choices_avoid_bare_choice_style(tmp_path):
 
 
 #============================================
-def test_all_image_choices_avoid_bare_choice_style(tmp_path):
+def test_all_image_choices_avoid_bare_choice_style(tmp_path: object) -> None:
 	"""add_image_choices_tabbed lands on a Choices [2-5] style."""
 	images = [_write_png(tmp_path, f"img_{i}.png") for i in range(4)]
 	choices = [{"text": "", "image": path} for path in images]
@@ -108,7 +108,7 @@ def test_all_image_choices_avoid_bare_choice_style(tmp_path):
 
 
 #============================================
-def test_choices_n_styles_inherit_from_choice_base():
+def test_choices_n_styles_inherit_from_choice_base() -> None:
 	"""Each Choices N style declares Choice as its base_style.
 
 	This locks the inheritance edge that motivates keeping Choice as a
@@ -121,7 +121,7 @@ def test_choices_n_styles_inherit_from_choice_base():
 
 
 #============================================
-def test_matching_choices_list_uses_multi_column_style(tmp_path):
+def test_matching_choices_list_uses_multi_column_style(tmp_path: object) -> None:
 	"""A matching question's choices_list lands on a Choices [2-5] style.
 
 	Goes through the full builder render path (`build_document`), which

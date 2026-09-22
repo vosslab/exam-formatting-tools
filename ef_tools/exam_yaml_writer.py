@@ -11,7 +11,7 @@ import yaml
 
 
 #============================================
-def _str_representer(dumper: yaml.SafeDumper, value: str):
+def _str_representer(dumper: yaml.SafeDumper, value: str) -> yaml.ScalarNode:
 	"""Double-quote strings that contain an apostrophe."""
 	if "'" in value:
 		return dumper.represent_scalar("tag:yaml.org,2002:str", value, style='"')

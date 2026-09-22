@@ -88,7 +88,7 @@ def chapter_label(topic: str) -> str:
 
 
 #============================================
-def render_tables(record: dict, renderer, media_dir: str) -> None:
+def render_tables(record: dict, renderer: object, media_dir: str) -> None:
 	"""Rasterize a record's drawing tables and attach the PNG paths."""
 	code = record['answer']['code']
 	statement_paths = ef_tools.bbq_html.write_table_pngs(
@@ -101,7 +101,7 @@ def render_tables(record: dict, renderer, media_dir: str) -> None:
 
 
 #============================================
-def collect_questions(tasks: list, pythonpath: str, reject_fn, media_dir: str) -> tuple:
+def collect_questions(tasks: list, pythonpath: str, reject_fn: object, media_dir: str) -> tuple:
 	"""Generate one question per task.
 
 	Returns:

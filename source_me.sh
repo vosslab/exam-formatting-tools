@@ -8,6 +8,13 @@ source ~/.bashrc
 export PYTHONUNBUFFERED=1
 export PYTHONDONTWRITEBYTECODE=1
 
+# Must come after sourcing ~/.bashrc, which clears PYTHONPATH.
+# The CLI scripts in launchers/ import the repo-root ef_tools package.
+REPO_ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [[ -n "$REPO_ROOT_DIR" ]]; then
+  export PYTHONPATH="$REPO_ROOT_DIR${PYTHONPATH:+:$PYTHONPATH}"
+fi
+
 # Sibling checkout of qti-package-maker supplies qti_package_maker.html_to_image
 # (drawing-table detector + Playwright renderer) used by the bbq converters,
 # and the bptools generator scripts import it as well.

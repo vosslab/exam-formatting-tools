@@ -1,0 +1,1 @@
+qti_package_maker  # sibling checkout ~/nsh/PROBLEMS/qti-package-maker; source_me.sh and tests/conftest.py add it to the path

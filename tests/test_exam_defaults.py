@@ -4,7 +4,7 @@ import ef_tools.exam_defaults
 
 
 #============================================
-def test_format_score_line_basic():
+def test_format_score_line_basic() -> None:
 	"""Test format_score_line with basic inputs."""
 	result = ef_tools.exam_defaults.format_score_line(50, 4)
 	expected = "Final Score ____ / ____ / ____ / ____ / 50 pts"
@@ -12,7 +12,7 @@ def test_format_score_line_basic():
 
 
 #============================================
-def test_format_score_line_single_section():
+def test_format_score_line_single_section() -> None:
 	"""Test format_score_line with single section."""
 	result = ef_tools.exam_defaults.format_score_line(25, 1)
 	expected = "Final Score ____ / 25 pts"

@@ -4,7 +4,7 @@ import ef_tools.layout
 
 
 #============================================
-def test_auto_layout_five_short_choices():
+def test_auto_layout_five_short_choices() -> None:
 	"""Test 5 short choices fit in 5-column layout."""
 	choices = ["a", "b", "c", "d", "e"]
 	result = ef_tools.layout.auto_layout_for_choices(choices)
@@ -12,7 +12,7 @@ def test_auto_layout_five_short_choices():
 
 
 #============================================
-def test_auto_layout_two_choices():
+def test_auto_layout_two_choices() -> None:
 	"""Test 2 choices use 2-column layout."""
 	choices = ["yes", "no"]
 	result = ef_tools.layout.auto_layout_for_choices(choices)
@@ -20,7 +20,7 @@ def test_auto_layout_two_choices():
 
 
 #============================================
-def test_auto_layout_four_medium_choices_anti_orphan():
+def test_auto_layout_four_medium_choices_anti_orphan() -> None:
 	"""Test 4 medium choices use 2+2 layout to avoid orphan."""
 	# 30 typical ASCII chars at 0.8 width = 24, just over max_chars_4 (23)
 	choices = ["a" * 30, "b" * 30, "c" * 30, "d" * 30]
@@ -29,7 +29,7 @@ def test_auto_layout_four_medium_choices_anti_orphan():
 
 
 #============================================
-def test_auto_layout_very_long_choices():
+def test_auto_layout_very_long_choices() -> None:
 	"""Test very long choices get vertical stack."""
 	# 65 typical ASCII chars at 0.8 width = 52, over max_chars_2 (49)
 	choices = ["a" * 65, "b" * 65]
@@ -38,7 +38,7 @@ def test_auto_layout_very_long_choices():
 
 
 #============================================
-def test_auto_layout_five_medium_choices_anti_orphan():
+def test_auto_layout_five_medium_choices_anti_orphan() -> None:
 	"""Test 5 medium choices use 3+2 layout to avoid orphan."""
 	# 23 typical ASCII chars at 0.8 width = 18.4, over max_chars_5 (17)
 	choices = ["a" * 23, "b" * 23, "c" * 23, "d" * 23, "e" * 23]
@@ -47,7 +47,7 @@ def test_auto_layout_five_medium_choices_anti_orphan():
 
 
 #============================================
-def test_chemistry_matching_choices_use_multi_column():
+def test_chemistry_matching_choices_use_multi_column() -> None:
 	"""HTML entities and inline tags are scored as visible glyphs.
 
 	The 4-item list from Final_Exam/final_exam_combined.yml regressed
@@ -76,7 +76,7 @@ def test_chemistry_matching_choices_use_multi_column():
 
 
 #============================================
-def test_short_chemistry_choices_use_four_columns():
+def test_short_chemistry_choices_use_four_columns() -> None:
 	"""Short chemistry choices with HTML entities fit four columns.
 
 	The visible-width scoring counts &#8226; and &#8801; as single
@@ -99,7 +99,7 @@ def test_short_chemistry_choices_use_four_columns():
 
 
 #============================================
-def test_choices_style_name_never_returns_choice():
+def test_choices_style_name_never_returns_choice() -> None:
 	"""Every legal tab_style maps to a concrete Choices N style."""
 	for tab_style in range(1, 6):
 		assert ef_tools.layout.choices_style_name(tab_style) != "Choice"

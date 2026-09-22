@@ -7,8 +7,8 @@ Tools for building and converting styled exam documents. The pipeline is one-way
 Convert cleaned Blackboard HTML to exam YAML, then build a styled DOCX:
 
 ```bash
-source source_me.sh && python3 html_to_exam_yaml.py -i Cleaned_Final_Exam_2A.html
-source source_me.sh && python3 yaml_to_exam_docx.py -i Cleaned_Final_Exam_2A.yml
+source source_me.sh && python3 launchers/html_to_exam_yaml.py -i Cleaned_Final_Exam_2A.html
+source source_me.sh && python3 launchers/yaml_to_exam_docx.py -i Cleaned_Final_Exam_2A.yml
 ```
 
 `-o` is optional on every script. When omitted, output is `<input-stem>` with the target extension in the current directory.
@@ -17,11 +17,11 @@ Build a quiz with one question per bptools generator from a website task CSV
 (see [docs/USAGE.md](docs/USAGE.md) for the exam-mode variant and the answer key):
 
 ```bash
-source source_me.sh && python3 bbq_tasks_to_exam_yaml.py -q -t "Genetics Quiz 1" \
+source source_me.sh && python3 launchers/bbq_tasks_to_exam_yaml.py -q -t "Genetics Quiz 1" \
     -i ~/nsh/PROBLEMS/biology-problems-website/bbq_control/task_files/genetics_tasks1.csv \
     -s ~/nsh/PROBLEMS/biology-problems-website/bbq_control/bbq_settings.yml \
     -o output_quiz/genetics_quiz1.yml
-source source_me.sh && python3 yaml_to_exam_docx.py -i output_quiz/genetics_quiz1.yml
+source source_me.sh && python3 launchers/yaml_to_exam_docx.py -i output_quiz/genetics_quiz1.yml
 ```
 
 ## Documentation

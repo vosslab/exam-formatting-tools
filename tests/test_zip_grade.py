@@ -34,7 +34,7 @@ def _exam_with_question(question: dict) -> dict:
 #============================================
 # Severity matrix tests (one per row of plan section 7)
 #============================================
-def test_severity_mc_five_choices_is_ok():
+def test_severity_mc_five_choices_is_ok() -> None:
 	"""5-choice MC fits A-E exactly; classified OK so no Issue emitted."""
 	exam = _exam_with_question({
 		'statement': 'Pick one.',
@@ -45,7 +45,7 @@ def test_severity_mc_five_choices_is_ok():
 
 
 #============================================
-def test_severity_mc_two_choices_is_ok():
+def test_severity_mc_two_choices_is_ok() -> None:
 	"""2-choice MC is the lower OK boundary."""
 	exam = _exam_with_question({
 		'statement': 'Pick one.',
@@ -56,7 +56,7 @@ def test_severity_mc_two_choices_is_ok():
 
 
 #============================================
-def test_severity_mc_six_choices_is_fixable():
+def test_severity_mc_six_choices_is_fixable() -> None:
 	"""6-choice MC is FIXABLE: one distractor over A-E, but tooling
 	cannot pick which to remove (no answer key in this YAML schema)."""
 	exam = _exam_with_question({
@@ -70,7 +70,7 @@ def test_severity_mc_six_choices_is_fixable():
 
 
 #============================================
-def test_severity_mc_seven_choices_is_error():
+def test_severity_mc_seven_choices_is_error() -> None:
 	"""7+ choice MC is ERROR: not realistically reducible without rewrite."""
 	exam = _exam_with_question({
 		'statement': 'Pick one.',
@@ -83,7 +83,7 @@ def test_severity_mc_seven_choices_is_error():
 
 
 #============================================
-def test_severity_mc_one_choice_is_error():
+def test_severity_mc_one_choice_is_error() -> None:
 	"""<2 choices is ERROR: not bubbleable."""
 	exam = _exam_with_question({
 		'statement': 'Pick one.',
@@ -96,7 +96,7 @@ def test_severity_mc_one_choice_is_error():
 
 
 #============================================
-def test_severity_matching_five_choices_is_ok():
+def test_severity_matching_five_choices_is_ok() -> None:
 	"""Matching with 5 choices_list items is OK regardless of prompts_list size."""
 	exam = _exam_with_question({
 		'statement': 'Match.',
@@ -108,7 +108,7 @@ def test_severity_matching_five_choices_is_ok():
 
 
 #============================================
-def test_severity_matching_six_choices_is_fixable():
+def test_severity_matching_six_choices_is_fixable() -> None:
 	"""Matching with 6 choices_list items is FIXABLE."""
 	exam = _exam_with_question({
 		'statement': 'Match.',
@@ -122,7 +122,7 @@ def test_severity_matching_six_choices_is_fixable():
 
 
 #============================================
-def test_severity_matching_one_choice_is_error():
+def test_severity_matching_one_choice_is_error() -> None:
 	"""Matching with <2 choices_list items is ERROR: not bubbleable."""
 	exam = _exam_with_question({
 		'statement': 'Match.',
@@ -136,7 +136,7 @@ def test_severity_matching_one_choice_is_error():
 
 
 #============================================
-def test_severity_matching_seven_choices_is_error():
+def test_severity_matching_seven_choices_is_error() -> None:
 	"""Matching with 7+ choices_list items is ERROR."""
 	exam = _exam_with_question({
 		'statement': 'Match.',
@@ -150,7 +150,7 @@ def test_severity_matching_seven_choices_is_error():
 
 
 #============================================
-def test_severity_no_choices_no_prompts_is_error():
+def test_severity_no_choices_no_prompts_is_error() -> None:
 	"""Bare statement with no answer surface is ERROR (fill-in/hotspot)."""
 	exam = _exam_with_question({
 		'statement': 'Calculate the equilibrium constant.',
@@ -162,7 +162,7 @@ def test_severity_no_choices_no_prompts_is_error():
 
 
 #============================================
-def test_severity_total_rows_overflow_is_error():
+def test_severity_total_rows_overflow_is_error() -> None:
 	"""Whole-exam row total >100 emits one ERROR with no question_number."""
 	# 101 single-MC questions
 	questions = [
@@ -186,7 +186,7 @@ def test_severity_total_rows_overflow_is_error():
 #============================================
 # filter_exam contract tests
 #============================================
-def test_filter_drops_error_and_fixable_keeps_ok():
+def test_filter_drops_error_and_fixable_keeps_ok() -> None:
 	"""filter_exam drops both severities; preserves OK questions."""
 	exam = {
 		'title': 'Mixed',
@@ -210,7 +210,7 @@ def test_filter_drops_error_and_fixable_keeps_ok():
 
 
 #============================================
-def test_filter_strips_line_markers_recursively():
+def test_filter_strips_line_markers_recursively() -> None:
 	"""filter_exam removes every '__line__' key it copies in."""
 	yaml_text = textwrap.dedent('''
 		title: Test
@@ -229,7 +229,7 @@ def test_filter_strips_line_markers_recursively():
 	assert '__line__' in exam
 	filtered, _ = ef_tools.zip_grade.filter_exam(exam)
 	# walk filtered and confirm no __line__ anywhere
-	def _has_line_marker(node):
+	def _has_line_marker(node: object) -> object:
 		if isinstance(node, dict):
 			if '__line__' in node:
 				return True
@@ -241,7 +241,7 @@ def test_filter_strips_line_markers_recursively():
 
 
 #============================================
-def test_filter_preserves_section_structure():
+def test_filter_preserves_section_structure() -> None:
 	"""Empty sections are kept after all questions are dropped."""
 	exam = {
 		'title': 'AllBad',
@@ -263,7 +263,7 @@ def test_filter_preserves_section_structure():
 
 
 #============================================
-def test_filter_skips_inline_chapter_pseudo_questions():
+def test_filter_skips_inline_chapter_pseudo_questions() -> None:
 	"""Inline chapter dicts (chapter without statement) are kept and not classified."""
 	exam = {
 		'title': 'Chapters',
@@ -285,7 +285,7 @@ def test_filter_skips_inline_chapter_pseudo_questions():
 #============================================
 # LineTrackingLoader and format_report tests
 #============================================
-def test_line_tracking_loader_attaches_line_numbers():
+def test_line_tracking_loader_attaches_line_numbers() -> None:
 	"""LineTrackingLoader injects a 1-based __line__ on every mapping."""
 	yaml_text = textwrap.dedent('''
 		title: Test
@@ -310,7 +310,7 @@ def test_line_tracking_loader_attaches_line_numbers():
 
 
 #============================================
-def test_validate_uses_line_numbers_from_loader():
+def test_validate_uses_line_numbers_from_loader() -> None:
 	"""validate() reads __line__ from each question into Issue.line_number."""
 	yaml_text = textwrap.dedent('''
 		title: Test
@@ -332,7 +332,7 @@ def test_validate_uses_line_numbers_from_loader():
 
 
 #============================================
-def test_format_report_uses_path_line_prefix():
+def test_format_report_uses_path_line_prefix() -> None:
 	"""format_report puts <path>:<line> at the start when source_path is given."""
 	issue = ef_tools.zip_grade.Issue(
 		severity=ef_tools.zip_grade.Severity.FIXABLE,
@@ -351,7 +351,7 @@ def test_format_report_uses_path_line_prefix():
 
 
 #============================================
-def test_format_report_falls_back_to_line_only():
+def test_format_report_falls_back_to_line_only() -> None:
 	"""When source_path is None, prefix becomes '(line N)' so output stays line-anchored."""
 	issue = ef_tools.zip_grade.Issue(
 		severity=ef_tools.zip_grade.Severity.ERROR,
@@ -368,7 +368,7 @@ def test_format_report_falls_back_to_line_only():
 
 
 #============================================
-def test_format_report_whole_exam_issue_has_no_q_label():
+def test_format_report_whole_exam_issue_has_no_q_label() -> None:
 	"""Whole-exam issues render without a (Qn) hint."""
 	issue = ef_tools.zip_grade.Issue(
 		severity=ef_tools.zip_grade.Severity.ERROR,
@@ -386,7 +386,7 @@ def test_format_report_whole_exam_issue_has_no_q_label():
 
 
 #============================================
-def test_format_report_empty_when_no_issues():
+def test_format_report_empty_when_no_issues() -> None:
 	"""Clean exam returns empty string."""
 	report = ef_tools.zip_grade.format_report([])
 	assert report == ''

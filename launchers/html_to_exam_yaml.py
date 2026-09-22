@@ -84,7 +84,7 @@ def escape_text(text: str) -> str:
 
 
 #============================================
-def element_to_inline_html(element) -> str:
+def element_to_inline_html(element: object) -> str:
 	"""Convert supported inline HTML content to a compact ASCII HTML string."""
 	parts = []
 	if element.text:
@@ -143,7 +143,7 @@ def clean_statement_html(text: str) -> str:
 
 
 #============================================
-def is_matching_block(element) -> bool:
+def is_matching_block(element: object) -> bool:
 	"""Return whether an element contains a Blackboard matching block."""
 	choices = element.xpath(MATCHING_CHOICE_XPATH)
 	prompt_markers = element.xpath(MATCHING_PROMPT_MARKER_XPATH)
@@ -152,7 +152,7 @@ def is_matching_block(element) -> bool:
 
 
 #============================================
-def parse_matching_block(element) -> tuple[list[str], list[str]]:
+def parse_matching_block(element: object) -> tuple[list[str], list[str]]:
 	"""Parse matching prompts and choices from a Blackboard matching block.
 
 	Returns a (prompts_list, choices_list) tuple matching the bptools
@@ -180,7 +180,7 @@ def parse_matching_block(element) -> tuple[list[str], list[str]]:
 
 
 #============================================
-def compute_rdkit_out_dir(html_path: str, doc_root) -> str:
+def compute_rdkit_out_dir(html_path: str, doc_root: object) -> str:
 	"""Pick the directory where RDKit-rendered PNGs should be saved.
 
 	Prefers the directory of an existing cleaned image (so RDKit PNGs sit
@@ -212,7 +212,7 @@ def compute_rdkit_out_dir(html_path: str, doc_root) -> str:
 
 
 #============================================
-def find_rdkit_script_for_canvas(scripts: list, canvas_id: str):
+def find_rdkit_script_for_canvas(scripts: list, canvas_id: str) -> object:
 	"""Return the RDKit script element that draws the given canvas id.
 
 	Args:
@@ -236,7 +236,7 @@ def find_rdkit_script_for_canvas(scripts: list, canvas_id: str):
 
 #============================================
 def resolve_rdkit_canvases(
-	html_path: str, element, script_scope, out_dir: str
+	html_path: str, element: object, script_scope: object, out_dir: str
 ) -> list[str]:
 	"""Render RDKit canvas widgets in element to PNGs and return paths.
 
@@ -283,7 +283,7 @@ def resolve_rdkit_canvases(
 
 #============================================
 def resolve_images(
-	html_path: str, element, script_scope=None, rdkit_out_dir: str | None = None
+	html_path: str, element: object, script_scope: object = None, rdkit_out_dir: str | None = None
 ) -> list[str]:
 	"""Resolve relevant images contained in an element.
 
@@ -307,7 +307,7 @@ def resolve_images(
 
 #============================================
 def parse_choices(
-	html_path: str, element, script_scope=None, rdkit_out_dir: str | None = None
+	html_path: str, element: object, script_scope: object = None, rdkit_out_dir: str | None = None
 ) -> list:
 	"""Parse multiple-choice labels from an HTML element."""
 	choices = []
@@ -331,7 +331,7 @@ def parse_choices(
 
 
 #============================================
-def remove_node(element) -> None:
+def remove_node(element: object) -> None:
 	"""Detach an element from its parent if it has one."""
 	parent = element.getparent()
 	if parent is not None:
@@ -339,7 +339,7 @@ def remove_node(element) -> None:
 
 
 #============================================
-def remove_statement_noise(element) -> None:
+def remove_statement_noise(element: object) -> None:
 	"""Remove non-statement scaffolding from a deep-copied question body.
 
 	Strips script/style/input/h5 nodes (Blackboard scaffolding that never
@@ -357,7 +357,7 @@ def remove_statement_noise(element) -> None:
 
 
 #============================================
-def remove_choice_blocks(element) -> None:
+def remove_choice_blocks(element: object) -> None:
 	"""Remove only the leaf choice nodes from a deep-copied question body.
 
 	Leaf-only by design: a wrapper <div> may contain BOTH statement text
@@ -372,7 +372,7 @@ def remove_choice_blocks(element) -> None:
 
 
 #============================================
-def remove_matching_blocks(element) -> None:
+def remove_matching_blocks(element: object) -> None:
 	"""Remove direct-child matching blocks from a deep-copied body.
 
 	Matching blocks contribute prompts_list/choices_list separately and
@@ -385,7 +385,7 @@ def remove_matching_blocks(element) -> None:
 
 #============================================
 def parse_question(
-	html_path: str, question_div, rdkit_out_dir: str | None = None
+	html_path: str, question_div: object, rdkit_out_dir: str | None = None
 ) -> dict:
 	"""Parse one cleaned Blackboard question div into YAML data.
 

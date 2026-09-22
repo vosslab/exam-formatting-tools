@@ -11,7 +11,7 @@ import ef_tools.style_loader
 
 
 #============================================
-def _make_styled_doc():
+def _make_styled_doc() -> object:
 	"""Create a docx Document with the exam styles pre-loaded."""
 	styles = ef_tools.style_loader.load_styles()
 	doc = docx.Document()
@@ -26,7 +26,7 @@ _PNG_BYTES = base64.b64decode(
 
 
 #============================================
-def _write_pngs(tmp_path, count):
+def _write_pngs(tmp_path: object, count: object) -> object:
 	"""Write count tiny PNG files into tmp_path and return their paths."""
 	paths = []
 	for index in range(count):
@@ -37,7 +37,7 @@ def _write_pngs(tmp_path, count):
 
 
 #============================================
-def test_add_image_choices_tabbed_emits_no_tables(tmp_path):
+def test_add_image_choices_tabbed_emits_no_tables(tmp_path: object) -> None:
 	"""The function must not create any docx tables."""
 	image_paths = _write_pngs(tmp_path, 4)
 	choices = [{"text": "curve", "image": path} for path in image_paths]
@@ -49,7 +49,7 @@ def test_add_image_choices_tabbed_emits_no_tables(tmp_path):
 
 
 #============================================
-def test_add_image_choices_tabbed_uses_choices_n_style(tmp_path):
+def test_add_image_choices_tabbed_uses_choices_n_style(tmp_path: object) -> None:
 	"""Image-choice paragraphs must use a Choices N style; that style's tab
 	stops drive column alignment. Adding paragraph-level tab stops on top
 	of style-level stops causes Word to see two close-but-not-equal stops
@@ -74,7 +74,7 @@ def test_add_image_choices_tabbed_uses_choices_n_style(tmp_path):
 
 
 #============================================
-def test_add_image_choices_tabbed_inlines_one_image_per_choice(tmp_path):
+def test_add_image_choices_tabbed_inlines_one_image_per_choice(tmp_path: object) -> None:
 	"""Each choice with an image must produce one inline image in the doc."""
 	image_paths = _write_pngs(tmp_path, 3)
 	choices = [{"text": "", "image": path} for path in image_paths]
@@ -86,7 +86,7 @@ def test_add_image_choices_tabbed_inlines_one_image_per_choice(tmp_path):
 
 
 #============================================
-def test_add_image_choices_tabbed_renders_letter_prefixes(tmp_path):
+def test_add_image_choices_tabbed_renders_letter_prefixes(tmp_path: object) -> None:
 	"""The paragraph must contain bold (A) (B) (C) prefix runs in order."""
 	image_paths = _write_pngs(tmp_path, 3)
 	choices = [{"text": "", "image": path} for path in image_paths]
@@ -110,7 +110,7 @@ def test_add_image_choices_tabbed_renders_letter_prefixes(tmp_path):
 
 
 #============================================
-def test_add_image_choices_tabbed_mixed_text_and_images(tmp_path):
+def test_add_image_choices_tabbed_mixed_text_and_images(tmp_path: object) -> None:
 	"""Choices with no image must not produce an inline shape but still hold a column."""
 	image_paths = _write_pngs(tmp_path, 2)
 	choices = [
@@ -139,7 +139,7 @@ def test_add_image_choices_tabbed_mixed_text_and_images(tmp_path):
 
 
 #============================================
-def test_image_choice_max_width_per_cols_clamps_5col(tmp_path):
+def test_image_choice_max_width_per_cols_clamps_5col(tmp_path: object) -> None:
 	"""5-col rows must be clamped to IMAGE_CHOICE_MAX_WIDTH_BY_COLS[5]
 	even when the caller passes a much larger image_width. Without this
 	cap, image E in a 5-col row pushes the cursor past its tab stop and
@@ -159,14 +159,14 @@ def test_image_choice_max_width_per_cols_clamps_5col(tmp_path):
 
 
 #============================================
-def test_image_choice_max_width_per_cols_4col_differs_from_5col():
+def test_image_choice_max_width_per_cols_4col_differs_from_5col() -> None:
 	"""The dict must give 4-col rows more horizontal budget than 5-col."""
 	caps = ef_tools.docx_builder.IMAGE_CHOICE_MAX_WIDTH_BY_COLS
 	assert caps[2] > caps[3] > caps[4] > caps[5]
 
 
 #============================================
-def test_zero_inline_image_margins_sets_dist_attrs_to_zero(tmp_path):
+def test_zero_inline_image_margins_sets_dist_attrs_to_zero(tmp_path: object) -> None:
 	"""Every inline image emitted by add_image_choices_tabbed must have
 	distT/distB/distL/distR set to '0' on its <wp:inline> element. The
 	default ~0.125" padding around each image steals visible width and
@@ -188,7 +188,7 @@ def test_zero_inline_image_margins_sets_dist_attrs_to_zero(tmp_path):
 
 
 #============================================
-def test_alt_text_paragraph_skipped_for_placeholder_image_text(tmp_path):
+def test_alt_text_paragraph_skipped_for_placeholder_image_text(tmp_path: object) -> None:
 	"""When every choice carries the literal placeholder text 'image',
 	the alt-text paragraph must be suppressed -- otherwise the row
 	below the images becomes 'image image image image image' which is
@@ -205,7 +205,7 @@ def test_alt_text_paragraph_skipped_for_placeholder_image_text(tmp_path):
 
 
 #============================================
-def test_alt_text_paragraph_emitted_for_meaningful_alt_text(tmp_path):
+def test_alt_text_paragraph_emitted_for_meaningful_alt_text(tmp_path: object) -> None:
 	"""When choices carry real captions ('right peak', 'down to up plot',
 	etc.), the alt-text paragraph must be emitted below the image row.
 	This is the Q80 (enzyme curves) shape in the real exam."""
@@ -230,7 +230,7 @@ def test_alt_text_paragraph_emitted_for_meaningful_alt_text(tmp_path):
 
 
 #============================================
-def test_fit_picture_kwargs_picks_height_when_height_binds(tmp_path):
+def test_fit_picture_kwargs_picks_height_when_height_binds(tmp_path: object) -> None:
 	"""When the source image is taller than wide and max_height is the
 	tighter bound, fit_picture_kwargs must return height= (not width=)
 	so aspect ratio is preserved without overflowing the height box."""
@@ -245,7 +245,7 @@ def test_fit_picture_kwargs_picks_height_when_height_binds(tmp_path):
 
 
 #============================================
-def test_fit_picture_kwargs_picks_width_when_width_binds(tmp_path):
+def test_fit_picture_kwargs_picks_width_when_width_binds(tmp_path: object) -> None:
 	"""Wide source image with width as the tighter bound: width= wins."""
 	import PIL.Image
 	wide_png = tmp_path / "wide.png"
@@ -257,7 +257,7 @@ def test_fit_picture_kwargs_picks_width_when_width_binds(tmp_path):
 
 
 #============================================
-def test_row_image_height_picks_smallest_binding_height(tmp_path):
+def test_row_image_height_picks_smallest_binding_height(tmp_path: object) -> None:
 	"""_row_image_height must return the minimum rendered height across
 	all images so the row stays uniform when source aspect ratios differ.
 	Construct two images whose rendered heights DIFFER so a buggy max()

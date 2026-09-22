@@ -9,7 +9,7 @@ import yaml
 import okla_to_exam_yaml
 
 
-def test_strip_question_number():
+def test_strip_question_number() -> None:
 	"""Test removal of question number prefix."""
 	assert okla_to_exam_yaml.strip_question_number('1. Question text?') == 'Question text?'
 	assert okla_to_exam_yaml.strip_question_number('12. What is this?') == 'What is this?'
@@ -17,7 +17,7 @@ def test_strip_question_number():
 	assert okla_to_exam_yaml.strip_question_number('Question with no number') == 'Question with no number'
 
 
-def test_strip_choice_prefix_simple():
+def test_strip_choice_prefix_simple() -> None:
 	"""Test removing choice letter prefix without asterisk."""
 	text, is_correct = okla_to_exam_yaml.strip_choice_prefix('a) First choice')
 	assert text == 'First choice'
@@ -28,7 +28,7 @@ def test_strip_choice_prefix_simple():
 	assert is_correct == False
 
 
-def test_strip_choice_prefix_with_asterisk():
+def test_strip_choice_prefix_with_asterisk() -> None:
 	"""Test removing choice prefix with asterisk (correct answer)."""
 	text, is_correct = okla_to_exam_yaml.strip_choice_prefix('*a) Correct choice')
 	assert text == 'Correct choice'
@@ -39,7 +39,7 @@ def test_strip_choice_prefix_with_asterisk():
 	assert is_correct == True
 
 
-def test_strip_choice_prefix_with_dot():
+def test_strip_choice_prefix_with_dot() -> None:
 	"""Test choice prefix with dot instead of parenthesis."""
 	text, is_correct = okla_to_exam_yaml.strip_choice_prefix('a. Choice text')
 	assert text == 'Choice text'
@@ -50,14 +50,14 @@ def test_strip_choice_prefix_with_dot():
 	assert is_correct == True
 
 
-def test_strip_choice_prefix_whitespace():
+def test_strip_choice_prefix_whitespace() -> None:
 	"""Test handling extra whitespace."""
 	text, is_correct = okla_to_exam_yaml.strip_choice_prefix('  a)   Choice with spaces  ')
 	assert text == 'Choice with spaces'
 	assert is_correct == False
 
 
-def test_parse_block_mc_question():
+def test_parse_block_mc_question() -> None:
 	"""Test parsing a multiple choice question."""
 	lines = [
 		'1. What is the answer?',
@@ -71,7 +71,7 @@ def test_parse_block_mc_question():
 	assert result['choices'] == ['Wrong', 'Correct', 'Wrong']
 
 
-def test_parse_block_ma_question():
+def test_parse_block_ma_question() -> None:
 	"""Test parsing a multiple answer question."""
 	lines = [
 		'2. Select all that apply:',
@@ -85,7 +85,7 @@ def test_parse_block_ma_question():
 	assert result['choices'] == ['First correct', 'Second correct', 'Wrong']
 
 
-def test_parse_block_skips_fib():
+def test_parse_block_skips_fib() -> None:
 	"""Test that FIB questions are skipped."""
 	lines = [
 		'BLANK 1. What is blank?',
@@ -96,7 +96,7 @@ def test_parse_block_skips_fib():
 	assert result is None
 
 
-def test_parse_block_skips_match():
+def test_parse_block_skips_match() -> None:
 	"""Test that MATCH questions are skipped."""
 	lines = [
 		'MATCH 1. Match items:',
@@ -107,7 +107,7 @@ def test_parse_block_skips_match():
 	assert result is None
 
 
-def test_parse_block_no_number_prefix():
+def test_parse_block_no_number_prefix() -> None:
 	"""Test that blocks without number prefix are skipped."""
 	lines = [
 		'No number here?',
@@ -118,7 +118,7 @@ def test_parse_block_no_number_prefix():
 	assert result is None
 
 
-def test_parse_block_empty_choices():
+def test_parse_block_empty_choices() -> None:
 	"""Test that block with no valid choices returns None."""
 	lines = [
 		'1. Question?',
@@ -128,7 +128,7 @@ def test_parse_block_empty_choices():
 	assert result is None
 
 
-def test_split_blocks():
+def test_split_blocks() -> None:
 	"""Test splitting content into blocks by blank lines."""
 	content = """1. First question?
 a) Option 1
@@ -148,7 +148,7 @@ b) Option B
 	assert blocks[2].startswith('3. Third question?')
 
 
-def test_split_blocks_leading_trailing_blank():
+def test_split_blocks_leading_trailing_blank() -> None:
 	"""Test that leading/trailing blank lines don't create empty blocks."""
 	content = """
 1. Question?
@@ -159,7 +159,7 @@ def test_split_blocks_leading_trailing_blank():
 	assert len(blocks) == 1
 
 
-def test_convert_okla_to_yaml(tmp_path):
+def test_convert_okla_to_yaml(tmp_path: object) -> None:
 	"""Test full conversion from okla format to YAML."""
 	# Create a test input file
 	input_content = """1. What is 2+2?
@@ -194,7 +194,7 @@ d) Yellow
 	assert q2['choices'] == ['Red', 'Blue', 'Green', 'Yellow']
 
 
-def test_convert_okla_to_yaml_skips_fib_and_match(tmp_path):
+def test_convert_okla_to_yaml_skips_fib_and_match(tmp_path: object) -> None:
 	"""Test that FIB and MATCH questions are skipped during conversion."""
 	input_content = """1. Normal MC question?
 *a) Correct
@@ -225,7 +225,7 @@ b) B / 2
 	assert questions[1]['statement'] == 'Another MC question?'
 
 
-def test_yaml_output_format(tmp_path):
+def test_yaml_output_format(tmp_path: object) -> None:
 	"""Test that output YAML is properly formatted."""
 	input_content = """1. Question 1?
 *a) Answer
@@ -253,7 +253,7 @@ b) Wrong
 	assert loaded['sections'][0]['questions'][0]['statement'] == 'Question 1?'
 
 
-def test_special_characters_in_questions(tmp_path):
+def test_special_characters_in_questions(tmp_path: object) -> None:
 	"""Test handling of special characters in questions and choices."""
 	input_content = "1. What is the formula for H2O?\na) H + O\n*b) H2O molecule\nc) Water molecule\n"
 
@@ -267,7 +267,7 @@ def test_special_characters_in_questions(tmp_path):
 	assert 'H2O molecule' in question['choices']
 
 
-def test_complex_question_text(tmp_path):
+def test_complex_question_text(tmp_path: object) -> None:
 	"""Test questions with complex multi-line text patterns."""
 	input_content = """1. Which statement best describes: (a) the rate of reaction; (b) temperature effects?
 *a) Both increase with catalyst

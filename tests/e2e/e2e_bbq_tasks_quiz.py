@@ -82,9 +82,9 @@ def build(stem: str, mode_flag: str) -> dict:
 	remove_outputs(stem)
 	csv_path = os.path.join(OUT_DIR, 'tasks.csv')
 	yaml_path = os.path.join(OUT_DIR, stem + '.yml')
-	run([sys.executable, 'bbq_tasks_to_exam_yaml.py', mode_flag,
+	run([sys.executable, 'launchers/bbq_tasks_to_exam_yaml.py', mode_flag,
 		'-i', csv_path, '-s', SETTINGS, '-o', yaml_path])
-	run([sys.executable, 'yaml_to_exam_docx.py', '-i', yaml_path,
+	run([sys.executable, 'launchers/yaml_to_exam_docx.py', '-i', yaml_path,
 		'-o', os.path.join(OUT_DIR, stem + '.docx')])
 	with open(yaml_path) as handle:
 		exam = yaml.safe_load(handle)
@@ -121,7 +121,7 @@ def check_quiz(exam: dict) -> None:
 def check_exam(exam: dict) -> None:
 	"""Exam-mode check: the ZipGrade validator reports no issues."""
 	completed = subprocess.run(
-		[sys.executable, 'validate_zip_grade_yaml.py', '-i', os.path.join(OUT_DIR, 'exam.yml')],
+		[sys.executable, 'launchers/validate_zip_grade_yaml.py', '-i', os.path.join(OUT_DIR, 'exam.yml')],
 		cwd=REPO_ROOT, text=True, capture_output=True)
 	print(completed.stdout.strip().split('\n')[-1])
 	check(completed.returncode == 0, "exam YAML passes the ZipGrade validator")

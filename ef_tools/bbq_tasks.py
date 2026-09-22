@@ -85,7 +85,7 @@ def resolve_alias_map(paths: dict) -> dict:
 
 
 #============================================
-def resolve_script_alias(value: str, script_aliases: dict):
+def resolve_script_alias(value: str, script_aliases: dict) -> str | list:
 	"""Map `NAME` or `@NAME` to its alias (str or list); pass paths through."""
 	key = value[1:] if value.startswith('@') else value
 	if key in script_aliases:
@@ -227,7 +227,8 @@ def generate_candidate(task: dict, pythonpath: str) -> str:
 
 
 #============================================
-def generate_question(task: dict, pythonpath: str, reject_fn, candidate_fn=generate_candidate) -> tuple:
+def generate_question(task: dict, pythonpath: str, reject_fn: object,
+		candidate_fn: object = generate_candidate) -> tuple:
 	"""Generate candidates until one parses and passes the mode rule.
 
 	Args:

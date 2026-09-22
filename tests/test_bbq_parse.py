@@ -16,7 +16,7 @@ GEL_TABLE = "<table><tr><td bgcolor='#E0E0E0' style='border: 1px solid gray;'>ge
 
 
 #============================================
-def test_mc_letter_points_at_correct_choice():
+def test_mc_letter_points_at_correct_choice() -> None:
 	record = ef_tools.bbq_parse.parse_bbq_line(MC_LINE)
 	question = record['question']
 	assert question['statement'] == 'What is 2+2?'
@@ -26,14 +26,14 @@ def test_mc_letter_points_at_correct_choice():
 
 
 #============================================
-def test_ma_letters_point_at_every_correct_choice():
+def test_ma_letters_point_at_every_correct_choice() -> None:
 	record = ef_tools.bbq_parse.parse_bbq_line(MA_LINE)
 	chosen = [record['question']['choices'][LETTERS.index(x)] for x in record['answer']['letters']]
 	assert chosen == ['2', '3']
 
 
 #============================================
-def test_mat_letters_map_prompts_back_to_original_matches():
+def test_mat_letters_map_prompts_back_to_original_matches() -> None:
 	record = ef_tools.bbq_parse.parse_bbq_line(MAT_LINE)
 	question = record['question']
 	assert question['prompts_list'] == ['USA', 'France', 'Japan', 'Peru']
@@ -44,7 +44,7 @@ def test_mat_letters_map_prompts_back_to_original_matches():
 
 
 #============================================
-def test_ord_becomes_position_blanks_with_letters_in_correct_order():
+def test_ord_becomes_position_blanks_with_letters_in_correct_order() -> None:
 	record = ef_tools.bbq_parse.parse_bbq_line(ORD_LINE)
 	question = record['question']
 	assert question['prompts_list'] == ['Position 1', 'Position 2', 'Position 3']
@@ -53,20 +53,20 @@ def test_ord_becomes_position_blanks_with_letters_in_correct_order():
 
 
 #============================================
-def test_skipped_and_blank_lines_return_none():
+def test_skipped_and_blank_lines_return_none() -> None:
 	assert ef_tools.bbq_parse.parse_bbq_line("NUM\t<p>How many?</p>\t4\t0.1") is None
 	assert ef_tools.bbq_parse.parse_bbq_line("FIB\t<p>Fill</p>\tword") is None
 	assert ef_tools.bbq_parse.parse_bbq_line("   \t  ") is None
 
 
 #============================================
-def test_unknown_type_raises():
+def test_unknown_type_raises() -> None:
 	with pytest.raises(ValueError, match='INVALID'):
 		ef_tools.bbq_parse.parse_bbq_line("INVALID\tSome question")
 
 
 #============================================
-def test_statement_tables_are_pulled_and_attached_as_images():
+def test_statement_tables_are_pulled_and_attached_as_images() -> None:
 	line = f"MC\t<p>ab12_cd34</p><p>Who?</p>{GEL_TABLE}\tMale 1\tCorrect\tMale 2\tIncorrect"
 	record = ef_tools.bbq_parse.parse_bbq_line(line)
 	assert len(record['statement_tables']) == 1
@@ -76,7 +76,7 @@ def test_statement_tables_are_pulled_and_attached_as_images():
 
 
 #============================================
-def test_choice_table_becomes_choice_image_after_shuffle():
+def test_choice_table_becomes_choice_image_after_shuffle() -> None:
 	line = f"MAT\t<p>Match gels</p>\tA\t{GEL_TABLE}\tB\tplain text"
 	record = ef_tools.bbq_parse.parse_bbq_line(line)
 	assert list(record['choice_tables']) == [0]
@@ -87,7 +87,7 @@ def test_choice_table_becomes_choice_image_after_shuffle():
 
 
 #============================================
-def test_answer_key_numbering_advances_by_span():
+def test_answer_key_numbering_advances_by_span() -> None:
 	mc = ef_tools.bbq_parse.parse_bbq_line(MC_LINE)
 	mat = ef_tools.bbq_parse.parse_bbq_line(MAT_LINE)
 	key = ef_tools.bbq_parse.format_answer_key(
