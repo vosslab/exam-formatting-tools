@@ -34,7 +34,8 @@ playwright install chromium
 sibling checkout and run generator scripts from `biology-problems`:
 
 - `~/nsh/PROBLEMS/qti-package-maker` (added to `PYTHONPATH` by `source_me.sh` when present)
-- `~/nsh/PROBLEMS/biology-problems` (path comes from the website `bbq_settings.yml`)
+- `~/nsh/PROBLEMS/biology-problems` (path set as `bp_root` in the repo's
+  [bbq_settings.yml](../bbq_settings.yml))
 
 For development (running the test suite, linters), also install:
 

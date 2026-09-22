@@ -19,7 +19,6 @@ Build a quiz with one question per bptools generator from a website task CSV
 ```bash
 source source_me.sh && python3 launchers/bbq_tasks_to_exam_yaml.py -q -t "Genetics Quiz 1" \
     -i ~/nsh/PROBLEMS/biology-problems-website/bbq_control/task_files/genetics_tasks1.csv \
-    -s ~/nsh/PROBLEMS/biology-problems-website/bbq_control/bbq_settings.yml \
     -o output_quiz/genetics_quiz1.yml
 source source_me.sh && python3 launchers/yaml_to_exam_docx.py -i output_quiz/genetics_quiz1.yml
 ```

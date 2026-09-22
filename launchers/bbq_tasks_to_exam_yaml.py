@@ -28,6 +28,10 @@ import ef_tools.question_utils
 import ef_tools.exam_yaml_writer
 import qti_package_maker.html_to_image.render_table
 
+# repo-root bbq_settings.yml mirrors the website's aliases
+DEFAULT_SETTINGS_FILE = os.path.join(
+	os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'bbq_settings.yml')
+
 
 #============================================
 def parse_args() -> argparse.Namespace:
@@ -40,8 +44,9 @@ def parse_args() -> argparse.Namespace:
 		help="Task CSV (subject,topic,script,flags,input,notes)"
 	)
 	parser.add_argument(
-		'-s', '--settings', dest='settings_file', required=True,
-		help="Website bbq_settings.yml with paths and script_aliases"
+		'-s', '--settings', dest='settings_file', default=DEFAULT_SETTINGS_FILE,
+		help="bbq_settings.yml with paths and script_aliases "
+			"(default: the repo's bbq_settings.yml; the website copy also works)"
 	)
 	parser.add_argument(
 		'-o', '--output', dest='output_file', default=None,
@@ -87,17 +92,6 @@ def chapter_label(topic: str) -> str:
 	return label
 
 
-#============================================
-def render_tables(record: dict, renderer: object, media_dir: str) -> None:
-	"""Rasterize a record's drawing tables and attach the PNG paths."""
-	code = record['answer']['code']
-	statement_paths = ef_tools.bbq_html.write_table_pngs(
-		record['statement_tables'], renderer, media_dir, code)
-	choice_paths = {}
-	for index, tables in record['choice_tables'].items():
-		choice_paths[index] = ef_tools.bbq_html.write_table_pngs(
-			tables, renderer, media_dir, f"{code}_choice{index}")
-	ef_tools.bbq_parse.attach_table_images(record, statement_paths, choice_paths)
 
 
 #============================================
@@ -120,7 +114,8 @@ def collect_questions(tasks: list, pythonpath: str, reject_fn: object, media_dir
 			if record is None:
 				skipped.append(reason)
 				continue
-			render_tables(record, renderer, media_dir)
+			ef_tools.bbq_parse.render_record_tables(
+				record, renderer, media_dir, record['answer']['code'])
 			# a new chapter section starts whenever the topic changes
 			if task['topic'] != current_topic:
 				current_topic = task['topic']

@@ -443,6 +443,34 @@ def add_choice_content(para: object, choice: object, image_width: float = None,
 
 
 #============================================
+def add_matching_prompt(doc: object, prompt: object, prefix: str,
+	image_width: float = None, image_height: float = None,
+	strip_height: float = None, strip_min_aspect: float = None) -> None:
+	"""Add one `___ N.` matching prompt row; the prompt may carry an image.
+
+	A plain string prompt renders as text (hard breaks become paragraphs).
+	A dict prompt ({'text', 'image'}) renders its text, then its image
+	inline on the same row so a drawing (DNA strip, pedigree) sits next to
+	the blank. Wide strips (aspect >= strip_min_aspect) use strip_height as
+	their cap so short and long strips print at one cell size.
+	"""
+	if not isinstance(prompt, dict):
+		add_rich_text_paragraphs(doc, 'Matching Prompt', prompt, prefix=prefix)
+		return
+	height = image_height
+	image_path = ef_tools.layout.choice_image(prompt)
+	if image_path and strip_height is not None and strip_min_aspect is not None:
+		with PIL.Image.open(image_path) as img:
+			src_w, src_h = img.size
+		if src_w / src_h >= strip_min_aspect:
+			height = strip_height
+	para = doc.add_paragraph()
+	para.style = doc.styles['Matching Prompt']
+	para.add_run(prefix)
+	add_choice_content(para, prompt, image_width, height)
+
+
+#============================================
 # Maximum image width per column count, in inches. Empirical caps tuned via
 # _render_loop.sh / _measure.py with the Choices N tab stops in
 # styles/exam_styles.yaml. Going past these widths pushes a trailing image's

@@ -70,29 +70,16 @@ def render_record_tables(records: list, output_file: str) -> None:
 
 	Opens one Chromium for the whole run, only when some record has tables.
 	"""
-	needs_render = any(
-		record['statement_tables'] or record['choice_tables'] for record in records
-	)
+	needs_render = any(ef_tools.bbq_parse.has_tables(record) for record in records)
 	if not needs_render:
 		return
 	stem = os.path.splitext(os.path.basename(output_file))[0]
 	media_dir = os.path.join(os.path.dirname(os.path.abspath(output_file)), f"{stem}_files")
 	with qti_package_maker.html_to_image.render_table.TableRenderer() as renderer:
 		for index, record in enumerate(records, start=1):
-			attach_rendered_tables(record, renderer, media_dir, index)
-
-
-#============================================
-def attach_rendered_tables(record: dict, renderer: object, media_dir: str, index: int) -> None:
-	"""Render one record's tables and fill its image paths."""
-	code = record['answer']['code'] or f"q{index:03d}"
-	statement_paths = ef_tools.bbq_html.write_table_pngs(
-		record['statement_tables'], renderer, media_dir, code)
-	choice_paths = {}
-	for choice_index, tables in record['choice_tables'].items():
-		choice_paths[choice_index] = ef_tools.bbq_html.write_table_pngs(
-			tables, renderer, media_dir, f"{code}_choice{choice_index}")
-	ef_tools.bbq_parse.attach_table_images(record, statement_paths, choice_paths)
+			# lines without a CRC paragraph fall back to their position
+			code = record['answer']['code'] or f"q{index:03d}"
+			ef_tools.bbq_parse.render_record_tables(record, renderer, media_dir, code)
 
 
 #============================================

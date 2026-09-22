@@ -97,8 +97,10 @@ skipped. Drawing tables (gels, chi-square tables) are rendered to
 ## Build a quiz or exam from a bptools task CSV
 
 `bbq_tasks_to_exam_yaml.py` reads the website task CSV format unchanged
-(`subject,topic,script,flags,input,notes`, aliases from the website
-`bbq_settings.yml`) and contributes **one question per resolved task**. A
+(`subject,topic,script,flags,input,notes`; `{bp_root}`/`YMATCH`-style aliases
+come from the repo's [bbq_settings.yml](../bbq_settings.yml), a copy of the
+website's; pass `-s` to use another) and contributes **one question per
+resolved task**. A
 list alias such as `YMATCH` expands to two scripts and therefore two
 questions. Each generator runs with `-d 1 -x 1`; an unusable candidate
 (skipped bbq type, or exam-mode rejection) triggers a fresh run, up to three
@@ -117,7 +119,6 @@ Quiz (default: any MC/MA/MAT/ORD, any number of choices):
 ```bash
 source source_me.sh && python3 launchers/bbq_tasks_to_exam_yaml.py -q -t "Genetics Quiz 1" \
     -i ~/nsh/PROBLEMS/biology-problems-website/bbq_control/task_files/genetics_tasks1.csv \
-    -s ~/nsh/PROBLEMS/biology-problems-website/bbq_control/bbq_settings.yml \
     -o output_quiz/genetics_quiz1.yml
 source source_me.sh && python3 launchers/yaml_to_exam_docx.py -i output_quiz/genetics_quiz1.yml
 ```

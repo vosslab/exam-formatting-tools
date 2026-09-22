@@ -58,10 +58,10 @@ def _clean_choice_fields(raw_choices: list) -> tuple:
 	choice_tables = {}
 	for index, raw in enumerate(raw_choices):
 		text, tables = _clean_field(raw)
-		# a choice dict holds one image; several sibling tables in one
-		# choice have no exam YAML form
+		# a choice or prompt dict holds one image; several sibling tables in
+		# one field have no exam YAML form
 		if len(tables) > 1:
-			raise UnprintableQuestion(f"choice {index} holds {len(tables)} tables")
+			raise UnprintableQuestion(f"field {index} holds {len(tables)} tables")
 		if tables:
 			items.append({'text': text, 'image': None})
 			choice_tables[index] = tables
@@ -83,7 +83,7 @@ def _parse_mc(parts: list) -> tuple:
 	statuses = parts[3::2]
 	letters = [LETTERS[i] for i, status in enumerate(statuses) if _is_correct(status)]
 	question = {'choices': choices}
-	return question, letters, choice_tables
+	return question, letters, choice_tables, {}
 
 
 #============================================
@@ -104,11 +104,9 @@ def _shuffled_matching(prompts: list, answers: list) -> tuple:
 def _parse_mat(parts: list) -> tuple:
 	"""MAT: prompt/match pairs in answer order."""
 	prompts, prompt_tables = _clean_choice_fields(parts[2::2])
-	if prompt_tables:
-		raise UnprintableQuestion("matching prompt is a table drawing")
 	matches, choice_tables = _clean_choice_fields(parts[3::2])
 	question, letters = _shuffled_matching(prompts, matches)
-	return question, letters, choice_tables
+	return question, letters, choice_tables, prompt_tables
 
 
 #============================================
@@ -117,7 +115,7 @@ def _parse_ord(parts: list) -> tuple:
 	items, choice_tables = _clean_choice_fields(parts[2:])
 	prompts = [f"Position {i + 1}" for i in range(len(items))]
 	question, letters = _shuffled_matching(prompts, items)
-	return question, letters, choice_tables
+	return question, letters, choice_tables, {}
 
 
 #============================================
@@ -145,11 +143,11 @@ def parse_bbq_line(line: str) -> dict | None:
 	if question_type in SKIPPED_TYPES:
 		return None
 	if question_type in ('MC', 'MA'):
-		question, letters, choice_tables = _parse_mc(parts)
+		question, letters, choice_tables, prompt_tables = _parse_mc(parts)
 	elif question_type == 'MAT':
-		question, letters, choice_tables = _parse_mat(parts)
+		question, letters, choice_tables, prompt_tables = _parse_mat(parts)
 	elif question_type == 'ORD':
-		question, letters, choice_tables = _parse_ord(parts)
+		question, letters, choice_tables, prompt_tables = _parse_ord(parts)
 	else:
 		raise ValueError(f"unknown bbq question type: {question_type!r}")
 	# statement: strip the CRC paragraph, pull tables, clean the rest
@@ -161,22 +159,27 @@ def parse_bbq_line(line: str) -> dict | None:
 		'answer': {'code': code, 'type': question_type, 'letters': letters},
 		'statement_tables': statement_tables,
 		'choice_tables': choice_tables,
+		'prompt_tables': prompt_tables,
 	}
 	return record
 
 
 #============================================
-def attach_table_images(record: dict, statement_paths: list, choice_paths: dict) -> None:
+def attach_table_images(record: dict, statement_paths: list, choice_paths: dict,
+		prompt_paths: dict = None) -> None:
 	"""Fill image paths into a parsed record's question, in place.
 
 	Args:
 		record: Output of parse_bbq_line.
 		statement_paths: PNG paths for record['statement_tables'], in order.
 		choice_paths: index -> [PNG path] for record['choice_tables'].
+		prompt_paths: index -> [PNG path] for record['prompt_tables']
+			(matching prompts keep their order, so the index is the
+			printed position).
 
 	Raises:
-		ValueError: a choice carries more than one table; exam YAML choice
-			dicts hold a single image.
+		ValueError: a choice or prompt carries more than one table; exam
+			YAML choice and prompt dicts hold a single image.
 	"""
 	question = record['question']
 	if statement_paths:
@@ -188,6 +191,40 @@ def attach_table_images(record: dict, statement_paths: list, choice_paths: dict)
 			raise ValueError(f"choice {index} has {len(paths)} tables; one image per choice")
 		target = _choice_dict_for_index(record, index)
 		target['image'] = paths[0]
+	for index, paths in (prompt_paths or {}).items():
+		if len(paths) != 1:
+			raise ValueError(f"prompt {index} has {len(paths)} tables; one image per prompt")
+		question['prompts_list'][index]['image'] = paths[0]
+
+
+#============================================
+def has_tables(record: dict) -> bool:
+	"""Return whether a parsed record carries any drawing table."""
+	found = bool(record['statement_tables'] or record['choice_tables'] or record['prompt_tables'])
+	return found
+
+
+#============================================
+def render_record_tables(record: dict, renderer: object, media_dir: str, stem: str) -> None:
+	"""Rasterize every table in a record and attach the PNG paths in place.
+
+	Args:
+		record: Output of parse_bbq_line.
+		renderer: TableRenderer (or a fake with render_table_png).
+		media_dir: `<yaml_dir>/<stem>_files` directory for the PNGs.
+		stem: Filename stem for this question (its CRC code).
+	"""
+	statement_paths = ef_tools.bbq_html.write_table_pngs(
+		record['statement_tables'], renderer, media_dir, stem)
+	choice_paths = {}
+	for index, tables in record['choice_tables'].items():
+		choice_paths[index] = ef_tools.bbq_html.write_table_pngs(
+			tables, renderer, media_dir, f"{stem}_choice{index}")
+	prompt_paths = {}
+	for index, tables in record['prompt_tables'].items():
+		prompt_paths[index] = ef_tools.bbq_html.write_table_pngs(
+			tables, renderer, media_dir, f"{stem}_prompt{index}")
+	attach_table_images(record, statement_paths, choice_paths, prompt_paths)
 
 
 #============================================

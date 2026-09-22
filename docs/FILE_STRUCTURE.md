@@ -15,6 +15,7 @@ exam-formatting-tools/
 +- LICENSE.LGPL_v3
 +- LICENSE.CC_BY_4_0
 +- source_me.sh
++- bbq_settings.yml
 +- pip_requirements.txt
 +- pip_requirements-dev.txt
 +- pip_extras.txt
@@ -38,6 +39,7 @@ exam-formatting-tools/
 | `LICENSE.LGPL_v3` | License for source code |
 | `LICENSE.CC_BY_4_0` | License for non-code material (docs, prose) |
 | [source_me.sh](../source_me.sh) | Bootstrap script; activates the repo Python environment |
+| [bbq_settings.yml](../bbq_settings.yml) | Path and script aliases for `launchers/bbq_tasks_to_exam_yaml.py` (mirrors the website copy) |
 | [pip_requirements.txt](../pip_requirements.txt) | Standard runtime Python dependencies |
 | [pip_requirements-dev.txt](../pip_requirements-dev.txt) | Developer-only dependencies (pytest, pyflakes, etc.) |
 | [pip_extras.txt](../pip_extras.txt) | Optional extras |

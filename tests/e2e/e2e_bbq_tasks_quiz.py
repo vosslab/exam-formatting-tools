@@ -27,8 +27,7 @@ REPO_ROOT = file_utils.get_repo_root()
 sys.path.insert(0, REPO_ROOT)
 import ef_tools.question_utils
 
-WEBSITE = os.path.expanduser('~/nsh/PROBLEMS/biology-problems-website/bbq_control')
-SETTINGS = os.path.join(WEBSITE, 'bbq_settings.yml')
+SETTINGS = os.path.join(REPO_ROOT, 'bbq_settings.yml')
 OUT_DIR = os.path.join(REPO_ROOT, 'output_smoke', 'e2e_bbq_tasks')
 
 CSV_ROWS = (

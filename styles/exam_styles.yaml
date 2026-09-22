@@ -65,6 +65,12 @@ page:
   image_max_width: 5.6
   choice_image_max_width: 3.40
   choice_image_max_height: 2.00
+  # inline drawing beside a "___ N." matching prompt (pedigrees)
+  prompt_image_max_height: 1.40
+  # wide one-row strips (DNA sequences, aspect >= prompt_strip_min_aspect)
+  # get a lower cap so short and long strips share one cell size
+  prompt_strip_max_height: 0.40
+  prompt_strip_min_aspect: 4.0
 
 layout_limits:
   max_chars_5: 17

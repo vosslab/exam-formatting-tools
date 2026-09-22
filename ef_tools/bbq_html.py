@@ -79,6 +79,43 @@ def split_question_code(html: str) -> tuple:
 
 
 #============================================
+def pull_tables(html: str) -> tuple:
+	"""Remove every table from html and return them separately for rendering.
+
+	bptools uses tables as drawings: gels, chi-square critical values,
+	metabolic pathways with arrows, genotype grids, and one-row DNA
+	sequence strips with one boxed cell per base. Most carry bgcolor or
+	border cell styles (qti_package_maker's drawing detector), but pathway
+	and genotype tables style only the table element, so every table is
+	rasterized; the boxes are the point of the drawing, so none is
+	flattened to text.
+
+	Args:
+		html: Statement, prompt, or choice HTML.
+
+	Returns:
+		(html_without_tables, [table_html, ...]) in document order.
+	"""
+	root = _parse(html)
+	tables = []
+	# outermost tables only: a nested table (agglutination wells inside a
+	# tray table) is part of its parent's drawing
+	for table in root.xpath('.//table[not(ancestor::table)]'):
+		tables.append(qti_package_maker.html_to_image.selectors.outer_html(table))
+		# preserve tail text by moving it to the previous sibling or parent
+		parent = table.getparent()
+		previous = table.getprevious()
+		tail = table.tail or ''
+		if previous is not None:
+			previous.tail = (previous.tail or '') + tail
+		else:
+			parent.text = (parent.text or '') + tail
+		parent.remove(table)
+	remaining = _serialize(root)
+	return remaining, tables
+
+
+#============================================
 def _escape_text(text: str) -> str:
 	"""Escape text for the exam YAML inline-HTML vocabulary.
 

@@ -123,7 +123,8 @@ def test_generate_question_retries_past_skipped_type() -> None:
 #============================================
 def test_generate_question_retries_past_unprintable_candidate() -> None:
 	gel = "<table><tr><td bgcolor='#eee'>gel</td></tr><tr><td>lane</td></tr></table>"
-	lines = iter([f"MAT\t<p>Match</p>\t{gel}\tx\t{gel}\ty",
+	# a choice holding two sibling tables has no exam YAML form
+	lines = iter([f"MC\t<p>Pick</p>\t{gel}{gel}\tCorrect\tb\tIncorrect",
 		"MC\t<p>Pick</p>\ta\tCorrect\tb\tIncorrect"])
 
 	def fake_candidate(task: dict, pythonpath: str) -> str:

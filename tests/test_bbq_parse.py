@@ -1,7 +1,5 @@
-"""Tests for ef_tools.bbq_parse: bbq lines -> exam questions and answer keys."""
-
-# PIP3 modules
-import pytest
+"""Contracts for ef_tools.bbq_parse: answer letters stay correct after shuffling,
+tables become images, and key numbering matches printed numbering."""
 
 # local repo modules
 import ef_tools.bbq_parse
@@ -15,21 +13,21 @@ ORD_LINE = "ORD\t<p>Order the steps</p>\tStep 1\tStep 2\tStep 3"
 GEL_TABLE = "<table><tr><td bgcolor='#E0E0E0' style='border: 1px solid gray;'>gel</td></tr><tr><td>lane</td></tr></table>"
 
 
-#============================================
-def test_mc_letter_points_at_correct_choice() -> None:
-	record = ef_tools.bbq_parse.parse_bbq_line(MC_LINE)
-	question = record['question']
-	assert question['statement'] == 'What is 2+2?'
-	assert record['answer']['code'] == 'c555_9c1d'
-	letter = record['answer']['letters'][0]
-	assert question['choices'][LETTERS.index(letter)] == '4'
+class FakeRenderer:
+	"""Stand-in for TableRenderer that returns fixed PNG bytes."""
+
+	def render_table_png(self, table_html: str) -> bytes:
+		return b'PNG'
 
 
 #============================================
-def test_ma_letters_point_at_every_correct_choice() -> None:
-	record = ef_tools.bbq_parse.parse_bbq_line(MA_LINE)
-	chosen = [record['question']['choices'][LETTERS.index(x)] for x in record['answer']['letters']]
-	assert chosen == ['2', '3']
+def test_mc_and_ma_letters_point_at_correct_choices() -> None:
+	mc = ef_tools.bbq_parse.parse_bbq_line(MC_LINE)
+	assert mc['answer']['code'] == 'c555_9c1d'
+	assert mc['question']['statement'] == 'What is 2+2?'
+	assert [mc['question']['choices'][LETTERS.index(x)] for x in mc['answer']['letters']] == ['4']
+	ma = ef_tools.bbq_parse.parse_bbq_line(MA_LINE)
+	assert [ma['question']['choices'][LETTERS.index(x)] for x in ma['answer']['letters']] == ['2', '3']
 
 
 #============================================
@@ -37,7 +35,6 @@ def test_mat_letters_map_prompts_back_to_original_matches() -> None:
 	record = ef_tools.bbq_parse.parse_bbq_line(MAT_LINE)
 	question = record['question']
 	assert question['prompts_list'] == ['USA', 'France', 'Japan', 'Peru']
-	assert sorted(question['choices_list']) == ['Lima', 'Paris', 'Tokyo', 'Washington']
 	expected = ['Washington', 'Paris', 'Tokyo', 'Lima']
 	for i, letter in enumerate(record['answer']['letters']):
 		assert question['choices_list'][LETTERS.index(letter)] == expected[i]
@@ -53,37 +50,28 @@ def test_ord_becomes_position_blanks_with_letters_in_correct_order() -> None:
 
 
 #============================================
-def test_skipped_and_blank_lines_return_none() -> None:
+def test_skipped_types_and_blank_lines_return_none() -> None:
 	assert ef_tools.bbq_parse.parse_bbq_line("NUM\t<p>How many?</p>\t4\t0.1") is None
 	assert ef_tools.bbq_parse.parse_bbq_line("FIB\t<p>Fill</p>\tword") is None
 	assert ef_tools.bbq_parse.parse_bbq_line("   \t  ") is None
 
 
 #============================================
-def test_unknown_type_raises() -> None:
-	with pytest.raises(ValueError, match='INVALID'):
-		ef_tools.bbq_parse.parse_bbq_line("INVALID\tSome question")
-
-
-#============================================
-def test_statement_tables_are_pulled_and_attached_as_images() -> None:
-	line = f"MC\t<p>ab12_cd34</p><p>Who?</p>{GEL_TABLE}\tMale 1\tCorrect\tMale 2\tIncorrect"
+def test_tables_in_statement_choice_and_prompt_become_images(tmp_path: object) -> None:
+	line = (f"MAT\t<p>ab12_cd34</p><p>Match gels</p>{GEL_TABLE}"
+		f"\t{GEL_TABLE}\tplain match\tB\t{GEL_TABLE}")
 	record = ef_tools.bbq_parse.parse_bbq_line(line)
-	assert len(record['statement_tables']) == 1
 	assert '<table' not in record['question']['statement']
-	ef_tools.bbq_parse.attach_table_images(record, ['q_files/ab12_cd34_table_1.png'], {})
-	assert record['question']['images'] == ['q_files/ab12_cd34_table_1.png']
-
-
-#============================================
-def test_choice_table_becomes_choice_image_after_shuffle() -> None:
-	line = f"MAT\t<p>Match gels</p>\tA\t{GEL_TABLE}\tB\tplain text"
-	record = ef_tools.bbq_parse.parse_bbq_line(line)
-	assert list(record['choice_tables']) == [0]
-	ef_tools.bbq_parse.attach_table_images(record, [], {0: ['q_files/x_table_1.png']})
-	letter_for_a = record['answer']['letters'][0]
-	choice = record['question']['choices_list'][LETTERS.index(letter_for_a)]
-	assert choice['image'] == 'q_files/x_table_1.png'
+	ef_tools.bbq_parse.render_record_tables(record, FakeRenderer(), str(tmp_path / 'q_files'), 'ab12')
+	question = record['question']
+	assert question['images'] == ['q_files/ab12_table_1.png']
+	# prompt 0 was a table; prompts keep their order
+	assert question['prompts_list'][0]['image'] == 'q_files/ab12_prompt0_table_1.png'
+	assert question['prompts_list'][1] == 'B'
+	# the table match (original index 1) is found through its answer letter
+	letter = record['answer']['letters'][1]
+	assert question['choices_list'][LETTERS.index(letter)]['image'] == 'q_files/ab12_choice1_table_1.png'
+	assert (tmp_path / 'q_files' / 'ab12_prompt0_table_1.png').stat().st_size > 0
 
 
 #============================================

@@ -126,6 +126,13 @@ def resolve_media_path(path: str, base_dir: str) -> str:
 
 
 #============================================
+def has_image_choice(choices: list) -> bool:
+	"""Return whether any choice is a dict carrying an image path."""
+	found = any(isinstance(choice, dict) and choice.get('image', None) for choice in choices)
+	return found
+
+
+#============================================
 def resolve_choice_images(choices: list, base_dir: str) -> list:
 	"""Return a copy of choices with dict `image` paths resolved to base_dir."""
 	resolved = []
@@ -289,7 +296,14 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.') -> in
 			# lettered (A)/(B)/... choices come FIRST as the answer key,
 			# then numbered blanks the student fills in.
 			choices_list = resolve_choice_images(question.get('choices_list', []), base_dir)
-			if choices_list:
+			if choices_list and has_image_choice(choices_list):
+				ef_tools.docx_builder.add_image_choices_tabbed(
+					doc, choices_list,
+					image_width=styles['page']['choice_image_max_width'],
+					image_height=styles['page']['choice_image_max_height'],
+				)
+				prev_element = 'choices'
+			elif choices_list:
 				tab_style, items_per_row = resolve_choice_layout(
 					question, choices_list, layout_limits)
 				ef_tools.docx_builder.add_choices_paragraph(
@@ -298,10 +312,14 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.') -> in
 					image_height=styles['page']['choice_image_max_height'])
 				prev_element = 'choices'
 			if prompts_list:
-				for index, prompt in enumerate(prompts_list):
+				for index, prompt in enumerate(resolve_choice_images(prompts_list, base_dir)):
 					prompt_prefix = f"___ {question_number + index}. "
-					ef_tools.docx_builder.add_rich_text_paragraphs(
-						doc, 'Matching Prompt', prompt, prefix=prompt_prefix)
+					ef_tools.docx_builder.add_matching_prompt(
+						doc, prompt, prompt_prefix,
+						image_width=styles['page']['image_max_width'],
+						image_height=styles['page']['prompt_image_max_height'],
+						strip_height=styles['page']['prompt_strip_max_height'],
+						strip_min_aspect=styles['page']['prompt_strip_min_aspect'])
 				prev_element = 'choices'
 			# images (before choices, after question text)
 			image_paths = []
@@ -331,7 +349,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.') -> in
 			if choices is not None:
 				choices = resolve_choice_images(choices, base_dir)
 			if choices is not None and len(choices) > 0:
-				if any(isinstance(choice, dict) and choice.get('image', None) for choice in choices):
+				if has_image_choice(choices):
 					ef_tools.docx_builder.add_image_choices_tabbed(
 						doc, choices,
 						image_width=styles['page']['choice_image_max_width'],

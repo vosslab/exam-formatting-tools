@@ -47,8 +47,8 @@ Each question object represents a single exam item.
 | `statement` | string | yes | -- | Question stem/body text |
 | `number` | integer | no | auto | Numeric override; does not change the "##." format |
 | `choices` | list of strings or choice objects | no | -- | Answer choices (plain text, no letter prefixes), optionally with image paths |
-| `prompts_list` | list of strings | no | -- | Numbered matching prompts; each consumes one question number and renders as `___ N.` |
-| `choices_list` | list of strings | no | -- | Lettered matching choices rendered as `(A) (B) (C) ...` below the prompts |
+| `prompts_list` | list of strings or choice objects | no | -- | Numbered matching prompts; each consumes one question number and renders as `___ N.`; a `{text, image}` object puts a drawing (DNA strip, pedigree) beside the blank |
+| `choices_list` | list of strings or choice objects | no | -- | Lettered matching choices rendered as `(A) (B) (C) ...` below the prompts; image objects use the tabbed image-choice layout |
 | `layout` | integer | no | auto | Choices column layout: 3, 4, or 5 |
 | `image` | string | no | -- | Relative path to an image file |
 | `images` | list of strings | no | -- | Additional relative image paths for questions with multiple figures |
@@ -164,6 +164,12 @@ answer key first, matching the reference exam style in `ARTIFACTS/`.
 
 Do not embed `A. ... B. ...` enumerations inside `statement` -- put the
 options in `choices_list` so the builder formats them consistently.
+
+Prompt and choice entries may be `{text, image}` objects. A prompt image
+renders inline after `___ N.`; its height is capped by
+`prompt_image_max_height` in `styles/exam_styles.yaml`, and wide one-row
+strips (aspect at least `prompt_strip_min_aspect`) by `prompt_strip_max_height`
+so short and long DNA strips share one cell size.
 
 Ordering questions (bbq `ORD`) use the same block: `prompts_list` holds
 `Position 1`, `Position 2`, ... and `choices_list` holds the shuffled items,
