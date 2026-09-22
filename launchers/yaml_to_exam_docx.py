@@ -25,6 +25,7 @@ import ef_tools.cli_checks
 import ef_tools.style_loader
 import ef_tools.exam_defaults
 import ef_tools.question_utils
+import ef_tools.docx_images
 import ef_tools.docx_builder
 import ef_tools.docx_table_builder
 
@@ -138,6 +139,22 @@ def has_image_choice(choices: list) -> bool:
 
 
 #============================================
+def pick_sizer(items: list, drawing_sizer: object, fit_sizer: object) -> object:
+	"""Choose the sizing model these items need.
+
+	A `html_table` key marks an image the table renderer produced, whose
+	printed size must come from its own pixels at the shared scale. Anything
+	else is an ordinary picture that gets fitted into its slot.
+	"""
+	is_drawing = any(
+		isinstance(item, dict) and item.get('html_table')
+		for item in items)
+	if is_drawing:
+		return drawing_sizer
+	return fit_sizer
+
+
+#============================================
 def try_add_native_table_choices(doc: object, choices: list,
 		native_tables: bool) -> bool:
 	"""Render supported table choices and report whether the path succeeded."""
@@ -210,43 +227,38 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 	ef_tools.docx_builder.setup_header(doc, section, date_str, styles)
 
 	# --- first page boilerplate ---
-	boilerplate_tab = styles['page']['boilerplate_tab']
-
-	# exam title (use add_paragraph with Heading 1 style, not add_heading,
-	# so our custom font overrides Word's built-in theme font)
 	title = exam_data.get('title', 'Exam')
-	title_para = doc.add_paragraph()
-	title_para.style = doc.styles['Heading 1']
-	ef_tools.docx_builder.add_rich_text_runs(title_para, title)
-
-	# name line shifted right with tab
 	name_line = exam_data.get('student_line', ef_tools.exam_defaults.DEFAULT_NAME_LINE)
-	name_para = doc.add_paragraph()
-	name_para.add_run("\t" + name_line)
-	name_para.paragraph_format.tab_stops.add_tab_stop(
-		docx.shared.Inches(boilerplate_tab), docx.enum.text.WD_TAB_ALIGNMENT.LEFT
-	)
-
-	# score line shifted right with tab
 	sections = exam_data.get('sections', [])
 	total_points = exam_data.get('total_points', None)
 	if total_points is None:
 		total_points = ef_tools.question_utils.count_total_questions(sections)
 	num_sections = exam_data.get('scoring_sections', ef_tools.exam_defaults.DEFAULT_SCORING_SECTIONS)
 	score_line = ef_tools.exam_defaults.format_score_line(total_points, num_sections)
-	score_para = doc.add_paragraph()
-	score_para.add_run("\t" + score_line)
-	score_para.paragraph_format.tab_stops.add_tab_stop(
-		docx.shared.Inches(boilerplate_tab), docx.enum.text.WD_TAB_ALIGNMENT.LEFT
-	)
+	ef_tools.docx_builder.add_first_page_heading(
+		doc, title, name_line, score_line, styles)
 
-	# load image max width from styles
-	image_max_width = styles['page']['image_max_width']
-	table_image_source_dpi = styles['page'].get('table_image_source_dpi', None)
-	choice_strip_max_width = styles['page'].get(
-		'choice_strip_max_width', image_max_width)
-	choice_strip_min_aspect = styles['page'].get(
-		'choice_strip_min_aspect', None)
+	# One sizer for every renderer-produced drawing in the document. Sharing a
+	# single scale is what guarantees two drawings of equal HTML size print at
+	# equal DOCX size; each drawing's resolution comes from its own PNG.
+	drawing_sizer = ef_tools.docx_images.DrawingSizer(
+		styles['page']['table_image_scale'])
+	# Bounding boxes for ordinary images, which have no meaningful intrinsic
+	# size and are scaled to fill their slot.
+	statement_fit = ef_tools.docx_images.FitSizer(
+		styles['page']['image_max_width'])
+	choice_fit = ef_tools.docx_images.FitSizer(
+		styles['page']['choice_image_max_width'],
+		styles['page']['choice_image_max_height'])
+	prompt_fit = ef_tools.docx_images.FitSizer(
+		styles['page']['image_max_width'],
+		styles['page']['prompt_image_max_height'],
+		strip_height=styles['page']['prompt_strip_max_height'],
+		strip_min_aspect=styles['page']['prompt_strip_min_aspect'])
+	choice_strip_fit = ef_tools.docx_images.FitSizer(
+		styles['page']['choice_strip_max_width'],
+		styles['page']['choice_image_max_height'])
+	choice_strip_min_aspect = styles['page']['choice_strip_min_aspect']
 	# load layout limits for choice auto-sizing
 	layout_limits = styles.get('layout_limits', None)
 	# load style flags for table header alignment
@@ -324,21 +336,15 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 			# lettered (A)/(B)/... choices come FIRST as the answer key,
 			# then numbered blanks the student fills in.
 			choices_list = resolve_choice_images(question.get('choices_list', []), base_dir)
-			choice_source_dpi = (
-				table_image_source_dpi
-				if any(isinstance(choice, dict) and choice.get('html_table')
-						for choice in choices_list)
-				else None)
+			choice_sizer = pick_sizer(choices_list, drawing_sizer, choice_fit)
 			if try_add_native_table_choices(doc, choices_list, native_tables):
 				prev_element = 'choices'
 			elif choices_list and has_image_choice(choices_list):
 				ef_tools.docx_builder.add_image_choices_tabbed(
-					doc, choices_list,
-					image_width=styles['page']['choice_image_max_width'],
-					image_height=styles['page']['choice_image_max_height'],
-					wide_image_width=choice_strip_max_width,
+					doc, choices_list, choice_sizer,
+					wide_sizer=pick_sizer(
+						choices_list, drawing_sizer, choice_strip_fit),
 					wide_image_min_aspect=choice_strip_min_aspect,
-					source_dpi=choice_source_dpi,
 				)
 				prev_element = 'choices'
 			elif choices_list:
@@ -346,26 +352,14 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 					question, choices_list, layout_limits)
 				ef_tools.docx_builder.add_choices_paragraph(
 					doc, choices_list, tab_style, items_per_row,
-					image_width=styles['page']['choice_image_max_width'],
-					image_height=styles['page']['choice_image_max_height'],
-					source_dpi=choice_source_dpi)
+					sizer=choice_sizer)
 				prev_element = 'choices'
 			if prompts_list:
 				resolved_prompts = resolve_choice_images(prompts_list, base_dir)
-				prompt_source_dpi = (
-					table_image_source_dpi
-					if any(isinstance(prompt, dict) and prompt.get('html_table')
-							for prompt in resolved_prompts)
-					else None)
 				ef_tools.docx_builder.add_matching_prompts(
-					doc, resolved_prompts,
-					question_number,
-					image_width=styles['page']['image_max_width'],
-					image_height=styles['page']['prompt_image_max_height'],
-					strip_height=styles['page']['prompt_strip_max_height'],
-					strip_min_aspect=styles['page']['prompt_strip_min_aspect'],
-					native_tables=native_tables,
-					source_dpi=prompt_source_dpi)
+					doc, resolved_prompts, question_number,
+					sizer=pick_sizer(resolved_prompts, drawing_sizer, prompt_fit),
+					native_tables=native_tables)
 				prev_element = 'choices'
 			# Preserved statement tables are the native-table counterpart to the
 			# rasterized images attached by the BBQ parser.
@@ -388,14 +382,12 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 			for current_image_path in image_paths:
 				resolved_image_path = resolve_media_path(current_image_path, base_dir)
 				if os.path.isfile(resolved_image_path):
-					# Table PNGs use the renderer's 96 CSS-pixel-per-inch
-					# baseline; ordinary external images keep the legacy cap.
-					statement_source_dpi = (
-						table_image_source_dpi if html_tables else None)
-					image_kwargs = ef_tools.docx_builder.fit_picture_kwargs(
-						resolved_image_path, image_max_width,
-						source_dpi=statement_source_dpi)
-					doc.add_picture(resolved_image_path, **image_kwargs)
+					# Rendered drawings print at the shared fixed scale;
+					# ordinary external images fit the page-width box.
+					statement_sizer = drawing_sizer if html_tables else statement_fit
+					doc.add_picture(
+						resolved_image_path,
+						**statement_sizer.kwargs(resolved_image_path))
 					prev_element = 'image'
 			# table
 			table_data = question.get('table', None)
@@ -413,23 +405,17 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 			if choices is not None:
 				choices = resolve_choice_images(choices, base_dir)
 			if choices is not None and len(choices) > 0:
-				choice_source_dpi = (
-					table_image_source_dpi
-					if any(isinstance(choice, dict) and choice.get('html_table')
-							for choice in choices)
-					else None)
+				choice_sizer = pick_sizer(choices, drawing_sizer, choice_fit)
 				if try_add_native_table_choices(doc, choices, native_tables):
 					prev_element = 'choices'
 					question_counter += question_span
 					continue
 				if has_image_choice(choices):
 					ef_tools.docx_builder.add_image_choices_tabbed(
-						doc, choices,
-						image_width=styles['page']['choice_image_max_width'],
-						image_height=styles['page']['choice_image_max_height'],
-						wide_image_width=choice_strip_max_width,
+						doc, choices, choice_sizer,
+						wide_sizer=pick_sizer(
+							choices, drawing_sizer, choice_strip_fit),
 						wide_image_min_aspect=choice_strip_min_aspect,
-						source_dpi=choice_source_dpi,
 					)
 					prev_element = 'choices'
 					question_counter += question_span
@@ -438,9 +424,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 					question, choices, layout_limits)
 				ef_tools.docx_builder.add_choices_paragraph(
 					doc, choices, tab_style, items_per_row,
-					image_width=styles['page']['choice_image_max_width'],
-					image_height=styles['page']['choice_image_max_height'],
-					source_dpi=choice_source_dpi)
+					sizer=choice_sizer)
 				prev_element = 'choices'
 			# increment question counter
 			question_counter += question_span

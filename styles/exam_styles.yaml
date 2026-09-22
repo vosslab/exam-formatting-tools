@@ -24,8 +24,10 @@ colors:
 spacing:
   normal_space_after_pt: 3
   normal_line_spacing: 1.0
-  heading_space_before: 0.1
-  heading_space_after: 0.08
+  # The title is the first thing on page 1 and now carries the boilerplate on
+  # its own line, so it needs no lead-in space and only a thin gap below.
+  heading_space_before: 0.0
+  heading_space_after: 0.04
   # Question Heading indent/hanging match ARTIFACTS exam1.odt (0.2 in / -0.2 in).
   question_indent: 0.2
   question_hanging: -0.2
@@ -47,7 +49,9 @@ spacing:
 style_flags:
   heading_1_bold: true
   heading_1_italic: false
-  heading_1_centered: true
+  # The title shares its line with the name/score block, so it stays flush
+  # left; centering it would drive the block off the right margin.
+  heading_1_centered: false
   # Question Heading/Follow render bold italic to match ARTIFACTS exam1.odt
   # (fo:font-weight="bold" fo:font-style="italic" on Question_20_Heading).
   question_bold: true
@@ -62,11 +66,20 @@ page:
   header_distance: 0.5
   header_center_tab: 3.65
   header_right_tab: 7.3
-  boilerplate_tab: 1.4
+  # Left edge of the first-page name/score block. The title sits flush left on
+  # the same line, so the block starts far enough across that its longest line
+  # ("Final Score ____ / ____ / ____ / ____ / NN pts", about 3.2 in at 10pt)
+  # reaches near the 7.3 in right margin without wrapping.
+  heading_block_tab: 4.0
   image_max_width: 5.6
-  # qti-package-maker table PNGs are rendered from CSS pixels; use the
-  # browser-standard 96 px/in baseline before applying page caps.
-  table_image_source_dpi: 96
+  # The single global scale for every rendered drawing. Printed width is
+  # always pixels / the PNG's own recorded resolution * this factor, with no
+  # bounding box and no clamp, so two drawings that are the same size in the
+  # source HTML are the same size in the DOCX. Raising or lowering it rescales
+  # every drawing together and never changes their sizes relative to each
+  # other. There is deliberately no configured resolution to pair with it: the
+  # renderer stamps each PNG, so nothing here can drift out of sync with it.
+  table_image_scale: 0.7
   choice_image_max_width: 3.40
   choice_image_max_height: 2.00
   # wide drawing choices (DNA sequence strips) are stacked at page width

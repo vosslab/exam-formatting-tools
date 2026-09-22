@@ -3,8 +3,12 @@
 # Standard Library
 import os
 
+# Standard Library
+import io
+
 # PIP3 modules
 import pytest
+import PIL.Image
 
 # local repo modules
 import ef_tools.bbq_html
@@ -24,11 +28,29 @@ DRAWING_TABLE = (
 PLAIN_TABLE = "<table><tr><td>Mother</td></tr><tr><td>Child</td></tr></table>"
 
 
+#============================================
+def make_png_bytes(width: int = 40, height: int = 20,
+		content_box: tuple = None) -> bytes:
+	"""Build a white PNG, optionally with a black content box inside it.
+
+	The writer autocrops and re-encodes what the renderer hands it, so a test
+	double has to produce a real image rather than a byte marker.
+	"""
+	image = PIL.Image.new('RGB', (width, height), color='white')
+	if content_box is not None:
+		for x in range(content_box[0], content_box[2]):
+			for y in range(content_box[1], content_box[3]):
+				image.putpixel((x, y), (0, 0, 0))
+	buffer = io.BytesIO()
+	image.save(buffer, format='PNG')
+	return buffer.getvalue()
+
+
 class FakeRenderer:
-	"""Stand-in for TableRenderer that returns fixed PNG bytes."""
+	"""Stand-in for TableRenderer that returns a real one-color PNG."""
 
 	def render_table_png(self, table_html: str) -> bytes:
-		return b'PNG' + table_html.encode('ascii')[:4]
+		return make_png_bytes(width=40 + len(table_html) % 8)
 
 
 #============================================
@@ -135,3 +157,38 @@ def test_write_table_pngs_writes_files_and_returns_yaml_relative_paths(tmp_path:
 	]
 	for path in paths:
 		assert (tmp_path / path).stat().st_size > 0
+
+
+#============================================
+def test_written_png_records_the_renderer_resolution(tmp_path: object) -> None:
+	"""A written PNG must carry the renderer's true resolution, so the DOCX
+	builder recovers the real physical size instead of assuming a 96 px/in
+	baseline and printing every drawing at twice its size."""
+	media_dir = tmp_path / 'quiz_files'
+	paths = ef_tools.bbq_html.write_table_pngs(
+		[DRAWING_TABLE], FakeRenderer(), str(media_dir), 'ab12_cd34')
+	with PIL.Image.open(tmp_path / paths[0]) as image:
+		recorded_dpi = image.info['dpi']
+	# PNG stores resolution in pixels per metre, so the round trip is lossy.
+	assert abs(recorded_dpi[0] - ef_tools.bbq_html.RENDER_DPI) < 0.01
+
+
+#============================================
+def test_autocrop_trims_white_margin_to_the_content_box() -> None:
+	"""Outer whitespace goes; the content box plus the border bleed stays."""
+	png_bytes = make_png_bytes(
+		width=100, height=60, content_box=(40, 25, 60, 35))
+	with PIL.Image.open(io.BytesIO(png_bytes)) as image:
+		cropped = ef_tools.bbq_html.autocrop_white_border(image)
+	bleed = ef_tools.bbq_html.AUTOCROP_BLEED_PX
+	assert cropped.size == (20 + 2 * bleed, 10 + 2 * bleed)
+
+
+#============================================
+def test_autocrop_keeps_a_blank_render_intact() -> None:
+	"""An all-white render has no content box; cropping it to nothing would
+	destroy the image, so it is returned at its original size."""
+	png_bytes = make_png_bytes(width=30, height=12)
+	with PIL.Image.open(io.BytesIO(png_bytes)) as image:
+		cropped = ef_tools.bbq_html.autocrop_white_border(image)
+	assert cropped.size == (30, 12)

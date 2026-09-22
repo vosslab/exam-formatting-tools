@@ -10,15 +10,33 @@ the optional native DOCX table backend.
 """
 
 # Standard Library
+import io
 import os
 import re
 
 # PIP3 modules
 import lxml.html
+import PIL.Image
+import PIL.ImageChops
 
 # local repo modules
 import ef_tools.html_parse
 import qti_package_maker.html_to_image.selectors
+import qti_package_maker.html_to_image.render_table
+
+
+# The table renderer screenshots CSS pixels at a device scale factor, so a
+# rendered PNG carries DEVICE_SCALE_FACTOR physical pixels per CSS pixel. CSS
+# itself is defined at 96 px/in, so the PNG's true resolution is the product.
+# Deriving it from the renderer's own constant keeps one source of truth: if
+# the renderer changes its scale factor, sizing follows automatically.
+CSS_PIXELS_PER_INCH = 96
+RENDER_DPI = CSS_PIXELS_PER_INCH * qti_package_maker.html_to_image.render_table.DEVICE_SCALE_FACTOR
+
+# Outer bleed kept around the autocrop box, in rendered device pixels. Table
+# borders are hairlines (`1px solid #999`), and antialiasing puts their faintest
+# row right at the content edge; a small bleed keeps those from being shaved.
+AUTOCROP_BLEED_PX = 2
 
 
 # tags whose content is re-emitted wrapped in the same bare tag
@@ -230,6 +248,69 @@ def clean_inline_html(html: str) -> str:
 
 
 #============================================
+def _flatten_on_white(image: PIL.Image.Image) -> PIL.Image.Image:
+	"""Return an RGB copy of image composited over a white background.
+
+	Element screenshots can carry an alpha channel. Comparing such an image
+	against solid white directly would treat transparent pixels as content, so
+	the alpha is resolved against white first -- the same background the
+	renderer draws on.
+	"""
+	if image.mode == 'RGB':
+		return image.convert('RGB')
+	rgba = image.convert('RGBA')
+	backdrop = PIL.Image.new('RGBA', rgba.size, (255, 255, 255, 255))
+	flattened = PIL.Image.alpha_composite(backdrop, rgba).convert('RGB')
+	return flattened
+
+
+#============================================
+def autocrop_white_border(image: PIL.Image.Image) -> PIL.Image.Image:
+	"""Trim the uniform white margin around a rendered drawing.
+
+	The renderer screenshots a table element, but a drawing can still sit
+	inside a fixed-size wrapper whose declared height and width leave dead
+	space (the restriction maps declare a 136 px tall box around a 6 px bar).
+	Cropping removes only outer pixels; the pixels-per-inch of what remains is
+	unchanged, so the printed size of the content inside is identical. That is
+	what lets autocrop coexist with fixed-scale sizing.
+
+	Args:
+		image: The rendered PNG, any mode.
+
+	Returns:
+		The cropped RGB image, or the flattened original when it is blank.
+	"""
+	flattened = _flatten_on_white(image)
+	white = PIL.Image.new('RGB', flattened.size, (255, 255, 255))
+	difference = PIL.ImageChops.difference(flattened, white)
+	bbox = difference.getbbox()
+	# An all-white render has no content box; keep it rather than crop to nothing.
+	if bbox is None:
+		return flattened
+	left, top, right, bottom = bbox
+	# Grow the box by the bleed, clamped to the image so the crop stays valid.
+	left = max(0, left - AUTOCROP_BLEED_PX)
+	top = max(0, top - AUTOCROP_BLEED_PX)
+	right = min(flattened.width, right + AUTOCROP_BLEED_PX)
+	bottom = min(flattened.height, bottom + AUTOCROP_BLEED_PX)
+	cropped = flattened.crop((left, top, right, bottom))
+	return cropped
+
+
+#============================================
+def _write_rendered_png(png_bytes: bytes, png_path: str) -> None:
+	"""Autocrop one rendered PNG and save it carrying its true resolution.
+
+	The saved pHYs chunk records RENDER_DPI so the DOCX builder can recover the
+	image's real physical size instead of assuming a 96 px/in baseline.
+	"""
+	with PIL.Image.open(io.BytesIO(png_bytes)) as image:
+		cropped = autocrop_white_border(image)
+	cropped.save(png_path, format='PNG', dpi=(RENDER_DPI, RENDER_DPI))
+
+
+#============================================
 def write_table_pngs(table_htmls: list, renderer: object, media_dir: str, stem: str) -> list:
 	"""Rasterize drawing tables to PNG files beside the exam YAML.
 
@@ -249,7 +330,6 @@ def write_table_pngs(table_htmls: list, renderer: object, media_dir: str, stem: 
 	for index, table_html in enumerate(table_htmls, start=1):
 		png_bytes = renderer.render_table_png(table_html)
 		png_path = os.path.join(media_dir, f"{stem}_table_{index}.png")
-		with open(png_path, 'wb') as handle:
-			handle.write(png_bytes)
+		_write_rendered_png(png_bytes, png_path)
 		paths.append(os.path.relpath(png_path, yaml_dir))
 	return paths

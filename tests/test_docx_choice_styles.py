@@ -17,6 +17,7 @@ import base64
 import docx
 
 import file_utils
+import ef_tools.docx_images
 import ef_tools.docx_builder
 import ef_tools.style_loader
 
@@ -103,7 +104,8 @@ def test_mixed_text_image_choices_avoid_bare_choice_style(tmp_path: object) -> N
 	]
 	doc = _make_styled_doc()
 	ef_tools.docx_builder.add_choices_paragraph(
-		doc, choices, tab_style=3, items_per_row=3, image_width=1.0,
+		doc, choices, tab_style=3, items_per_row=3,
+		sizer=ef_tools.docx_images.FitSizer(1.0),
 	)
 	style_name = doc.paragraphs[-1].style.name
 	assert _CHOICES_N_PATTERN.match(style_name), style_name
@@ -116,7 +118,7 @@ def test_all_image_choices_avoid_bare_choice_style(tmp_path: object) -> None:
 	choices = [{"text": "", "image": path} for path in images]
 	doc = _make_styled_doc()
 	ef_tools.docx_builder.add_image_choices_tabbed(
-		doc, choices, image_width=1.0,
+		doc, choices, ef_tools.docx_images.FitSizer(1.0),
 	)
 	style_name = doc.paragraphs[-1].style.name
 	assert _CHOICES_N_PATTERN.match(style_name), style_name

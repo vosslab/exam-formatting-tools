@@ -1,6 +1,12 @@
 """Contracts for ef_tools.bbq_parse: answer letters stay correct after shuffling,
 tables become images, and key numbering matches printed numbering."""
 
+# Standard Library
+import io
+
+# PIP3 modules
+import PIL.Image
+
 # local repo modules
 import ef_tools.bbq_parse
 
@@ -14,10 +20,13 @@ GEL_TABLE = "<table><tr><td bgcolor='#E0E0E0' style='border: 1px solid gray;'>ge
 
 
 class FakeRenderer:
-	"""Stand-in for TableRenderer that returns fixed PNG bytes."""
+	"""Stand-in for TableRenderer that returns a real one-color PNG."""
 
 	def render_table_png(self, table_html: str) -> bytes:
-		return b'PNG'
+		# The writer autocrops and re-encodes, so this must be a real image.
+		buffer = io.BytesIO()
+		PIL.Image.new('RGB', (40, 20), color='white').save(buffer, format='PNG')
+		return buffer.getvalue()
 
 
 #============================================

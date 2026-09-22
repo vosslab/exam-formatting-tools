@@ -16,12 +16,12 @@ import docx.enum.text
 import docx.enum.style
 import docx.oxml.ns
 import docx.oxml
-import PIL.Image
 
 # Local Repo Modules
 import ef_tools.layout
-import ef_tools.docx_table_builder
+import ef_tools.docx_images
 import ef_tools.text_utils
+import ef_tools.docx_table_builder
 
 
 #============================================
@@ -392,68 +392,55 @@ def add_rich_text_paragraphs(doc: object, style_name: str, text: str,
 
 
 #============================================
-def fit_picture_kwargs(image_path: str, max_width: float,
-	max_height: float = None, source_dpi: float = None) -> dict:
-	"""Pick add_picture(width=...) or (height=...) so the image fits a box.
+def _add_boilerplate_run(para: object, text: str, font_size_pt: float) -> None:
+	"""Add one first-page boilerplate run at body size.
 
-	python-docx preserves aspect ratio when only one of width/height is
-	set. To fit a bounding box (max_width, max_height), pick the axis
-	whose scale factor is smaller -- that axis becomes the binding
-	constraint. When source_dpi is provided, the PNG's intrinsic physical
-	size is an additional upper bound, preventing low-resolution table
-	drawings from being silently enlarged.
+	The title paragraph carries the Heading 1 style, so a run added to it
+	inherits 18pt bold. The name and score lines sit on those same lines but
+	are body text, so each run overrides size and weight explicitly.
 	"""
-	with PIL.Image.open(image_path) as img:
-		src_w, src_h = img.size
-	if source_dpi is None:
-		# Legacy pixel-ratio behavior remains available to callers that are
-		# sizing ordinary external images rather than rendered table PNGs.
-		if max_height is None:
-			return {'width': docx.shared.Inches(max_width)}
-		width_scale = max_width / src_w
-		height_scale = max_height / src_h
-		if width_scale <= height_scale:
-			return {'width': docx.shared.Inches(max_width)}
-		return {'height': docx.shared.Inches(max_height)}
-	if source_dpi <= 0:
-		raise ValueError('source_dpi must be positive')
-	# Browser CSS uses 96 pixels per inch. The table renderer's PNG pixels
-	# therefore provide a useful intrinsic physical-size baseline.
-	source_width = src_w / source_dpi
-	source_height = src_h / source_dpi
-	width_scale = max_width / source_width
-	if max_height is None:
-		scale = min(1.0, width_scale)
-		return {'width': docx.shared.Inches(source_width * scale)}
-	height_scale = max_height / source_height
-	scale = min(1.0, width_scale, height_scale)
-	if width_scale <= height_scale and width_scale <= 1.0:
-		return {'width': docx.shared.Inches(source_width * scale)}
-	if height_scale < width_scale and height_scale <= 1.0:
-		return {'height': docx.shared.Inches(source_height * scale)}
-	return {'width': docx.shared.Inches(source_width)}
+	run = para.add_run(text)
+	run.font.size = docx.shared.Pt(font_size_pt)
+	run.bold = False
+	run.italic = False
 
 
 #============================================
-def _zero_inline_image_margins(run: object) -> None:
-	"""Set distT/distB/distL/distR=0 on every <wp:inline> in this run.
+def add_first_page_heading(doc: docx.Document, title: str, name_line: str,
+		score_line: str, styles: dict) -> None:
+	"""Write the first-page title and the name/score block beside it.
 
-	Inline images in OOXML carry top/bottom/left/right distance attributes
-	that act as outer padding around the picture. python-docx's add_picture
-	leaves them at default values (often 114300 EMU = 0.125"), which chews
-	visible space around each picture in a tight tab-separated row. Zeroing
-	them lets the image hug its run's edges so the per-column budget can
-	hold a wider visible image at the same docx column width.
+	The title sits flush left and the boilerplate block starts at a single tab
+	stop partway across the page, so the two share a line instead of stacking
+	three centered lines with an empty left column and an empty right half.
+
+	Args:
+		doc: The Document to write into.
+		title: Exam title text, may carry inline markup.
+		name_line: The student name rule.
+		score_line: The per-section score rule.
+		styles: Loaded style definitions.
 	"""
-	WP = 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing'
-	for inline in run.element.iter('{%s}inline' % WP):
-		for attr in ('distT', 'distB', 'distL', 'distR'):
-			inline.set(attr, '0')
+	block_tab = styles['page']['heading_block_tab']
+	body_size = styles['sizes']['normal']
+	# Heading 1 rather than add_heading so the custom font overrides Word's
+	# built-in theme font.
+	title_para = doc.add_paragraph()
+	title_para.style = doc.styles['Heading 1']
+	add_rich_text_runs(title_para, title)
+	title_para.paragraph_format.tab_stops.add_tab_stop(
+		docx.shared.Inches(block_tab), docx.enum.text.WD_TAB_ALIGNMENT.LEFT)
+	_add_boilerplate_run(title_para, "\t" + name_line, body_size)
+	# The score line continues the same block, so it hugs the line above it.
+	score_para = doc.add_paragraph()
+	score_para.paragraph_format.tab_stops.add_tab_stop(
+		docx.shared.Inches(block_tab), docx.enum.text.WD_TAB_ALIGNMENT.LEFT)
+	score_para.paragraph_format.space_before = docx.shared.Pt(0)
+	_add_boilerplate_run(score_para, "\t" + score_line, body_size)
 
 
 #============================================
-def add_choice_content(para: object, choice: object, image_width: float = None,
-	image_height: float = None, source_dpi: float = None) -> None:
+def add_choice_content(para: object, choice: object, sizer: object = None) -> None:
 	"""Add text and optional image content for one choice."""
 	choice_text = ef_tools.layout.choice_text(choice)
 	if choice_text:
@@ -463,26 +450,23 @@ def add_choice_content(para: object, choice: object, image_width: float = None,
 		if choice_text:
 			para.add_run().add_break()
 		run = para.add_run()
-		if image_width is None:
+		if sizer is None:
 			run.add_picture(image_path)
-		else:
-			kwargs = fit_picture_kwargs(
-				image_path, image_width, image_height, source_dpi=source_dpi)
-			run.add_picture(image_path, **kwargs)
+			return
+		kwargs = sizer.kwargs(image_path)
+		ef_tools.docx_images.place_inline_picture(run, image_path, kwargs)
 
 
 #============================================
 def add_matching_prompt(doc: object, prompt: object, prefix: str,
-		image_width: float = None, image_height: float = None,
-		strip_height: float = None, strip_min_aspect: float = None,
-		native_tables: bool = False, source_dpi: float = None) -> None:
+		sizer: object = None, native_tables: bool = False) -> None:
 	"""Add one `___ N.` matching prompt row; the prompt may carry an image.
 
 	A plain string prompt renders as text (hard breaks become paragraphs).
 	A dict prompt ({'text', 'image'}) renders its text, then its image
 	inline on the same row so a drawing (DNA strip, pedigree) sits next to
-	the blank. Wide strips (aspect >= strip_min_aspect) use strip_height as
-	their cap so short and long strips print at one cell size.
+	the blank. The sizer owns how big that image prints, including the
+	wide-strip height rule for ordinary images.
 	"""
 	if not isinstance(prompt, dict):
 		add_rich_text_paragraphs(doc, 'Matching Prompt', prompt, prefix=prefix)
@@ -498,17 +482,10 @@ def add_matching_prompt(doc: object, prompt: object, prefix: str,
 		para.paragraph_format.keep_with_next = True
 		ef_tools.docx_table_builder.add_html_table(doc, prompt['html_table'])
 		return
-	height = image_height
-	image_path = ef_tools.layout.choice_image(prompt)
-	if image_path and strip_height is not None and strip_min_aspect is not None:
-		with PIL.Image.open(image_path) as img:
-			src_w, src_h = img.size
-		if src_w / src_h >= strip_min_aspect:
-			height = strip_height
 	para = doc.add_paragraph()
 	para.style = doc.styles['Matching Prompt']
 	para.add_run(prefix)
-	add_choice_content(para, prompt, image_width, height, source_dpi=source_dpi)
+	add_choice_content(para, prompt, sizer=sizer)
 
 
 #============================================
@@ -526,9 +503,7 @@ def _add_matching_prompt_text(para: object, prompt: str, prefix: str) -> None:
 
 #============================================
 def add_matching_prompts(doc: object, prompts: list, start_number: int,
-		image_width: float = None, image_height: float = None,
-		strip_height: float = None, strip_min_aspect: float = None,
-		native_tables: bool = False, source_dpi: float = None) -> None:
+		sizer: object = None, native_tables: bool = False) -> None:
 	"""Add matching prompts, pairing simple text prompts on each row.
 
 	Two plain-text prompts share a paragraph so the numbered blanks occupy two
@@ -558,9 +533,7 @@ def add_matching_prompts(doc: object, prompts: list, start_number: int,
 			continue
 		add_matching_prompt(
 			doc, prompt, f"___ {start_number + index}. ",
-			image_width=image_width, image_height=image_height,
-			strip_height=strip_height, strip_min_aspect=strip_min_aspect,
-			native_tables=native_tables, source_dpi=source_dpi)
+			sizer=sizer, native_tables=native_tables)
 		# Hard-break prompts can emit more than one paragraph; only the final
 		# paragraph needs to chain to the next prompt.
 		if doc.paragraphs:
@@ -569,32 +542,12 @@ def add_matching_prompts(doc: object, prompts: list, start_number: int,
 		index += 1
 
 
-#============================================
-# Maximum image width per column count, in inches. Empirical caps tuned via
-# _render_loop.sh / _measure.py with the Choices N tab stops in
-# styles/exam_styles.yaml. Going past these widths pushes a trailing image's
-# cursor past its target tab stop, which then advances to the NEXT stop and
-# creates a visible gap. Word's inline-image layout reserves more space per
-# image than a naive cursor calculation predicts; values are set by viewing
-# the rendered DOCX, not computed from page width.
-IMAGE_CHOICE_MAX_WIDTH_BY_COLS = {
-	2: 3.30,
-	3: 2.07,
-	4: 1.49,
-	5: 1.13,
-}
-
-# Five captioned image choices need to remain one block below a question stem.
-# A two-inch cap keeps the five labeled blocks on one page while making each
-# tray substantially larger than the old five-column 1.13-inch images.
-CAPTIONED_IMAGE_CHOICE_MAX_WIDTH = 2.0
-
-
 # Wide table drawings such as DNA sequence strips are readable when stacked
 # at page width, but become illegible when forced into the ordinary 4/5-column
 # image-choice row. The threshold is supplied by styles/exam_styles.yaml.
 # It is deliberately an aspect-ratio rule rather than a filename rule so the
-# same layout works for any generator's strip drawing.
+# same layout works for any generator's strip drawing. The per-column width
+# budgets live in ef_tools.docx_images.
 
 
 #============================================
@@ -611,17 +564,6 @@ def _is_meaningful_alt(choice: object) -> bool:
 	if not text or text == 'image':
 		return False
 	return True
-
-
-#============================================
-def _is_wide_image_choice(choice: object, min_aspect: float) -> bool:
-	"""Return whether an image choice is a wide strip at the given threshold."""
-	image_path = ef_tools.layout.choice_image(choice)
-	if not image_path:
-		return False
-	with PIL.Image.open(image_path) as img:
-		src_w, src_h = img.size
-	return src_h > 0 and src_w / src_h >= min_aspect
 
 
 #============================================
@@ -642,8 +584,7 @@ def _captioned_choices_need_stacking(choices: list) -> bool:
 
 #============================================
 def _add_captioned_image_choices_stacked(doc: docx.Document, choices: list,
-		image_width: float, image_height: float = None,
-		source_dpi: float = None) -> None:
+		sizer: object) -> None:
 	"""Render long-caption image choices as individually labeled blocks."""
 	style_name = ef_tools.layout.choices_style_name(1)
 	for index, choice in enumerate(choices):
@@ -656,10 +597,8 @@ def _add_captioned_image_choices_stacked(doc: docx.Document, choices: list,
 		prefix.bold = True
 		image_path = ef_tools.layout.choice_image(choice)
 		image_run = para.add_run()
-		kwargs = fit_picture_kwargs(
-			image_path, image_width, image_height, source_dpi=source_dpi)
-		image_run.add_picture(image_path, **kwargs)
-		_zero_inline_image_margins(image_run)
+		ef_tools.docx_images.place_inline_picture(
+			image_run, image_path, sizer.kwargs(image_path))
 		caption = doc.add_paragraph()
 		caption.style = doc.styles[style_name]
 		caption.paragraph_format.space_before = docx.shared.Pt(0)
@@ -670,8 +609,7 @@ def _add_captioned_image_choices_stacked(doc: docx.Document, choices: list,
 
 #============================================
 def _add_wide_image_choices_stacked(doc: docx.Document, choices: list,
-		image_width: float, image_height: float = None,
-		source_dpi: float = None) -> None:
+		sizer: object) -> None:
 	"""Render wide image choices one per row at a readable page width."""
 	style_name = ef_tools.layout.choices_style_name(1)
 	for index, choice in enumerate(choices):
@@ -690,10 +628,8 @@ def _add_wide_image_choices_stacked(doc: docx.Document, choices: list,
 		prefix.bold = True
 		image_path = ef_tools.layout.choice_image(choice)
 		image_run = para.add_run()
-		kwargs = fit_picture_kwargs(
-			image_path, image_width, image_height, source_dpi=source_dpi)
-		image_run.add_picture(image_path, **kwargs)
-		_zero_inline_image_margins(image_run)
+		ef_tools.docx_images.place_inline_picture(
+			image_run, image_path, sizer.kwargs(image_path))
 		if meaningful_alt:
 			caption = doc.add_paragraph()
 			caption.style = doc.styles[style_name]
@@ -707,10 +643,8 @@ def _add_wide_image_choices_stacked(doc: docx.Document, choices: list,
 
 #============================================
 def add_image_choices_tabbed(doc: docx.Document, choices: list,
-		image_width: float, image_height: float = None,
-		wide_image_width: float = None,
-		wide_image_min_aspect: float = None,
-		source_dpi: float = None) -> None:
+		sizer: object, wide_sizer: object = None,
+		wide_image_min_aspect: float = None) -> None:
 	"""Add image-based choices in a horizontal tab-stop layout.
 
 	Letter prefix and image render on the same line for each column.
@@ -724,38 +658,43 @@ def add_image_choices_tabbed(doc: docx.Document, choices: list,
 	Args:
 		doc: The Document to add the paragraph to.
 		choices: List of structured choice dicts with text and/or image keys.
-		image_width: Maximum image width in inches from the YAML style
-			cap; further clamped by IMAGE_CHOICE_MAX_WIDTH_BY_COLS so 5-col
-			rows stay narrow enough not to wrap.
-		image_height: Maximum image height in inches; aspect ratio preserved.
-		wide_image_width: Optional page-width cap for wide strip choices.
+		sizer: Decides how big each image prints.
+		wide_sizer: Sizer used when every choice is a wide strip and the row
+			is stacked at page width instead.
 		wide_image_min_aspect: Aspect-ratio threshold for the wide-strip path.
 	"""
-	if (wide_image_width is not None and wide_image_min_aspect is not None
+	if (wide_sizer is not None and wide_image_min_aspect is not None
 			and choices
-			and all(_is_wide_image_choice(choice, wide_image_min_aspect)
+			and all(ef_tools.docx_images.is_wide_image_choice(
+					choice, wide_image_min_aspect)
 				for choice in choices)):
-		_add_wide_image_choices_stacked(
-			doc, choices, wide_image_width, image_height, source_dpi=source_dpi)
+		_add_wide_image_choices_stacked(doc, choices, wide_sizer)
 		return
 	if choices and _captioned_choices_need_stacking(choices):
 		_add_captioned_image_choices_stacked(
 			doc, choices,
-			min(image_width, CAPTIONED_IMAGE_CHOICE_MAX_WIDTH), image_height,
-			source_dpi=source_dpi)
+			sizer.narrowed(
+				ef_tools.docx_images.CAPTIONED_IMAGE_CHOICE_MAX_WIDTH))
 		return
 	# clamp column count to the legal Choices 2..5 range so the
 	# resolved style is always concrete (never the abstract Choice base)
 	num_cols = len(choices)
+	# A fixed-scale drawing cannot be squeezed into a column, so for drawings
+	# the per-column budget is a fit test rather than a cap. A row too wide for
+	# its columns stacks one per line, which keeps every drawing at the shared
+	# scale instead of giving each one its own. A fitted image always fits,
+	# because it is scaled into whatever column it gets.
+	if choices and not sizer.fits_columns(choices, num_cols):
+		_add_wide_image_choices_stacked(doc, choices, sizer)
+		return
 	style_columns = max(2, min(num_cols, 5))
 	style_name = ef_tools.layout.choices_style_name(style_columns)
-	# image width: the YAML-supplied cap (image_width) plus a per-num_cols
-	# empirical cap (IMAGE_CHOICE_MAX_WIDTH_BY_COLS); the smaller wins.
-	# Column counts beyond 5 (matching questions with many panels) fall
-	# back to the 5-col cap (the most conservative empirical value).
-	per_cols_cap = IMAGE_CHOICE_MAX_WIDTH_BY_COLS.get(num_cols,
-		IMAGE_CHOICE_MAX_WIDTH_BY_COLS[5])
-	effective_image_width = min(image_width, per_cols_cap)
+	# Narrow the sizer by the per-num_cols empirical budget. Column counts
+	# beyond 5 (matching questions with many panels) fall back to the 5-col
+	# value (the most conservative empirical cap).
+	per_cols_cap = ef_tools.docx_images.IMAGE_CHOICE_MAX_WIDTH_BY_COLS.get(
+		num_cols, ef_tools.docx_images.IMAGE_CHOICE_MAX_WIDTH_BY_COLS[5])
+	column_sizer = sizer.narrowed(per_cols_cap)
 
 	# Single combined paragraph: (A)<img> \t (B)<img> \t (C)<img> \t ...
 	# Letter and image render side-by-side at each tab stop. Inherits
@@ -767,12 +706,12 @@ def add_image_choices_tabbed(doc: docx.Document, choices: list,
 	combined_para.style = doc.styles[style_name]
 	combined_para.paragraph_format.keep_with_next = True
 	combined_para.paragraph_format.space_after = docx.shared.Pt(0)
-	# unify height across the row: pick the smallest height each image would
-	# have if scaled to fit the (effective_image_width, image_height) box,
-	# then force every image in the row to that exact height. Keeps the row
-	# visually level even when source PNGs have different aspect ratios.
-	row_height = _row_image_height(
-		choices, effective_image_width, image_height, source_dpi=source_dpi)
+	# unify height across the row: a fitted sizer reports the smallest height
+	# any image in the row would take, and every image is forced to it, which
+	# keeps the row visually level when source aspect ratios differ. A drawing
+	# sizer reports None, because unifying drawing heights would rescale each
+	# one differently.
+	row_height = column_sizer.row_height(choices)
 	for index, choice in enumerate(choices):
 		if index > 0:
 			combined_para.add_run("\t")
@@ -787,17 +726,14 @@ def add_image_choices_tabbed(doc: docx.Document, choices: list,
 		if image_path:
 			image_run = combined_para.add_run()
 			if row_height is not None:
-				image_run.add_picture(image_path,
-					height=docx.shared.Inches(row_height))
+				kwargs = {'height': docx.shared.Inches(row_height)}
 			else:
-				kwargs = fit_picture_kwargs(
-					image_path, effective_image_width, image_height,
-					source_dpi=source_dpi)
-				image_run.add_picture(image_path, **kwargs)
-			# zero the inline image's edge-distance margins so the image
-			# hugs the run; prevents the default ~0.125" padding that
-			# python-docx injects around inline pictures.
-			_zero_inline_image_margins(image_run)
+				kwargs = column_sizer.kwargs(image_path)
+			# place_inline_picture also zeroes the inline image's
+			# edge-distance margins so the image hugs the run, and lifts it
+			# onto the line's visual midline.
+			ef_tools.docx_images.place_inline_picture(
+				image_run, image_path, kwargs)
 		else:
 			choice_text = ef_tools.layout.choice_text(choice)
 			if choice_text:
@@ -821,48 +757,8 @@ def add_image_choices_tabbed(doc: docx.Document, choices: list,
 
 
 #============================================
-def _row_image_height(choices: list, max_width: float,
-	max_height: float = None, source_dpi: float = None) -> float:
-	"""Single row-level height that lets every image fit its column box.
-
-	For each image, compute the height it would be when scaled to fit
-	inside (max_width, max_height) preserving aspect. Return the minimum,
-	so the binding constraint of the row sets a uniform height. Returns
-	None if no image paths are present or no height bound is given (then
-	callers fall back to per-image fit_picture_kwargs).
-	"""
-	if max_height is None:
-		return None
-	heights = []
-	for choice in choices:
-		image_path = ef_tools.layout.choice_image(choice)
-		if not image_path:
-			continue
-		with PIL.Image.open(image_path) as img:
-			src_w, src_h = img.size
-		if source_dpi is None:
-			# height when width is the binding constraint
-			h_at_max_w = max_width * src_h / src_w
-			# this image's rendered height is whichever bound is tighter
-			heights.append(min(h_at_max_w, max_height))
-			continue
-		if source_dpi <= 0:
-			raise ValueError('source_dpi must be positive')
-		source_width = src_w / source_dpi
-		source_height = src_h / source_dpi
-		width_scale = max_width / source_width
-		height_scale = max_height / source_height
-		scale = min(1.0, width_scale, height_scale)
-		heights.append(source_height * scale)
-	if not heights:
-		return None
-	return min(heights)
-
-
-#============================================
 def add_choices_paragraph(doc: docx.Document, choices: list,
-	tab_style: int, items_per_row: int, image_width: float = None,
-	image_height: float = None, source_dpi: float = None) -> None:
+	tab_style: int, items_per_row: int, sizer: object = None) -> None:
 	"""Add a tab-separated choices paragraph with bold letter prefixes.
 
 	Creates a paragraph with (A) (B) (C) format, using tab characters
@@ -874,6 +770,7 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 		choices: List of choice text strings or dicts with text/image keys.
 		tab_style: Tab stop layout (3, 4, or 5) from CHOICES_TAB_STOPS.
 		items_per_row: Number of choices per line (may differ from tab_style).
+		sizer: Decides how big any choice image prints.
 	"""
 	# any image in the list forces a vertical stack so the image and
 	# its caption stay on one line per choice
@@ -912,9 +809,7 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 			bold_run = para.add_run(f"({letter}) ")
 			bold_run.bold = True
 			# choice content inherits font size from style
-			add_choice_content(para, choice,
-				image_width=image_width, image_height=image_height,
-				source_dpi=source_dpi)
+			add_choice_content(para, choice, sizer=sizer)
 
 
 #============================================
