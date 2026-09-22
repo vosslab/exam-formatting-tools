@@ -31,9 +31,10 @@ The `ef_tools/` package contains reusable parsing, validation, rendering, and la
 
 - [../ef_tools/bbq_tasks.py](../ef_tools/bbq_tasks.py) resolves task-CSV aliases and retries one generator candidate per task.
 - [../ef_tools/bbq_parse.py](../ef_tools/bbq_parse.py) parses MC, MA, MAT, and ORD BBQ records, creates answer keys, and owns shared table-image attachment.
-- [../ef_tools/bbq_html.py](../ef_tools/bbq_html.py) cleans inline HTML and rasterizes statement, choice, and matching-prompt tables through `qti_package_maker`.
+- [../ef_tools/bbq_html.py](../ef_tools/bbq_html.py) cleans inline HTML and retains source table HTML while rasterizing the PNG fallback through `qti_package_maker`.
 - [../ef_tools/html_parse.py](../ef_tools/html_parse.py) owns Blackboard HTML selectors, inline-tag handling, and choice-prefix parsing.
-- [../ef_tools/docx_builder.py](../ef_tools/docx_builder.py) creates styles, rich text, tables, text choices, image choices, and matching prompts.
+- [../ef_tools/docx_builder.py](../ef_tools/docx_builder.py) creates styles, rich text, text choices, image choices, and matching prompts.
+- [../ef_tools/docx_table_builder.py](../ef_tools/docx_table_builder.py) converts supported preserved HTML tables into native Word tables for the opt-in `--native-tables` path.
 - [../ef_tools/layout.py](../ef_tools/layout.py) scores visible choice width and selects the `Choices 2` through `Choices 5` paragraph style.
 - [../ef_tools/question_utils.py](../ef_tools/question_utils.py) owns question-block spans, numbering totals, and question-style selection.
 - [../ef_tools/rdkit_render.py](../ef_tools/rdkit_render.py) turns supported RDKit HTML canvas widgets into PNG files.
@@ -59,7 +60,8 @@ Exam YAML
 Filtered or original YAML
     |
     | yaml_to_exam_docx.py
-    | ef_tools.docx_builder + styles/exam_styles.yaml
+    | ef_tools.docx_builder + optional ef_tools.docx_table_builder
+    | styles/exam_styles.yaml
     v
 Printable DOCX
 ```

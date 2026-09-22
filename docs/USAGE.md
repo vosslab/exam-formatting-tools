@@ -15,6 +15,15 @@ the target extension in the current working directory.
 source source_me.sh && python3 launchers/yaml_to_exam_docx.py -i exam_data.yml
 ```
 
+For a backup DOCX that converts preserved simple bptools HTML drawing tables
+to native Word tables, add `--native-tables`. Unsupported or nested tables use
+the normal PNG representation instead:
+
+```bash
+source source_me.sh && python3 launchers/yaml_to_exam_docx.py \
+    -i exam_data.yml --native-tables -o /tmp/exam_native_tables.docx
+```
+
 The YAML schema is documented in [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md).
 Style definitions come from [styles/exam_styles.yaml](../styles/exam_styles.yaml).
 
@@ -30,7 +39,8 @@ cp /tmp/_regen_combined.docx Final_Exam/Final_Exam_2A_2B_combined.docx
 ```
 
 Image-based answer choices are laid out horizontally using paragraph tab stops
-(no DOCX tables); see [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md).
+by default; the optional native-table backup is described in
+[YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md).
 
 ## Validate ZipGrade compatibility
 

@@ -15,7 +15,9 @@ import ef_tools.text_utils
 # compatibility with styles/exam_styles.yaml; the values are
 # interpreted as width budgets, not raw character counts.
 DEFAULT_MAX_CHARS_5 = 17
-DEFAULT_MAX_CHARS_4 = 23
+# Four columns leave only about 17 visible-width units in the last column;
+# the lower budget prevents a long answer from wrapping below its label.
+DEFAULT_MAX_CHARS_4 = 17
 DEFAULT_MAX_CHARS_3 = 30
 DEFAULT_MAX_CHARS_2 = 42
 
@@ -166,10 +168,10 @@ def auto_layout_for_choices(choices: list, layout_limits: dict = None) -> tuple:
 	if max_width <= max_chars_5:
 		# all 5 on one row
 		return (5, 5)
-	if max_width <= max_chars_2:
+	if max_width <= max_chars_3:
 		# Choices 3 gives 3+2 (no orphan) -- skip Choices 4 which gives 4+1
-		# orphan; the same 3+2 result is used up to the wider max_chars_2
-		# budget so longer items still avoid a vertical stack
+		# orphan. The three-column width budget prevents long choices from
+		# wrapping underneath a neighboring choice.
 		return (3, 3)
 	# very long: vertical stack
 	return (1, 1)

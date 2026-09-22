@@ -60,6 +60,14 @@ def test_parse_rich_text_em_normalizes_to_i() -> None:
 
 
 #============================================
+def test_parse_rich_text_color_span() -> None:
+	"""A bptools hex color becomes a run-level color tag."""
+	result = ef_tools.text_utils.parse_rich_text(
+		'<strong><span style="color: #9f342d;">A7</span></strong>')
+	assert result == [('A7', frozenset({'b', 'color:#9f342d'}))]
+
+
+#============================================
 def test_parse_rich_text_break_tag() -> None:
 	"""Test that HTML break tags become line break segments."""
 	result = ef_tools.text_utils.parse_rich_text("one<br/>two")

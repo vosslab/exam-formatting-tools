@@ -1,7 +1,8 @@
 """Text utility functions for exam formatting.
 
 Provides HTML entity decoding, number prefix stripping, and rich text
-parsing for inline HTML tags (sub, sup, b, strong, i, em).
+parsing for inline HTML tags (sub, sup, b, strong, i, em, and hex-color
+spans).
 """
 
 # Standard Library
@@ -52,10 +53,16 @@ assert strip_number_prefix("No prefix here") == "No prefix here"
 
 #============================================
 # regex pattern to match supported inline HTML tags
-# matches <sub>, </sub>, <sup>, </sup>, <b>, </b>, <strong>, </strong>,
-# <i>, </i>, <em>, </em>, and <br> variants
+# matches the supported inline tags and span wrappers. Color spans are
+# handled separately below so the active tag can carry its hex value.
 _RICH_TEXT_TAG_PATTERN = re.compile(
-	r'(<br\s*/?>|</?(?:sub|sup|b|strong|i|em)>)',
+	r'(<br\s*/?>|</?(?:sub|sup|b|strong|i|em)>|</?span\b[^>]*>)',
+	re.IGNORECASE,
+)
+
+_SPAN_COLOR_RE = re.compile(
+	r'\bstyle\s*=\s*["\'][^"\']*\bcolor\s*:\s*'
+	r'(#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)\b[^"\']*["\']',
 	re.IGNORECASE,
 )
 
@@ -72,7 +79,8 @@ def parse_rich_text(text: str) -> list:
 
 	Splits text on supported HTML tags and returns a list of
 	(text, tags) tuples where tags is a frozenset of active formatting
-	tag names. Supported tags: sub, sup, b, strong, i, em.
+	 tag names. Supported tags: sub, sup, b, strong, i, em, and hex-color
+	 spans, represented as ``color:#RRGGBB`` in the active tag set.
 	Tags strong and em are normalized to b and i respectively.
 
 	Does not handle nested tags of the same type or malformed HTML.
@@ -97,6 +105,19 @@ def parse_rich_text(text: str) -> list:
 		# check if this part is an HTML tag
 		if re.match(r'^<br\s*/?>$', part, re.IGNORECASE):
 			segments.append(("\n", frozenset(active_tags)))
+			continue
+		if re.match(r'^</span\s*>$', part, re.IGNORECASE):
+			for tag in list(active_tags):
+				if tag.startswith('color:'):
+					active_tags.discard(tag)
+			continue
+		if re.match(r'^<span\b', part, re.IGNORECASE):
+			color_match = _SPAN_COLOR_RE.search(part)
+			if color_match:
+				color = color_match.group(1)
+				if len(color) == 4:
+					color = '#' + ''.join(character * 2 for character in color[1:])
+				active_tags.add(f'color:{color.lower()}')
 			continue
 		tag_match = re.match(r'^<(/?)(\w+)>$', part)
 		if tag_match:

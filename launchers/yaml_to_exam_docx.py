@@ -26,6 +26,7 @@ import ef_tools.style_loader
 import ef_tools.exam_defaults
 import ef_tools.question_utils
 import ef_tools.docx_builder
+import ef_tools.docx_table_builder
 
 
 #============================================
@@ -49,6 +50,10 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument(
 		'-z', '--zip-grade', dest='zip_grade', action='store_true',
 		help="ZipGrade mode: exclude nonconforming questions from DOCX output."
+	)
+	parser.add_argument(
+		'--native-tables', dest='native_tables', action='store_true',
+		help="Render preserved HTML tables as native Word tables when supported."
 	)
 	args = parser.parse_args()
 	return args
@@ -133,6 +138,21 @@ def has_image_choice(choices: list) -> bool:
 
 
 #============================================
+def try_add_native_table_choices(doc: object, choices: list,
+		native_tables: bool) -> bool:
+	"""Render supported table choices and report whether the path succeeded."""
+	if not (native_tables and choices
+			and all(ef_tools.docx_table_builder.has_native_table_choice(choice)
+				for choice in choices)):
+		return False
+	if not all(ef_tools.docx_table_builder.supports_html_table(
+			choice['html_table']) for choice in choices):
+		return False
+	ef_tools.docx_table_builder.add_native_table_choices_stacked(doc, choices)
+	return True
+
+
+#============================================
 def resolve_choice_images(choices: list, base_dir: str) -> list:
 	"""Return a copy of choices with dict `image` paths resolved to base_dir."""
 	resolved = []
@@ -147,7 +167,8 @@ def resolve_choice_images(choices: list, base_dir: str) -> list:
 
 
 #============================================
-def build_document(exam_data: dict, output_path: str, base_dir: str = '.') -> int:
+def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
+		native_tables: bool = False) -> int:
 	"""Build a complete DOCX exam document from YAML data.
 
 	Creates all styles, page layout, headers, and body content.
@@ -157,7 +178,9 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.') -> in
 		exam_data: Dict from YAML input with exam structure.
 		output_path: Path for the output DOCX file.
 		base_dir: Directory that relative image paths in exam_data are
-			resolved against (the input YAML's directory).
+		resolved against (the input YAML's directory).
+		native_tables: Render preserved simple HTML tables as native Word tables
+		instead of their rasterized fallback when possible.
 	"""
 	# enforce .docx extension
 	if not output_path.endswith('.docx'):
@@ -219,6 +242,11 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.') -> in
 
 	# load image max width from styles
 	image_max_width = styles['page']['image_max_width']
+	table_image_source_dpi = styles['page'].get('table_image_source_dpi', None)
+	choice_strip_max_width = styles['page'].get(
+		'choice_strip_max_width', image_max_width)
+	choice_strip_min_aspect = styles['page'].get(
+		'choice_strip_min_aspect', None)
 	# load layout limits for choice auto-sizing
 	layout_limits = styles.get('layout_limits', None)
 	# load style flags for table header alignment
@@ -296,11 +324,21 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.') -> in
 			# lettered (A)/(B)/... choices come FIRST as the answer key,
 			# then numbered blanks the student fills in.
 			choices_list = resolve_choice_images(question.get('choices_list', []), base_dir)
-			if choices_list and has_image_choice(choices_list):
+			choice_source_dpi = (
+				table_image_source_dpi
+				if any(isinstance(choice, dict) and choice.get('html_table')
+						for choice in choices_list)
+				else None)
+			if try_add_native_table_choices(doc, choices_list, native_tables):
+				prev_element = 'choices'
+			elif choices_list and has_image_choice(choices_list):
 				ef_tools.docx_builder.add_image_choices_tabbed(
 					doc, choices_list,
 					image_width=styles['page']['choice_image_max_width'],
 					image_height=styles['page']['choice_image_max_height'],
+					wide_image_width=choice_strip_max_width,
+					wide_image_min_aspect=choice_strip_min_aspect,
+					source_dpi=choice_source_dpi,
 				)
 				prev_element = 'choices'
 			elif choices_list:
@@ -309,29 +347,55 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.') -> in
 				ef_tools.docx_builder.add_choices_paragraph(
 					doc, choices_list, tab_style, items_per_row,
 					image_width=styles['page']['choice_image_max_width'],
-					image_height=styles['page']['choice_image_max_height'])
+					image_height=styles['page']['choice_image_max_height'],
+					source_dpi=choice_source_dpi)
 				prev_element = 'choices'
 			if prompts_list:
-				for index, prompt in enumerate(resolve_choice_images(prompts_list, base_dir)):
-					prompt_prefix = f"___ {question_number + index}. "
-					ef_tools.docx_builder.add_matching_prompt(
-						doc, prompt, prompt_prefix,
-						image_width=styles['page']['image_max_width'],
-						image_height=styles['page']['prompt_image_max_height'],
-						strip_height=styles['page']['prompt_strip_max_height'],
-						strip_min_aspect=styles['page']['prompt_strip_min_aspect'])
+				resolved_prompts = resolve_choice_images(prompts_list, base_dir)
+				prompt_source_dpi = (
+					table_image_source_dpi
+					if any(isinstance(prompt, dict) and prompt.get('html_table')
+							for prompt in resolved_prompts)
+					else None)
+				ef_tools.docx_builder.add_matching_prompts(
+					doc, resolved_prompts,
+					question_number,
+					image_width=styles['page']['image_max_width'],
+					image_height=styles['page']['prompt_image_max_height'],
+					strip_height=styles['page']['prompt_strip_max_height'],
+					strip_min_aspect=styles['page']['prompt_strip_min_aspect'],
+					native_tables=native_tables,
+					source_dpi=prompt_source_dpi)
 				prev_element = 'choices'
+			# Preserved statement tables are the native-table counterpart to the
+			# rasterized images attached by the BBQ parser.
+			html_tables = question.get('html_tables', [])
+			native_statement_tables = (
+				native_tables and html_tables
+				and all(ef_tools.docx_table_builder.supports_html_table(table_html)
+					for table_html in html_tables))
+			if native_statement_tables:
+				for table_html in html_tables:
+					ef_tools.docx_table_builder.add_html_table(doc, table_html)
 			# images (before choices, after question text)
 			image_paths = []
 			image_path = question.get('image', None)
 			if image_path is not None:
 				image_paths.append(image_path)
 			image_paths.extend(question.get('images', []))
+			if native_statement_tables:
+				image_paths = []
 			for current_image_path in image_paths:
 				resolved_image_path = resolve_media_path(current_image_path, base_dir)
 				if os.path.isfile(resolved_image_path):
-					# add image with auto aspect ratio, max width from styles
-					doc.add_picture(resolved_image_path, width=docx.shared.Inches(image_max_width))
+					# Table PNGs use the renderer's 96 CSS-pixel-per-inch
+					# baseline; ordinary external images keep the legacy cap.
+					statement_source_dpi = (
+						table_image_source_dpi if html_tables else None)
+					image_kwargs = ef_tools.docx_builder.fit_picture_kwargs(
+						resolved_image_path, image_max_width,
+						source_dpi=statement_source_dpi)
+					doc.add_picture(resolved_image_path, **image_kwargs)
 					prev_element = 'image'
 			# table
 			table_data = question.get('table', None)
@@ -349,11 +413,23 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.') -> in
 			if choices is not None:
 				choices = resolve_choice_images(choices, base_dir)
 			if choices is not None and len(choices) > 0:
+				choice_source_dpi = (
+					table_image_source_dpi
+					if any(isinstance(choice, dict) and choice.get('html_table')
+							for choice in choices)
+					else None)
+				if try_add_native_table_choices(doc, choices, native_tables):
+					prev_element = 'choices'
+					question_counter += question_span
+					continue
 				if has_image_choice(choices):
 					ef_tools.docx_builder.add_image_choices_tabbed(
 						doc, choices,
 						image_width=styles['page']['choice_image_max_width'],
 						image_height=styles['page']['choice_image_max_height'],
+						wide_image_width=choice_strip_max_width,
+						wide_image_min_aspect=choice_strip_min_aspect,
+						source_dpi=choice_source_dpi,
 					)
 					prev_element = 'choices'
 					question_counter += question_span
@@ -363,7 +439,8 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.') -> in
 				ef_tools.docx_builder.add_choices_paragraph(
 					doc, choices, tab_style, items_per_row,
 					image_width=styles['page']['choice_image_max_width'],
-					image_height=styles['page']['choice_image_max_height'])
+					image_height=styles['page']['choice_image_max_height'],
+					source_dpi=choice_source_dpi)
 				prev_element = 'choices'
 			# increment question counter
 			question_counter += question_span
@@ -395,7 +472,8 @@ def main() -> None:
 			exam_data = yaml.safe_load(f)
 	# build document; relative image paths resolve against the YAML's folder
 	base_dir = os.path.dirname(os.path.abspath(args.input_file))
-	question_count = build_document(exam_data, output_file, base_dir)
+	question_count = build_document(
+		exam_data, output_file, base_dir, native_tables=args.native_tables)
 	print(f"Exam DOCX written to {output_file} ({question_count} questions)")
 
 

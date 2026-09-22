@@ -85,6 +85,47 @@ def test_matching_renders_choices_before_prompts(tmp_path: object) -> None:
 
 
 #============================================
+def test_plain_matching_prompts_share_two_columns(tmp_path: object) -> None:
+	"""Simple numbered blanks pair on one row, with an odd final prompt below."""
+	exam_data = _matching_yaml()
+	output_path = tmp_path / "matching_two_columns.docx"
+	yaml_to_exam_docx.build_document(exam_data, str(output_path))
+	doc = docx.Document(str(output_path))
+	prompt_paras = [
+		paragraph for paragraph in doc.paragraphs
+		if paragraph.style.name == 'Matching Prompt'
+	]
+	assert len(prompt_paras) == 2
+	assert '___ 1.' in prompt_paras[0].text
+	assert '___ 2.' in prompt_paras[0].text
+	assert '___ 3.' in prompt_paras[1].text
+	assert '\t' in prompt_paras[0].text
+	assert prompt_paras[0].paragraph_format.keep_with_next is True
+	assert prompt_paras[1].paragraph_format.keep_with_next is False
+
+
+#============================================
+def test_question_statement_follow_paragraph_uses_compact_style(tmp_path: object) -> None:
+	"""A hard-break continuation of a stem uses Question Follow."""
+	exam_data = _matching_yaml()
+	exam_data['sections'][0]['questions'].insert(0, {
+		'statement': 'A preceding question.',
+		'choices': ['one', 'two', 'three'],
+	})
+	exam_data['sections'][0]['questions'][1]['statement'] = (
+		'Match each term.\nUse each answer once.')
+	output_path = tmp_path / "matching_follow.docx"
+	yaml_to_exam_docx.build_document(exam_data, str(output_path))
+	doc = docx.Document(str(output_path))
+	question_paras = [
+		paragraph for paragraph in doc.paragraphs
+		if paragraph.text.startswith('Q2-4.') or paragraph.text == 'Use each answer once.'
+	]
+	assert [paragraph.style.name for paragraph in question_paras[:2]] == [
+		'Question Heading', 'Question Follow']
+
+
+#============================================
 def test_matching_prompt_style_is_registered_and_applied(tmp_path: object) -> None:
 	"""'Matching Prompt' style must exist in the doc and tag prompt paragraphs.
 

@@ -1,11 +1,12 @@
-"""Convert bptools bbq HTML fragments into exam YAML text and PNG tables.
+"""Convert bptools bbq HTML fragments into exam YAML text and table sources.
 
 bptools question text arrives as HTML: a leading `<p>CRC</p>` code, `<p>`
 and `<h6>` blocks, colored `<span>` wrappers, and drawing `<table>`s (gels,
 chi-square critical values, test-cross counts). The DOCX builder understands
 only the inline tags in ef_tools.text_utils (sub, sup, b, strong, i, em), so
 this module reduces the HTML to that vocabulary and pulls drawing tables out
-for rasterization through qti_package_maker.html_to_image.
+for the rasterized fallback; the original table HTML remains available for
+the optional native DOCX table backend.
 """
 
 # Standard Library
@@ -35,6 +36,31 @@ UNWRAP_TAGS = ('span', 'font', 'a', 'u', 'small', 'big', 'code', 'tt')
 _SPACE_RUN_RE = re.compile(r'[ \t]+')
 _BLANK_LINE_RE = re.compile(r'\n\s*\n+')
 _SPACE_AROUND_NEWLINE_RE = re.compile(r' *\n *')
+_HEX_COLOR_RE = re.compile(r'^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?$')
+
+
+#============================================
+def _span_text_color(element: lxml.html.HtmlElement) -> str | None:
+	"""Return a normalized hex text color from a span's inline style.
+
+	Only the text-color declaration is part of the printable exam contract.
+	Other span CSS (including anti-cheat font sizing) remains presentation
+	metadata and is intentionally discarded.
+	"""
+	style = element.get('style', '')
+	for declaration in style.split(';'):
+		if ':' not in declaration:
+			continue
+		property_name, value = declaration.split(':', 1)
+		if property_name.strip().lower() != 'color':
+			continue
+		color = value.strip()
+		if not _HEX_COLOR_RE.fullmatch(color):
+			return None
+		if len(color) == 4:
+			color = '#' + ''.join(character * 2 for character in color[1:])
+		return color.lower()
+	return None
 
 
 #============================================
@@ -137,6 +163,7 @@ def _emit(element: lxml.html.HtmlElement, parts: list) -> None:
 	# comments and processing instructions carry a callable tag; drop them
 	if not isinstance(tag, str):
 		return
+	span_color = _span_text_color(element) if tag == 'span' else None
 	if tag in HEADING_TAGS:
 		parts.append('\n<b>')
 	elif tag in BLOCK_TAGS:
@@ -147,6 +174,8 @@ def _emit(element: lxml.html.HtmlElement, parts: list) -> None:
 		parts.append('\n')
 	elif tag in INLINE_KEEP_TAGS:
 		parts.append(f'<{tag}>')
+	elif span_color is not None:
+		parts.append(f'<span style="color: {span_color};">')
 	elif tag in UNWRAP_TAGS:
 		pass
 	else:
@@ -163,6 +192,8 @@ def _emit(element: lxml.html.HtmlElement, parts: list) -> None:
 		parts.append('\n')
 	elif tag in INLINE_KEEP_TAGS:
 		parts.append(f'</{tag}>')
+	elif span_color is not None:
+		parts.append('</span>')
 
 
 #============================================
@@ -171,9 +202,9 @@ def clean_inline_html(html: str) -> str:
 
 	Block tags become newlines (the DOCX builder turns each newline into a
 	paragraph), `<h1>`-`<h6>` become bold lines, `<hr>` a line break, `<li>`
-	a dash bullet, styling wrappers such as `<span>` are dropped, HTML
-	comments vanish, and sub/sup/b/strong/i/em are kept as bare tags. Any
-	other tag raises ValueError.
+	a dash bullet, non-color styling wrappers are dropped, HTML comments
+	vanish, and sub/sup/b/strong/i/em plus hex text-color spans are kept.
+	Any other tag raises ValueError.
 
 	Args:
 		html: Statement or choice HTML, tables already removed.

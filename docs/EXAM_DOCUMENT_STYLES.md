@@ -22,7 +22,7 @@ Question Heading is 11pt bold italic with a 0.2 inch left indent and a -0.2 inch
 
 ### Question Follow
 
-Question Follow inherits Question Heading and removes the leading space. The builder selects it after a chapter heading, image, or table so the first question in a new visual section does not receive an unnecessary gap.
+Question Follow inherits Question Heading and removes the leading space. The builder selects it after a chapter heading, image, or table, and for subsequent hard-break paragraphs within one question stem, so consecutive question text stays compact.
 
 ### Matching Prompt
 
@@ -39,15 +39,19 @@ Choice paragraphs use a 0.13 inch left indent and 10pt text. The concrete `Choic
 | 4 | 1.88, 3.63, 5.38 |
 | 5 | 1.53, 2.93, 4.33, 5.73 |
 
-The layout algorithm scores visible text width and selects a concrete `Choices N` style. Text and image choices use paragraph tab stops; they do not use DOCX tables. Image choices are capped by column count and preserve their aspect ratio.
+The layout algorithm scores visible text width and selects a concrete `Choices N` style. Long five-choice sets fall back to one choice per paragraph before text can wrap underneath a neighboring choice. Choice paragraphs have a small configured space before them to separate answer options from the question stem. Text and image choices use paragraph tab stops by default; the optional `--native-tables` mode uses the dedicated table backend for preserved simple HTML tables.
 
 ## Images and tables
 
 - A standalone question image is capped at 5.6 inches wide.
+- Rendered table PNGs use their intrinsic 96 CSS-pixels-per-inch size as an
+  additional upper bound before these caps, so small source tables are not
+  silently enlarged.
 - Image choices use a 3.40 inch global width ceiling, a 2.00 inch height ceiling, and lower per-column caps in the builder.
 - Matching-prompt images use a 1.40 inch height cap.
 - Wide one-row sequence strips with an aspect ratio of at least 4.0 use a 0.40 inch height cap.
-- Question-level data tables are built as DOCX tables; answer-choice rows remain inline tabbed paragraphs.
+- Full-width image choices require the more conservative `choice_strip_min_aspect` threshold (8.0 in the shipped style), keeping shorter matching panels in the ordinary choice layout.
+- Question-level data tables are built as DOCX tables; native HTML table conversion is isolated in `docx_table_builder.py` and is opt-in. The native backup accepts simple logical cell grids, while browser-positioned drawings and `colgroup` layout tables retain their PNG fallback.
 
 ## Page header
 

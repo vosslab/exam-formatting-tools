@@ -46,13 +46,21 @@ def test_split_question_code_without_code_returns_html_unchanged() -> None:
 
 
 #============================================
-def test_clean_inline_html_drops_spans_keeps_bold_and_splits_paragraphs() -> None:
+def test_clean_inline_html_preserves_color_spans_and_splits_paragraphs() -> None:
 	_, rest = ef_tools.bbq_html.split_question_code(CHARGAFF_HTML)
 	cleaned = ef_tools.bbq_html.clean_inline_html(rest)
 	lines = cleaned.split('\n')
 	assert len(lines) == 2
-	assert '<strong>46% is adenine</strong>' in lines[0]
-	assert 'span' not in cleaned
+	assert '<strong><span style="color: #004d00;">46% is adenine</span></strong>' in lines[0]
+
+
+#============================================
+def test_clean_inline_html_drops_non_color_span_css() -> None:
+	"""Unrelated span CSS is not promoted into the printable contract."""
+	cleaned = ef_tools.bbq_html.clean_inline_html(
+		'<p><span style="font-size: 1px; color: white;">hidden</span>'
+		'<span style="background-color: yellow;">visible</span></p>')
+	assert cleaned == 'hiddenvisible'
 
 
 #============================================

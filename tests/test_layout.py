@@ -29,6 +29,14 @@ def test_auto_layout_four_medium_choices_anti_orphan() -> None:
 
 
 #============================================
+def test_auto_layout_four_long_choices_avoid_last_column_wrap() -> None:
+	"""Four choices with a long option use a balanced 2+2 layout."""
+	choices = ["short", "short", "Duchenne muscular dystrophy", "short"]
+	result = ef_tools.layout.auto_layout_for_choices(choices)
+	assert result == (2, 2)
+
+
+#============================================
 def test_auto_layout_very_long_choices() -> None:
 	"""Test very long choices get vertical stack."""
 	# 65 typical ASCII chars at 0.8 width = 52, over max_chars_2 (49)
@@ -44,6 +52,14 @@ def test_auto_layout_five_medium_choices_anti_orphan() -> None:
 	choices = ["a" * 23, "b" * 23, "c" * 23, "d" * 23, "e" * 23]
 	result = ef_tools.layout.auto_layout_for_choices(choices)
 	assert result == (3, 3)
+
+
+#============================================
+def test_auto_layout_five_long_choices_stack_before_wrapping() -> None:
+	"""Long five-choice answers use one row per choice rather than overlap."""
+	choices = [character * 51 for character in "abcde"]
+	result = ef_tools.layout.auto_layout_for_choices(choices)
+	assert result == (1, 1)
 
 
 #============================================

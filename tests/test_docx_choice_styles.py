@@ -62,6 +62,21 @@ def test_text_choices_use_concrete_choices_n_style() -> None:
 	)
 	style_name = doc.paragraphs[-1].style.name
 	assert _CHOICES_N_PATTERN.match(style_name), style_name
+	assert doc.styles['Choice'].paragraph_format.space_before == docx.shared.Pt(4)
+
+
+#============================================
+def test_multirow_choices_stay_together_until_the_final_row() -> None:
+	"""A wrapped answer set moves as a unit when the page has insufficient room."""
+	doc = _make_styled_doc()
+	ef_tools.docx_builder.add_choices_paragraph(
+		doc, ['one', 'two', 'three', 'four', 'five'],
+		tab_style=3, items_per_row=3,
+	)
+	choice_paragraphs = doc.paragraphs
+	assert len(choice_paragraphs) == 2
+	assert choice_paragraphs[0].paragraph_format.keep_with_next is True
+	assert choice_paragraphs[1].paragraph_format.keep_with_next is False
 
 
 #============================================
@@ -121,6 +136,20 @@ def test_choices_n_styles_inherit_from_choice_base() -> None:
 
 
 #============================================
+def test_rich_text_color_span_sets_docx_run_color() -> None:
+	"""A preserved bptools color span becomes a Word run color."""
+	doc = _make_styled_doc()
+	para = doc.add_paragraph()
+	ef_tools.docx_builder.add_rich_text_runs(
+		para, '<strong><span style="color: #9f342d;">A7</span></strong>')
+	assert any(
+		run.text == 'A7'
+		and run.bold is True
+		and str(run.font.color.rgb) == '9F342D'
+		for run in para.runs)
+
+
+#============================================
 def test_matching_choices_list_uses_multi_column_style(tmp_path: object) -> None:
 	"""A matching question's choices_list lands on a Choices [2-5] style.
 
@@ -167,5 +196,3 @@ def test_matching_choices_list_uses_multi_column_style(tmp_path: object) -> None
 	assert choices_paragraph is not None
 	style_name = choices_paragraph.style.name
 	assert _CHOICES_N_PATTERN.match(style_name), style_name
-
-

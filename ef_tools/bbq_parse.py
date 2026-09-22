@@ -129,7 +129,8 @@ def parse_bbq_line(line: str) -> dict | None:
 		None for blank lines and SKIPPED_TYPES. Otherwise a record:
 		{'question': exam YAML dict, 'answer': {'code', 'type', 'letters'},
 		'statement_tables': [html...], 'choice_tables': {index: [html...]}}.
-		Drawing tables are returned as HTML; the caller renders them.
+	Drawing tables are returned as HTML; the caller renders them and may retain
+	the source for the optional native DOCX table backend.
 
 	Raises:
 		UnprintableQuestion: the content has no exam YAML form (see class).
@@ -184,6 +185,8 @@ def attach_table_images(record: dict, statement_paths: list, choice_paths: dict,
 	question = record['question']
 	if statement_paths:
 		question['images'] = list(statement_paths)
+	if record['statement_tables']:
+		question['html_tables'] = list(record['statement_tables'])
 	# choice_paths is keyed by the original bbq choice index; for shuffled
 	# matching lists the answer letters recover the printed position
 	for index, paths in choice_paths.items():
@@ -191,10 +194,12 @@ def attach_table_images(record: dict, statement_paths: list, choice_paths: dict,
 			raise ValueError(f"choice {index} has {len(paths)} tables; one image per choice")
 		target = _choice_dict_for_index(record, index)
 		target['image'] = paths[0]
+		target['html_table'] = record['choice_tables'][index][0]
 	for index, paths in (prompt_paths or {}).items():
 		if len(paths) != 1:
 			raise ValueError(f"prompt {index} has {len(paths)} tables; one image per prompt")
 		question['prompts_list'][index]['image'] = paths[0]
+		question['prompts_list'][index]['html_table'] = record['prompt_tables'][index][0]
 
 
 #============================================

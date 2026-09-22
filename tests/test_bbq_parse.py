@@ -65,12 +65,17 @@ def test_tables_in_statement_choice_and_prompt_become_images(tmp_path: object) -
 	ef_tools.bbq_parse.render_record_tables(record, FakeRenderer(), str(tmp_path / 'q_files'), 'ab12')
 	question = record['question']
 	assert question['images'] == ['q_files/ab12_table_1.png']
+	assert len(question['html_tables']) == 1
+	assert '<table' in question['html_tables'][0]
+	assert 'gel' in question['html_tables'][0]
 	# prompt 0 was a table; prompts keep their order
 	assert question['prompts_list'][0]['image'] == 'q_files/ab12_prompt0_table_1.png'
+	assert '<table' in question['prompts_list'][0]['html_table']
 	assert question['prompts_list'][1] == 'B'
 	# the table match (original index 1) is found through its answer letter
 	letter = record['answer']['letters'][1]
 	assert question['choices_list'][LETTERS.index(letter)]['image'] == 'q_files/ab12_choice1_table_1.png'
+	assert '<table' in question['choices_list'][LETTERS.index(letter)]['html_table']
 	assert (tmp_path / 'q_files' / 'ab12_prompt0_table_1.png').stat().st_size > 0
 
 

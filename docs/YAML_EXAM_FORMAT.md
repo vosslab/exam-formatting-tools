@@ -8,7 +8,7 @@ This document specifies the YAML exam format used by [yaml_to_exam_docx.py](../l
 
 The format describes a printable exam document with sections, questions, choices, images, and tables. It uses sensible defaults (auto-numbering, auto-layout) so minimal YAML produces a complete exam.
 
-To check whether an exam will fit a ZipGrade A-E bubble form, run [validate_zip_grade_yaml.py](../launchers/validate_zip_grade_yaml.py); to build a DOCX containing only ZipGrade-compatible questions, pass `--zip-grade` to [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py). See [USAGE.md](USAGE.md) for both commands.
+To check whether an exam will fit a ZipGrade A-E bubble form, run [validate_zip_grade_yaml.py](../launchers/validate_zip_grade_yaml.py); to build a DOCX containing only ZipGrade-compatible questions, pass `--zip-grade` to [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py). The optional `--native-tables` flag uses preserved simple HTML tables as Word tables and falls back to the normal rasterized drawings for unsupported layouts. See [USAGE.md](USAGE.md) for both commands.
 
 ## Top-level fields
 
@@ -52,6 +52,7 @@ Each question object represents a single exam item.
 | `layout` | integer | no | auto | Choices column layout: 3, 4, or 5 |
 | `image` | string | no | -- | Relative path to an image file |
 | `images` | list of strings | no | -- | Additional relative image paths for questions with multiple figures |
+| `html_tables` | list of strings | no | -- | Preserved statement tables for the optional `--native-tables` DOCX path; rasterized `images` remain the default fallback |
 | `table` | object | no | -- | Data table (see below) |
 
 ### Statement text
@@ -70,8 +71,9 @@ Inline HTML tags are supported for formatting within statement and choice text:
 | `<strong>`, `</strong>` | Bold (alias for `<b>`) | `<strong>key term</strong>` |
 | `<i>`, `</i>` | Italic | `<i>in vivo</i>` |
 | `<em>`, `</em>` | Italic (alias for `<i>`) | `<em>emphasis</em>` |
+| `<span style="color: #RRGGBB;">`, `</span>` | Hex text color | `<span style="color: #ba372a;">FALSE</span>` |
 
-Engines writing exam YAML should preserve these inline HTML tags verbatim in statement and choice text. HTML entities (e.g., `&deg;`) should also be preserved as-is; the builder decodes them at render time.
+Engines writing exam YAML should preserve these inline HTML tags verbatim in statement and choice text. HTML entities (e.g., `&deg;`) should also be preserved as-is; the builder decodes them at render time. Color spans preserve only the six- or three-digit hexadecimal `color` declaration; unrelated span CSS is discarded.
 
 ### Question numbering
 
@@ -105,6 +107,12 @@ choices:
   - image: Final_Exam/Final_Exam_2A_files/titration_b.png.jpg
 ```
 
+The BBQ converters may also add `html_table` to a structured choice or
+prompt object. This preserves the source drawing table beside its PNG
+fallback. `yaml_to_exam_docx.py --native-tables` renders a set of table-based
+choices as labeled native Word tables; nested, malformed, browser-positioned,
+or `colgroup` layout tables continue to use their PNGs.
+
 Image widths are clamped per column count by
 `ef_tools.docx_builder.IMAGE_CHOICE_MAX_WIDTH_BY_COLS`, which sets
 empirical per-column caps that prevent a trailing image from pushing
@@ -128,13 +136,23 @@ is tighter. All images in a row render at one shared height computed
 from the binding-constraint image, and inline-image edge margins
 (`distT`/`distB`/`distL`/`distR`) are zeroed so images pack tight.
 
-**Layout policy: no docx tables for answer choices.** All answer choices --
-text-only and image-based -- are rendered as inline runs in a single paragraph
-positioned with paragraph tab stops, one column per choice. The DOCX builder
-must not emit `<w:tbl>` table elements for choices, even when images are
-present. This applies to MC `choices` and to matching `choices_list`. Data
-tables declared via the question-level `table` field (a separate concept) are
-still rendered as real tables.
+Wide image choices such as DNA sequence strips are detected by aspect ratio
+(`choice_strip_min_aspect`) and rendered one choice per paragraph at up to
+`choice_strip_max_width`. The strip rows are chained with `keep_with_next` so
+a page break moves the complete choice block together instead of leaving one
+large strip orphaned at the bottom of a page.
+
+By default, answer choices -- text-only and ordinary image-based -- are
+rendered as inline runs in paragraphs positioned with paragraph tab stops, one
+column per choice. Wide strip choices use one inline image per paragraph to
+remain readable. With `--native-tables`, a choice set whose entries all carry
+`html_table` is instead rendered as one labeled native Word table per choice;
+unsupported tables retain the PNG fallback. Browser-positioned drawing tables
+and `colgroup`-based layout tables are intentionally unsupported because their
+meaning depends on rendered geometry rather than a logical cell grid. Data
+tables declared via the
+question-level `table` field (a separate concept) are always rendered as real
+tables.
 
 ### Matching
 
@@ -156,7 +174,7 @@ If this question starts at number 5, the DOCX builder renders:
 
 - header `Q5-6. Match each functional group with its description.`
 - lettered options `(A) Energy transfer  (B) C-terminus` (auto-laid-out like MC)
-- numbered blanks `___ 5. Phosphate` and `___ 6. Carboxyl`
+- numbered blanks `___ 5. Phosphate` and `___ 6. Carboxyl` on one two-column row when both prompts are plain text
 - the next question starts at 7.
 
 The lettered choices render before the numbered blanks so students see the
@@ -225,6 +243,13 @@ Override with an explicit `layout` value when needed:
 ```
 
 Images are embedded in the DOCX with their original aspect ratio preserved. A relative image path (question `image`/`images` or a choice `image`) is resolved against the directory of the YAML file, so a YAML and its `<stem>_files/` folder move together. Absolute paths pass through unchanged.
+
+PNG table drawings rendered by the BBQ converters use the browser-standard 96
+CSS-pixels-per-inch baseline from `styles/exam_styles.yaml` before page-role
+caps are applied. This prevents a small source drawing from being enlarged
+just because a large maximum width is available. The source-derived size is
+still clamped by the statement, choice, matching-prompt, and wide-strip caps
+so a large HTML table cannot exceed the printable page.
 
 bptools tables (gels, chi-square critical values, test-cross counts, metabolic pathways, genotype grids) are rendered to PNG by [bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py) and [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) through `qti_package_maker.html_to_image` and listed under `images` (or as a choice `image`); the images render after the full statement text.
 

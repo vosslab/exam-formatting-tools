@@ -16,7 +16,7 @@ Exam mode keeps questions compatible with the ZipGrade A-E form. It retries gene
 
 ## Why are some table drawings PNG files?
 
-Table-cell drawings such as gels, pedigrees, and sequence strips carry visual meaning that plain text cannot preserve. The BBQ path rasterizes them into `<stem>_files/` and records relative image paths in YAML.
+Table-cell drawings such as gels, pedigrees, and sequence strips carry visual meaning that plain text cannot preserve. The default BBQ path rasterizes them into `<stem>_files/` and records relative image paths in YAML. The optional `yaml_to_exam_docx.py --native-tables` path converts supported simple cell grids into editable Word tables; nested, malformed, browser-positioned, and `colgroup` layout drawings retain the PNG fallback.
 
 ## Why is there no direct HTML-to-DOCX command?
 

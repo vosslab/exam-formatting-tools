@@ -86,6 +86,29 @@ def test_add_image_choices_tabbed_inlines_one_image_per_choice(tmp_path: object)
 
 
 #============================================
+def test_wide_image_choices_stack_at_readable_width(tmp_path: object) -> None:
+	"""Wide sequence strips use one full-width row per choice."""
+	import PIL.Image
+	image_paths = []
+	for index in range(4):
+		path = tmp_path / f"strip_{index}.png"
+		PIL.Image.new("RGB", (1400, 80), color="white").save(path)
+		image_paths.append(str(path))
+	choices = [{"text": "", "image": path} for path in image_paths]
+	doc = _make_styled_doc()
+	before = len(doc.paragraphs)
+	ef_tools.docx_builder.add_image_choices_tabbed(
+		doc, choices, image_width=1.49, image_height=2.0,
+		wide_image_width=5.6, wide_image_min_aspect=5.0,
+	)
+	assert len(doc.paragraphs) - before == 4
+	assert len(doc.inline_shapes) == 4
+	# 1400:80 at a 5.6in width is substantially larger than the old
+	# 4-column cap; the test locks the layout decision, not a renderer pixel.
+	assert all(shape.width.inches > 5.0 for shape in doc.inline_shapes)
+
+
+#============================================
 def test_add_image_choices_tabbed_renders_letter_prefixes(tmp_path: object) -> None:
 	"""The paragraph must contain bold (A) (B) (C) prefix runs in order."""
 	image_paths = _write_pngs(tmp_path, 3)
@@ -230,6 +253,23 @@ def test_alt_text_paragraph_emitted_for_meaningful_alt_text(tmp_path: object) ->
 
 
 #============================================
+def test_long_image_captions_stack_to_preserve_choice_mapping(tmp_path: object) -> None:
+	"""Long captions get their own labeled block instead of wrapping across columns."""
+	image_paths = _write_pngs(tmp_path, 5)
+	caption = 'Visual representation of test reactions: OO%O'
+	choices = [{"text": caption, "image": path} for path in image_paths]
+	doc = _make_styled_doc()
+	ef_tools.docx_builder.add_image_choices_tabbed(
+		doc, choices, image_width=3.4, image_height=2.0,
+	)
+	assert len(doc.paragraphs) == 10
+	assert len(doc.inline_shapes) == 5
+	assert all(
+		paragraph.style.name == 'Choices 2'
+		for paragraph in doc.paragraphs)
+
+
+#============================================
 def test_fit_picture_kwargs_picks_height_when_height_binds(tmp_path: object) -> None:
 	"""When the source image is taller than wide and max_height is the
 	tighter bound, fit_picture_kwargs must return height= (not width=)
@@ -254,6 +294,26 @@ def test_fit_picture_kwargs_picks_width_when_width_binds(tmp_path: object) -> No
 		str(wide_png), max_width=1.0, max_height=1.0
 	)
 	assert "width" in kwargs and "height" not in kwargs
+
+
+#============================================
+def test_fit_picture_kwargs_caps_table_png_at_intrinsic_source_size(
+		tmp_path: object) -> None:
+	"""Table PNG sizing uses 96 CSS pixels per inch without upscaling."""
+	import PIL.Image
+	small_png = tmp_path / "small_table.png"
+	PIL.Image.new("RGB", (96, 48), color="white").save(small_png)
+	kwargs = ef_tools.docx_builder.fit_picture_kwargs(
+		str(small_png), max_width=5.6, source_dpi=96,
+	)
+	assert kwargs['width'].inches == 1.0
+
+	large_png = tmp_path / "large_table.png"
+	PIL.Image.new("RGB", (960, 480), color="white").save(large_png)
+	kwargs = ef_tools.docx_builder.fit_picture_kwargs(
+		str(large_png), max_width=5.6, source_dpi=96,
+	)
+	assert kwargs['width'].inches == 5.6
 
 
 #============================================
