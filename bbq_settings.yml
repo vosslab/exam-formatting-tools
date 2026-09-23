@@ -1,6 +1,7 @@
 # Path and script aliases for bbq_tasks_to_exam_yaml.py.
-# Same shape as biology-problems-website/bbq_control/bbq_settings.yml so the
-# website task CSVs work unchanged; this copy is the default (-s overrides).
+# Path and alias structure matches the website settings so its task CSVs work
+# unchanged. For quiz output, YMATCH selects matching and YWHICH selects the
+# Which One? MC variant; the website's YMATCH alias can continue to run both.
 paths:
   bp_root: "~/nsh/PROBLEMS/biology-problems/problems"
   qti_package_maker: "~/nsh/PROBLEMS/qti-package-maker"
@@ -8,8 +9,7 @@ paths:
   bp_mcs: "{bp_root}/multiple_choice_statements"
 
 script_aliases:
-  YMATCH:
-    - "{bp_match}/yaml_match_to_bbq.py"
-    - "{bp_match}/yaml_which_one_mc_to_bbq.py"
+  YMATCH: "{bp_match}/yaml_match_to_bbq.py"
+  YWHICH: "{bp_match}/yaml_which_one_mc_to_bbq.py"
   YMCS: "{bp_mcs}/yaml_mc_statements_to_bbq.py"
   YMMS: "{bp_match}/yaml_make_match_sets.py"

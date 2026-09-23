@@ -9,6 +9,8 @@
   `Question Number` character style for the 2pt outlined question label.
 - HTML drawing tables rasterized through Chromium now use the configured Atkinson Hyperlegible
   Next and Mono fonts, matching the DOCX text styles.
+- The exam task settings now split `YMATCH` (matching) and `YWHICH` (Which One? MC), so each quiz
+  task row selects one format while the website can keep its dual `YMATCH` alias.
 - Added `ef_tools/docx_images.py`, which now owns every picture sizing and placement rule and replaces the sizing helpers that lived in `docx_builder.py` (which was at 958 of the 1000-line limit). It holds two sizing models as two types rather than two branches of one function. `DrawingSizer(scale)` sizes a renderer-produced drawing as `pixels / the PNG's own resolution * scale`, with no bounding box and no clamp. `FitSizer(max_width, max_height, strip_height, strip_min_aspect)` scales an ordinary image to fill a box, and owns the wide-strip height rule. Both expose `kwargs`, `width_inches`, `narrowed`, `row_height` and `fits_columns`, so the layout code never asks which kind it holds.
 - `ef_tools.bbq_html.write_table_pngs` now autocrops the white margin around each rendered drawing (`autocrop_white_border`, a `PIL.ImageChops` bbox plus a 2px bleed so hairline borders are not shaved) and saves the result carrying `RENDER_DPI` in the PNG's pHYs chunk. Cropping changes no pixels-per-inch, so the printed size of the content inside is untouched; only dead margin disappears. The linear-digest restriction maps lose 21% of their height (272 to 214 px) and their surrounding box; the sequence strips are already tight and are unchanged.
 - `ef_tools.docx_images.set_run_baseline_center` adds a signed run-level `w:position` to every inline picture so it centers on its text line, matching LibreOffice's Align Objects -> Base line centered. The As Character anchor is unchanged.
@@ -16,9 +18,9 @@
 
 ### Behavior or Interface Changes
 
-- Question Heading and Question Follow are now regular, non-italic styles. The question label
-  remains selectable text inside a 2pt black rectangular border; matching prompt numbers remain
-  unchanged.
+- Question Heading and Question Follow use regular, non-italic text. Both keep with the next
+  paragraph; answer choice paragraphs do not. The question label remains selectable text inside a
+  2pt black rectangular border; matching prompt numbers remain unchanged.
 - Every rendered drawing in a document now prints at one inches-per-pixel. Verified on a 25-question genetics quiz: all 29 drawings share `0.003646 in/px` (0.7 / 192), so every 48px table row prints at exactly 0.175 in wherever it appears. A drawing wider than the text column overflows the right margin rather than shrink; the instructor resizes those few by hand. `styles/exam_styles.yaml` gains `table_image_scale: 0.7` as the single global knob.
 - `image_max_width`, `choice_image_max_width/height`, `choice_strip_max_width`, `prompt_image_max_height` and `prompt_strip_max_height` no longer apply to rendered drawings; they remain the `FitSizer` boxes for ordinary images. For drawings, `IMAGE_CHOICE_MAX_WIDTH_BY_COLS` became a fit test instead of a cap: a choice row too wide for its columns stacks one per line, which keeps every drawing at the shared scale. The five blood-typing panels now stack at 2.1 in each instead of being squeezed to 1.13 in.
 - The layout helpers take one `sizer` argument in place of `image_width`, `image_height`, `strip_height`, `strip_min_aspect` and `source_dpi`: `add_choice_content`, `add_choices_paragraph`, `add_matching_prompt(s)`, and `add_image_choices_tabbed` (whose `wide_image_width` became `wide_sizer`). The launcher builds the sizers once and `pick_sizer` chooses between them on the presence of `html_table`.
@@ -26,6 +28,11 @@
 
 ### Fixes and Maintenance
 
+- Colored `<span>` markup is now ignored when measuring answer-choice widths, so the five short
+  colored labels in restriction-enzyme questions lay out across one row instead of stacking.
+- Inline `<code>`/`<tt>` runs now translate to direct Atkinson Hyperlegible Mono run formatting;
+  bold and italic still follow surrounding paragraph and markup. The saved DOCX contains no
+  code-specific character style.
 - Fixed rendered tables printing at a different text size in each question. The renderer screenshots CSS pixels at `DEVICE_SCALE_FACTOR = 2`, so its PNGs are 192 px/in, but `styles/exam_styles.yaml` declared `table_image_source_dpi: 96`. Every drawing was therefore believed to be twice its true physical size, blew past its per-slot inch cap, and was clamped -- and clamping normalizes width, not text size, so each drawing landed at its own arbitrary scale. Two identical-looking DNA strips of 924 and 1090 px both clamped to 5.6 in, at 0.58x and 0.49x. The same defect forced the matching-prompt strips to one height, stretching short prompts. Sizing now reads each PNG's recorded resolution.
 - Removed the configured resolution rather than correcting it to 192. A configured value is what allowed the drift in the first place; a drawing that records no resolution now raises a `ValueError` naming the file instead of silently assuming one. Safe to require because nothing downstream is in production yet.
 - Fixed the direction of the baseline-centering offset, caught in a rendered PDF: an inline picture rests its BOTTOM edge on the baseline, so centering means moving it DOWN by half its height. The first implementation raised it instead, lifting each drawing clear of its line and leaving the `(A)` prefix at the picture's bottom edge. `tests/test_docx_builder_image_choices.py` now pins the sign.
@@ -39,6 +46,8 @@
 - `tests/test_docx_builder_image_choices.py` gains the relative-precision contract (drawings of four different pixel widths all report the same inches-per-pixel, at exactly `px / 192 * 0.7`), plus coverage for unclamped overflow, resolution read from the PNG, the missing-resolution error, the column fit test, and the baseline offset. `tests/test_bbq_html.py` covers autocrop, a blank render left intact, and the pHYs round trip; its `FakeRenderer` and the one in `tests/test_bbq_parse.py` now return real PNG bytes, because the writer decodes what the renderer hands it.
 - PNG stores resolution in pixels per metre, so 192 dpi round-trips as 191.9986. The residue is far below one EMU of rendered width; the tests allow for it rather than rounding it away.
 - Full lane green: 1522 passed.
+- The focused DOCX pagination/style checks pass (44 tests). The latest 25-question `quiz1.pdf` has
+  7 pages, down from 8; all seven rendered pages were visually reviewed.
 
 ## 2026-09-21
 

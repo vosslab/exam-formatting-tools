@@ -7,10 +7,11 @@ file such as bbq_control/task_files/genetics_tasks1.csv works unchanged:
 	genetics,dna_structure,{bp_root}/molecular_biology-problems/chargaff_dna_percent.py,,,
 	genetics,mendelian,YMATCH,,{bp_match}/inheritance/genetics_terminology.yml,
 
-Path aliases ({bp_root}, {bp_match}, ...) and script aliases (YMATCH, YMCS)
-come from the website bbq_settings.yml. A script alias may expand to several
-scripts; each becomes its own task. A row with blank script and blank flags
-is a separator.
+Path aliases ({bp_root}, {bp_match}, ...) and script aliases come from
+bbq_settings.yml. A script alias may expand to several scripts; each becomes
+its own task. The local quiz settings split YMATCH (matching) from YWHICH
+(Which One? MC); the website can retain its dual YMATCH alias. A row with
+blank script and blank flags is a separator.
 """
 
 # Standard Library

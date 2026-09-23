@@ -57,6 +57,25 @@ def set_font_with_fallback(style: object, primary: str, fallback: str) -> None:
 
 
 #============================================
+def set_run_font_from_style(run: object, source_style: object) -> None:
+	"""Copy a style's font family settings onto a run directly."""
+	source_rpr = source_style.element.get_or_add_rPr()
+	source_rfonts = source_rpr.find(docx.oxml.ns.qn('w:rFonts'))
+	if source_rfonts is None:
+		return
+	run_rpr = run._element.get_or_add_rPr()
+	run_rfonts = run_rpr.find(docx.oxml.ns.qn('w:rFonts'))
+	if run_rfonts is None:
+		run_rfonts = docx.oxml.OxmlElement('w:rFonts')
+		run_rpr.insert(0, run_rfonts)
+	for attribute in ('ascii', 'hAnsi', 'cs'):
+		qname = docx.oxml.ns.qn(f'w:{attribute}')
+		value = source_rfonts.get(qname)
+		if value is not None:
+			run_rfonts.set(qname, value)
+
+
+#============================================
 def set_character_style_border(style: object, width_pt: float,
 		padding_pt: float) -> None:
 	"""Set a rectangular border around text using a character style."""
@@ -144,9 +163,10 @@ def setup_styles(doc: docx.Document, styles: dict) -> None:
 	qf.base_style = qh
 	qf.paragraph_format.space_before = docx.shared.Pt(0)
 	qf.paragraph_format.space_after = docx.shared.Inches(spacing['question_space_after'])
+	qf.paragraph_format.keep_with_next = True
 
-	# Inline code uses a dedicated character style so source text remains
-	# selectable and editable in Word.
+	# A temporary style carries the configured monospace font; rich-text runs
+	# copy its settings directly, then the style is removed before saving.
 	code_style = doc.styles.add_style(
 		'Exam Code', docx.enum.style.WD_STYLE_TYPE.CHARACTER)
 	set_font_with_fallback(
@@ -199,6 +219,7 @@ def setup_styles(doc: docx.Document, styles: dict) -> None:
 	choice_base.paragraph_format.space_before = docx.shared.Pt(
 		spacing['choice_space_before_pt'])
 	choice_base.paragraph_format.space_after = docx.shared.Pt(spacing['normal_space_after_pt'])
+	choice_base.paragraph_format.keep_with_next = False
 
 	# Header: small font for page headers with center and right tab stops
 	# modify the built-in Header style (not add_style)
@@ -246,6 +267,7 @@ def setup_styles(doc: docx.Document, styles: dict) -> None:
 	for n in range(2, 6):
 		style = doc.styles.add_style(f'Choices {n}', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
 		style.base_style = choice_base
+		style.paragraph_format.keep_with_next = False
 		# add tab stops so switching styles in Word preserves column alignment
 		stops = tab_stops_config.get(n, tab_stops_config.get(str(n), []))
 		for pos in stops:
@@ -355,8 +377,9 @@ def add_rich_text_runs(para: object, text: str) -> None:
 	tags by creating separate runs with appropriate font properties.
 	HTML entities are decoded first, then rich text tags are parsed.
 
-	Font size, base bold, and base italic come from the paragraph style.
-	Only rich text tags add run-level overrides.
+	Font size and inherited bold or italic come from the paragraph style. A
+	code tag adds only a direct monospace font-family setting; it does not
+	change bold or italic. Explicit rich-text tags can override those styles.
 
 	Args:
 		para: The paragraph to add runs to.
@@ -375,7 +398,8 @@ def add_rich_text_runs(para: object, text: str) -> None:
 			continue
 		run = para.add_run(flat_text)
 		if 'code' in tags:
-			run.style = 'Exam Code'
+			code_style = para.part.styles['Exam Code']
+			set_run_font_from_style(run, code_style)
 		# only set run-level overrides for rich text tags
 		if 'b' in tags:
 			run.font.bold = True
@@ -388,6 +412,13 @@ def add_rich_text_runs(para: object, text: str) -> None:
 		for tag in tags:
 			if tag.startswith('color:'):
 				run.font.color.rgb = parse_hex_color(tag.split(':', 1)[1])
+
+
+#============================================
+def remove_temporary_code_style(doc: docx.Document) -> None:
+	"""Remove the temporary font settings donor before writing the DOCX."""
+	code_style = doc.styles['Exam Code']
+	doc.styles.element.remove(code_style.element)
 
 
 # regex to split text on hard paragraph breaks: literal \n or <br> tags
@@ -554,11 +585,6 @@ def add_matching_prompts(doc: object, prompts: list, start_number: int,
 	columns. Prompts with images, tables, or hard paragraph breaks retain the
 	one-prompt-per-paragraph behavior because their content needs a full row.
 	"""
-	# Bridge the answer choices into the numbered prompt block. This keeps a
-	# matching question from leaving its choices on one page and its blanks on
-	# the next when the complete block fits on the following page.
-	if doc.paragraphs:
-		doc.paragraphs[-1].paragraph_format.keep_with_next = True
 	index = 0
 	while index < len(prompts):
 		prompt = prompts[index]
@@ -635,7 +661,6 @@ def _add_captioned_image_choices_stacked(doc: docx.Document, choices: list,
 		para = doc.add_paragraph()
 		para.style = doc.styles[style_name]
 		para.paragraph_format.space_after = docx.shared.Pt(0)
-		para.paragraph_format.keep_with_next = True
 		letter = chr(ord('A') + index)
 		prefix = para.add_run(f"({letter})")
 		prefix.bold = True
@@ -647,7 +672,6 @@ def _add_captioned_image_choices_stacked(doc: docx.Document, choices: list,
 		caption.style = doc.styles[style_name]
 		caption.paragraph_format.space_before = docx.shared.Pt(0)
 		caption.paragraph_format.space_after = docx.shared.Pt(0)
-		caption.paragraph_format.keep_with_next = index < len(choices) - 1
 		add_rich_text_runs(caption, ef_tools.layout.choice_text(choice))
 
 
@@ -664,9 +688,6 @@ def _add_wide_image_choices_stacked(doc: docx.Document, choices: list,
 			para.paragraph_format.space_before = docx.shared.Pt(0)
 		if index < len(choices) - 1 or meaningful_alt:
 			para.paragraph_format.space_after = docx.shared.Pt(0)
-		# Chain the rows so Word moves the complete strip-choice block to the
-		# next page when the current page has room for only part of it.
-		para.paragraph_format.keep_with_next = index < len(choices) - 1 or meaningful_alt
 		letter = chr(ord('A') + index)
 		prefix = para.add_run(f"({letter})")
 		prefix.bold = True
@@ -679,7 +700,6 @@ def _add_wide_image_choices_stacked(doc: docx.Document, choices: list,
 			caption.style = doc.styles[style_name]
 			caption.paragraph_format.space_before = docx.shared.Pt(0)
 			caption.paragraph_format.space_after = docx.shared.Pt(0)
-			caption.paragraph_format.keep_with_next = index < len(choices) - 1
 			caption_prefix = caption.add_run(f"({letter}) ")
 			caption_prefix.bold = True
 			add_rich_text_runs(caption, ef_tools.layout.choice_text(choice))
@@ -748,7 +768,6 @@ def add_image_choices_tabbed(doc: docx.Document, choices: list,
 	# choice_indent so all inter-column gaps render evenly.
 	combined_para = doc.add_paragraph()
 	combined_para.style = doc.styles[style_name]
-	combined_para.paragraph_format.keep_with_next = True
 	combined_para.paragraph_format.space_after = docx.shared.Pt(0)
 	# unify height across the row: a fitted sizer reports the smallest height
 	# any image in the row would take, and every image is forced to it, which
@@ -790,7 +809,6 @@ def add_image_choices_tabbed(doc: docx.Document, choices: list,
 		alt_para = doc.add_paragraph()
 		alt_para.style = doc.styles[style_name]
 		alt_para.paragraph_format.space_before = docx.shared.Pt(0)
-		alt_para.paragraph_format.keep_with_next = True
 		for index, choice in enumerate(choices):
 			if index > 0:
 				alt_para.add_run("\t")
@@ -833,9 +851,6 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 	for row_index, row_choices in enumerate(rows):
 		para = doc.add_paragraph()
 		para.style = doc.styles[style_name]
-		# Keep a multi-row answer set together; the final row remains free to
-		# separate from the following question.
-		para.paragraph_format.keep_with_next = row_index < len(rows) - 1
 		# rows after the first should sit flush against the prior row;
 		# all rows except the last drop trailing space so the choices
 		# group reads as one unit visually

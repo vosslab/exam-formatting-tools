@@ -431,6 +431,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 			question_counter += question_span
 
 	# save document
+	ef_tools.docx_builder.remove_temporary_code_style(doc)
 	doc.save(output_path)
 	return question_total
 

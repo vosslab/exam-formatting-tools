@@ -108,13 +108,16 @@ skipped. Drawing tables (gels, chi-square tables) are rendered to
 
 `bbq_tasks_to_exam_yaml.py` reads the website task CSV format unchanged
 (`subject,topic,script,flags,input,notes`; `{bp_root}`/`YMATCH`-style aliases
-come from the repo's [bbq_settings.yml](../bbq_settings.yml), a copy of the
-website's; pass `-s` to use another) and contributes **one question per
-resolved task**. A
-list alias such as `YMATCH` expands to two scripts and therefore two
-questions. Each generator runs with `-d 1 -x 1`; an unusable candidate
-(skipped bbq type, or exam-mode rejection) triggers a fresh run, up to three
-attempts, then the task is reported as `SKIPPED` on stderr and left out.
+come from the repo's [bbq_settings.yml](../bbq_settings.yml), whose paths
+follow the website settings; pass `-s` to use another) and contributes **one
+question per resolved task**. The quiz settings define `YMATCH` as the
+Matching generator and `YWHICH` as the "Which One?" multiple-choice
+generator, so each matching task row chooses exactly one of those formats.
+The website can keep its existing dual `YMATCH` alias. List-valued aliases in other settings
+still expand to one task per script. Each generator runs with `-d 1 -x 1`; an
+unusable candidate (skipped bbq type, or exam-mode rejection) triggers a
+fresh run, up to three attempts, then the task is reported as `SKIPPED` on
+stderr and left out.
 
 ```csv
 subject,topic,script,flags,input,notes
@@ -123,6 +126,10 @@ genetics,dna_structure,YMCS,,{bp_mcs}/biochemistry/dna_structure.yml,
 genetics,mendelian,YMATCH,,{bp_match}/inheritance/genetics_terminology.yml,
 genetics,dna_profiling,{bp_root}/dna_profiling-problems/who_father_html.py,--easy,,
 ```
+
+Use `YMATCH` for the matching version or `YWHICH` for the "Which One?" MC
+version of a YAML source. The website's own `YMATCH` alias may continue
+generating both formats.
 
 Quiz (default: any MC/MA/MAT/ORD, any number of choices):
 

@@ -22,7 +22,8 @@ def _exam_data() -> dict:
 						"number": 12,
 						"statement": (
 							"Plain <code>ATGC</code> with <tt>GCTA</tt> and "
-							"<b>explicit emphasis</b>."
+							"<b>explicit emphasis</b> and "
+							"<strong><i><code>GCAT</code></i></strong>."
 							"\nQuestion continuation."
 						),
 						"choices": ["A", "B"],
@@ -40,7 +41,7 @@ def _exam_data() -> dict:
 
 
 #============================================
-def test_question_labels_are_boxed_and_question_text_is_regular(
+def test_question_labels_are_boxed_and_question_text_uses_configured_emphasis(
 		tmp_path: object) -> None:
 	"""Question labels get a 2pt box; question prose uses accessible fonts."""
 	output_path = tmp_path / "question_styles.docx"
@@ -48,7 +49,7 @@ def test_question_labels_are_boxed_and_question_text_is_regular(
 	doc = docx.Document(str(output_path))
 	paragraphs = {para.text: para for para in doc.paragraphs}
 	question_para = paragraphs[
-		"12. Plain ATGC with GCTA and explicit emphasis."]
+		"12. Plain ATGC with GCTA and explicit emphasis and GCAT."]
 	follow_para = paragraphs["Question continuation."]
 	matching_para = paragraphs["Q13-14. Match the terms."]
 
@@ -62,6 +63,8 @@ def test_question_labels_are_boxed_and_question_text_is_regular(
 	assert question_follow_style.base_style == question_heading_style
 	assert question_follow_style.font.bold is None
 	assert question_follow_style.font.italic is None
+	assert question_heading_style.paragraph_format.keep_with_next is True
+	assert question_follow_style.paragraph_format.keep_with_next is True
 
 	label_run = question_para.runs[0]
 	assert label_run.text == "12."
@@ -85,8 +88,15 @@ def test_question_labels_are_boxed_and_question_text_is_regular(
 		assert doc.styles[style_name].font.name == "Atkinson Hyperlegible Next"
 	code_runs = [run for run in question_para.runs if run.text in ("ATGC", "GCTA")]
 	assert len(code_runs) == 2
-	assert all(run.style.name == "Exam Code" for run in code_runs)
-	assert doc.styles["Exam Code"].font.name == "Atkinson Hyperlegible Mono"
+	assert all(run.font.name == "Atkinson Hyperlegible Mono" for run in code_runs)
+	assert all(run.font.bold is None for run in code_runs)
+	assert all(run.font.italic is None for run in code_runs)
+	assert all(style.name != "Exam Code" for style in doc.styles)
+	explicit_code_run = next(
+		run for run in question_para.runs if run.text == "GCAT")
+	assert explicit_code_run.font.name == "Atkinson Hyperlegible Mono"
+	assert explicit_code_run.bold is True
+	assert explicit_code_run.italic is True
 	explicit_bold_run = next(
 		run for run in question_para.runs if run.text == "explicit emphasis")
 	assert explicit_bold_run.bold is True

@@ -157,9 +157,9 @@ assert parse_rich_text("<em>y</em>") == [
 
 
 #============================================
-# pattern to strip supported inline tags while preserving inner text
+# pattern to strip supported inline tags and color spans, preserving inner text
 _INLINE_TAG_STRIP_PATTERN = re.compile(
-	r'</?(?:sub|sup|b|strong|i|em|code|tt)>',
+	r'</?(?:sub|sup|b|strong|i|em|code|tt)>|</?span\b[^>]*>',
 	re.IGNORECASE,
 )
 # pattern to collapse runs of whitespace to a single space

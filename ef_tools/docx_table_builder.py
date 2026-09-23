@@ -253,16 +253,10 @@ def add_native_table_choices_stacked(doc: object, choices: list) -> None:
 		para = doc.add_paragraph()
 		para.style = doc.styles[style_name]
 		para.paragraph_format.space_after = docx.shared.Pt(0)
-		para.paragraph_format.keep_with_next = True
 		label = para.add_run(f"({chr(ord('A') + index)})")
 		label.bold = True
 		choice_text = ef_tools.layout.choice_text(choice)
 		if choice_text:
 			para.add_run(" ")
 			ef_tools.docx_builder.add_rich_text_runs(para, choice_text)
-		table = add_html_table(doc, choice['html_table'])
-		if index < len(choices) - 1:
-			# Keep the next choice label attached to this table when Word
-			# paginates the optional full-width native-table block.
-			last_cell = table.rows[-1].cells[-1]
-			last_cell.paragraphs[-1].paragraph_format.keep_with_next = True
+		add_html_table(doc, choice['html_table'])

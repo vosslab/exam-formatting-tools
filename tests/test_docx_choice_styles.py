@@ -67,8 +67,8 @@ def test_text_choices_use_concrete_choices_n_style() -> None:
 
 
 #============================================
-def test_multirow_choices_stay_together_until_the_final_row() -> None:
-	"""A wrapped answer set moves as a unit when the page has insufficient room."""
+def test_choice_rows_do_not_keep_with_the_next_paragraph() -> None:
+	"""Choice rows can flow independently across page boundaries."""
 	doc = _make_styled_doc()
 	ef_tools.docx_builder.add_choices_paragraph(
 		doc, ['one', 'two', 'three', 'four', 'five'],
@@ -76,8 +76,14 @@ def test_multirow_choices_stay_together_until_the_final_row() -> None:
 	)
 	choice_paragraphs = doc.paragraphs
 	assert len(choice_paragraphs) == 2
-	assert choice_paragraphs[0].paragraph_format.keep_with_next is True
-	assert choice_paragraphs[1].paragraph_format.keep_with_next is False
+	assert all(
+		paragraph.paragraph_format.keep_with_next is not True
+		and paragraph.style.paragraph_format.keep_with_next is False
+		for paragraph in choice_paragraphs
+	)
+	assert doc.styles['Choice'].paragraph_format.keep_with_next is False
+	for style_name in ('Choices 2', 'Choices 3', 'Choices 4', 'Choices 5'):
+		assert doc.styles[style_name].paragraph_format.keep_with_next is False
 
 
 #============================================
@@ -91,6 +97,11 @@ def test_long_text_choices_avoid_bare_choice_style() -> None:
 	)
 	style_name = doc.paragraphs[-1].style.name
 	assert _CHOICES_N_PATTERN.match(style_name), style_name
+	assert all(
+		paragraph.paragraph_format.keep_with_next is not True
+		and paragraph.style.paragraph_format.keep_with_next is False
+		for paragraph in doc.paragraphs
+	)
 
 
 #============================================

@@ -143,9 +143,8 @@ from the binding-constraint image, and inline-image edge margins
 
 Wide image choices such as DNA sequence strips are detected by aspect ratio
 (`choice_strip_min_aspect`) and rendered one choice per paragraph at up to
-`choice_strip_max_width`. The strip rows are chained with `keep_with_next` so
-a page break moves the complete choice block together instead of leaving one
-large strip orphaned at the bottom of a page.
+`choice_strip_max_width`. Each strip occupies its own paragraph and can flow
+independently across page breaks.
 
 By default, answer choices -- text-only and ordinary image-based -- are
 rendered as inline runs in paragraphs positioned with paragraph tab stops, one
@@ -298,6 +297,9 @@ The builder applies these named paragraph styles automatically:
 | Standard | Default body text |
 
 Style selection between "Question Heading" and "Question Follow" is automatic based on the preceding element.
+Question Heading and Question Follow keep with the next paragraph; answer-choice
+styles do not. This keeps question text attached while allowing choices to flow
+independently across pages.
 
 ## Date handling
 

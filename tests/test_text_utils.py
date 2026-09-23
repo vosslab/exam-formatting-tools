@@ -1,5 +1,6 @@
 """Test text_utils module."""
 
+import ef_tools.layout
 import ef_tools.text_utils
 
 
@@ -110,6 +111,27 @@ def test_choice_visible_text_strips_code_markup() -> None:
 	"""Code formatting does not alter the text used for choice layout."""
 	result = ef_tools.text_utils.choice_visible_text("<code>ATGC</code>")
 	assert result == "ATGC"
+
+
+#============================================
+def test_colored_choices_fit_five_column_layout() -> None:
+	"""Color spans do not make short visible choice text look too wide."""
+	choices = [
+		'<span style="color: #b30077;">sticky end</span>',
+		'<span style="color: #e65400;">overhang end</span>',
+		'<span style="color: #009900;">blunt end</span>',
+		'<span style="color: #0a9bf5;">hanger end</span>',
+		'<span style="color: #004d99;">straight edge</span>',
+	]
+	layout_limits = {
+		'max_chars_5': 17,
+		'max_chars_4': 17,
+		'max_chars_3': 30,
+		'max_chars_2': 49,
+	}
+
+	result = ef_tools.layout.auto_layout_for_choices(choices, layout_limits)
+	assert result == (5, 5)
 
 
 #============================================
