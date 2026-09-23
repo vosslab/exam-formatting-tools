@@ -1,11 +1,14 @@
 """Protect a synthetic task-CSV-to-YAML-to-DOCX workflow."""
 
+import io
 import pathlib
 import sys
 
 import docx
+import PIL.Image
 import yaml
 
+import bbq_to_exam_yaml
 import bbq_tasks_to_exam_yaml
 import ef_tools.bbq_parse
 import ef_tools.bbq_tasks
@@ -22,6 +25,11 @@ class EmptyTableRenderer:
 	def __exit__(self, exc_type: object, exc_value: object,
 			traceback: object) -> bool:
 		return False
+
+	def render_mathml_png(self, mathml_html: str) -> bytes:
+		buffer = io.BytesIO()
+		PIL.Image.new('RGB', (72, 28), color='white').save(buffer, format='PNG')
+		return buffer.getvalue()
 
 
 #============================================
@@ -60,9 +68,11 @@ def test_task_csv_aliases_reach_exam_yaml_and_docx(
 	}
 
 	def fake_generate_question(task: dict, pythonpath: str,
-			reject_fn: object) -> tuple:
+			reject_fn: object, math_renderer: object = None) -> tuple:
 		line = lines[pathlib.Path(task['script']).name]
-		return ef_tools.bbq_parse.parse_bbq_line(line), ''
+		record = ef_tools.bbq_parse.parse_bbq_line(
+			line, math_renderer=math_renderer)
+		return record, ''
 
 	class_renderer = bbq_tasks_to_exam_yaml.qti_package_maker.html_to_image.render_table
 	monkeypatch.setattr(class_renderer, 'TableRenderer', EmptyTableRenderer)
@@ -108,3 +118,67 @@ def test_task_csv_aliases_reach_exam_yaml_and_docx(
 		run.font.name == 'IBM Plex Sans Condensed'
 		for run in choice_paragraph.runs if 'Correct choice' in run.text)
 	assert all('<p>' not in text for text in paragraph_text)
+
+
+#============================================
+def test_task_collector_passes_renderer_for_mathml_choices(
+			tmp_path: pathlib.Path, monkeypatch: object) -> None:
+	"""Task-imported MathML choices are saved as exam-relative PNG assets."""
+	equation = (
+		'<math xmlns="http://www.w3.org/1998/Math/MathML">'
+		'<mi>pH</mi><mo>=</mo><mfenced><mfrac>'
+		'<mrow><mi>A</mi></mrow><mrow><mi>HA</mi></mrow>'
+		'</mfrac></mfenced></math>')
+	line = (
+		'MC\t<p>ef90</p><p>Pick the correct equation.</p>'
+		'\t' + equation + '\tCorrect\tOther\tIncorrect')
+
+	def fake_generate_question(task: dict, pythonpath: str,
+			reject_fn: object, math_renderer: object = None) -> tuple:
+		record = ef_tools.bbq_parse.parse_bbq_line(
+			line, math_renderer=math_renderer)
+		return record, ''
+
+	monkeypatch.setattr(
+		bbq_tasks_to_exam_yaml.qti_package_maker.html_to_image.render_table,
+		'TableRenderer', EmptyTableRenderer)
+	monkeypatch.setattr(
+		ef_tools.bbq_tasks, 'generate_question', fake_generate_question)
+	task = {'label': 'Henderson-Hasselbalch.py', 'topic': 'buffers'}
+	media_dir = tmp_path / 'exam_files'
+	sections, answers, sources, skipped = bbq_tasks_to_exam_yaml.collect_questions(
+		[task], '', lambda question: '', str(media_dir))
+	question = sections[0]['questions'][0]
+	image_path = question['choices'][0]['image']
+	assert image_path.startswith('exam_files/')
+	with PIL.Image.open(tmp_path / image_path) as image:
+		assert image.size == (72, 28)
+	assert answers[0]['code'] == 'ef90'
+	assert sources == ['Henderson-Hasselbalch.py']
+	assert skipped == []
+
+
+#============================================
+def test_legacy_bbq_importer_renders_mathml_choice_asset(
+			tmp_path: pathlib.Path, monkeypatch: object) -> None:
+	"""The legacy text-file entry point saves equations through the same path."""
+	equation = (
+		'<math xmlns="http://www.w3.org/1998/Math/MathML">'
+		'<mi>pH</mi><mo>=</mo><mfenced><mfrac>'
+		'<mrow><mi>A</mi></mrow><mrow><mi>HA</mi></mrow>'
+		'</mfrac></mfenced></math>')
+	input_path = tmp_path / 'equation.txt'
+	input_path.write_text(
+		'MC\t<p>ef90</p><p>Pick the equation.</p>\t'
+		+ equation + '\tCorrect\tOther\tIncorrect', encoding='utf-8')
+	yaml_path = tmp_path / 'legacy.yml'
+	monkeypatch.setattr(
+		bbq_to_exam_yaml.qti_package_maker.html_to_image.render_table,
+		'TableRenderer', EmptyTableRenderer)
+	monkeypatch.setattr(sys, 'argv', [
+		'bbq_to_exam_yaml.py', '-i', str(input_path), '-o', str(yaml_path)])
+	bbq_to_exam_yaml.main()
+	exam_data = yaml.safe_load(yaml_path.read_text(encoding='utf-8'))
+	image_path = exam_data['sections'][0]['questions'][0]['choices'][0]['image']
+	with PIL.Image.open(tmp_path / image_path) as image:
+		assert image.size == (72, 28)

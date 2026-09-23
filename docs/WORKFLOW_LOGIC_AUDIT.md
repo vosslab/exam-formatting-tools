@@ -34,10 +34,10 @@ converter path at a time, using its existing pipeline behavior as the contract.
 [html_to_exam_yaml.py](../launchers/html_to_exam_yaml.py#L608) refuses to write
 when its YAML destination already exists. In contrast,
 [docx_to_exam_yaml.py](../launchers/docx_to_exam_yaml.py#L63) reuses the image
-directory, overwrites deterministic `exam_image_*` files at lines 99–104, then
-truncates the YAML output at lines 456–458. The
+directory, overwrites deterministic `exam_image_*` files at lines 99-104, then
+truncates the YAML output at lines 456-458. The
 [okla_to_exam_yaml.py](../launchers/okla_to_exam_yaml.py#L240) also truncates
-its YAML destination at lines 242–250. A failed multi-file conversion can
+its YAML destination at lines 242-250. A failed multi-file conversion can
 therefore leave replaced media alongside old or missing YAML, while another
 converter fails early on the same collision.
 

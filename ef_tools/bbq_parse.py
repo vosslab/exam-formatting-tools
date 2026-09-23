@@ -14,6 +14,7 @@ are positions ("Position 1", "Position 2", ...).
 """
 
 # Standard Library
+import os
 import random
 
 # local repo modules
@@ -38,15 +39,21 @@ class UnprintableQuestion(ValueError):
 
 
 #============================================
-def _clean_field(html: str) -> tuple:
-	"""Reduce one bbq HTML field to exam text and its drawing tables."""
+def _clean_field(html: str, rendered_images: dict, field_name: str,
+			math_renderer: object) -> tuple:
+	"""Reduce one bbq field to text, tables, and standalone generated images."""
+	html = ef_tools.bbq_html.render_mathml_equations(
+		html, rendered_images, math_renderer, field_name)
+	html = ef_tools.bbq_html.render_rdkit_canvases(html, rendered_images, field_name)
+	image_refs = ef_tools.bbq_html.standalone_rendered_image_refs(html)
 	remaining, tables = ef_tools.bbq_html.pull_tables(html)
 	text = ef_tools.bbq_html.clean_inline_html(remaining)
-	return text, tables
+	return text, tables, image_refs
 
 
 #============================================
-def _clean_choice_fields(raw_choices: list) -> tuple:
+def _clean_choice_fields(raw_choices: list, rendered_images: dict,
+			field_name: str, math_renderer: object) -> tuple:
 	"""Clean a list of choice/match/item fields.
 
 	Returns:
@@ -57,14 +64,25 @@ def _clean_choice_fields(raw_choices: list) -> tuple:
 	items = []
 	choice_tables = {}
 	for index, raw in enumerate(raw_choices):
-		text, tables = _clean_field(raw)
+		text, tables, image_refs = _clean_field(
+			raw, rendered_images, f"{field_name} {index + 1}", math_renderer)
 		# a choice or prompt dict holds one image; several sibling tables in
 		# one field have no exam YAML form
 		if len(tables) > 1:
 			raise UnprintableQuestion(f"field {index} holds {len(tables)} tables")
+		if len(image_refs) > 1:
+			raise ValueError(
+				f"{field_name} {index + 1} has {len(image_refs)} standalone "
+				"molecule images; one image per choice is supported")
+		if tables and image_refs:
+			raise ValueError(
+				f"{field_name} {index + 1} combines a table with a standalone "
+				"molecule image")
 		if tables:
 			items.append({'text': text, 'image': None})
 			choice_tables[index] = tables
+		elif image_refs:
+			items.append({'text': text, 'image': image_refs[0]})
 		else:
 			items.append(text)
 	return items, choice_tables
@@ -77,9 +95,12 @@ def _is_correct(status: str) -> bool:
 
 
 #============================================
-def _parse_mc(parts: list) -> tuple:
+def _parse_mc(parts: list, rendered_images: dict, question_code: str,
+			math_renderer: object) -> tuple:
 	"""MC and MA: choices at even offsets, status markers at odd offsets."""
-	choices, choice_tables = _clean_choice_fields(parts[2::2])
+	choices, choice_tables = _clean_choice_fields(
+		parts[2::2], rendered_images, f"question {question_code} choice",
+		math_renderer)
 	statuses = parts[3::2]
 	letters = [LETTERS[i] for i, status in enumerate(statuses) if _is_correct(status)]
 	question = {'choices': choices}
@@ -101,34 +122,44 @@ def _shuffled_matching(prompts: list, answers: list) -> tuple:
 
 
 #============================================
-def _parse_mat(parts: list) -> tuple:
+def _parse_mat(parts: list, rendered_images: dict, question_code: str,
+			math_renderer: object) -> tuple:
 	"""MAT: prompt/match pairs in answer order."""
-	prompts, prompt_tables = _clean_choice_fields(parts[2::2])
-	matches, choice_tables = _clean_choice_fields(parts[3::2])
+	prompts, prompt_tables = _clean_choice_fields(
+		parts[2::2], rendered_images, f"question {question_code} prompt",
+		math_renderer)
+	matches, choice_tables = _clean_choice_fields(
+		parts[3::2], rendered_images, f"question {question_code} choice",
+		math_renderer)
 	question, letters = _shuffled_matching(prompts, matches)
 	return question, letters, choice_tables, prompt_tables
 
 
 #============================================
-def _parse_ord(parts: list) -> tuple:
+def _parse_ord(parts: list, rendered_images: dict, question_code: str,
+			math_renderer: object) -> tuple:
 	"""ORD: items in correct order become position blanks plus shuffled items."""
-	items, choice_tables = _clean_choice_fields(parts[2:])
+	items, choice_tables = _clean_choice_fields(
+		parts[2:], rendered_images, f"question {question_code} choice",
+		math_renderer)
 	prompts = [f"Position {i + 1}" for i in range(len(items))]
 	question, letters = _shuffled_matching(prompts, items)
 	return question, letters, choice_tables, {}
 
 
 #============================================
-def parse_bbq_line(line: str) -> dict | None:
+def parse_bbq_line(line: str, math_renderer: object = None) -> dict | None:
 	"""Parse one bbq line.
 
 	Args:
 		line: Tab-separated bbq question line.
+		math_renderer: Optional TableRenderer used when the line contains MathML.
 
 	Returns:
 		None for blank lines and SKIPPED_TYPES. Otherwise a record:
 		{'question': exam YAML dict, 'answer': {'code', 'type', 'letters'},
-		'statement_tables': [html...], 'choice_tables': {index: [html...]}}.
+		'rendered_images': opaque PNG references used until media files are saved,
+		plus the parsed question and its table sources.
 	Drawing tables are returned as HTML; the caller renders them and may retain
 	the source for the optional native DOCX table backend.
 
@@ -143,16 +174,25 @@ def parse_bbq_line(line: str) -> dict | None:
 	question_type = parts[0].upper()
 	if question_type in SKIPPED_TYPES:
 		return None
+	code, statement_html = ef_tools.bbq_html.split_question_code(parts[1])
+	question_code = code or "without question code"
+	rendered_images = {}
 	if question_type in ('MC', 'MA'):
-		question, letters, choice_tables, prompt_tables = _parse_mc(parts)
+		question, letters, choice_tables, prompt_tables = _parse_mc(
+			parts, rendered_images, question_code, math_renderer)
 	elif question_type == 'MAT':
-		question, letters, choice_tables, prompt_tables = _parse_mat(parts)
+		question, letters, choice_tables, prompt_tables = _parse_mat(
+			parts, rendered_images, question_code, math_renderer)
 	elif question_type == 'ORD':
-		question, letters, choice_tables, prompt_tables = _parse_ord(parts)
+		question, letters, choice_tables, prompt_tables = _parse_ord(
+			parts, rendered_images, question_code, math_renderer)
 	else:
 		raise ValueError(f"unknown bbq question type: {question_type!r}")
-	# statement: strip the CRC paragraph, pull tables, clean the rest
-	code, statement_html = ef_tools.bbq_html.split_question_code(parts[1])
+	statement_html = ef_tools.bbq_html.render_mathml_equations(
+		statement_html, rendered_images, math_renderer,
+		f"question {question_code} statement")
+	statement_html = ef_tools.bbq_html.render_rdkit_canvases(
+		statement_html, rendered_images, f"question {question_code} statement")
 	statement = ef_tools.bbq_html.clean_statement_content(statement_html)
 	question = {'statement': statement, **question}
 	record = {
@@ -160,6 +200,7 @@ def parse_bbq_line(line: str) -> dict | None:
 		'answer': {'code': code, 'type': question_type, 'letters': letters},
 		'choice_tables': choice_tables,
 		'prompt_tables': prompt_tables,
+		'rendered_images': rendered_images,
 	}
 	return record
 
@@ -213,8 +254,15 @@ def has_tables(record: dict) -> bool:
 
 
 #============================================
+def has_rendered_images(record: dict) -> bool:
+	"""Return whether the parsed record contains generated PNG bytes."""
+	found = bool(record['rendered_images'])
+	return found
+
+
+#============================================
 def render_record_tables(record: dict, renderer: object, media_dir: str, stem: str) -> None:
-	"""Rasterize every table in a record and attach the PNG paths in place.
+	"""Save generated images, rasterize tables, and attach PNG paths in place.
 
 	Args:
 		record: Output of parse_bbq_line.
@@ -222,6 +270,40 @@ def render_record_tables(record: dict, renderer: object, media_dir: str, stem: s
 		media_dir: `<yaml_dir>/<stem>_files` directory for the PNGs.
 		stem: Filename stem for this question (its CRC code).
 	"""
+	image_store = record['rendered_images']
+	saved_images = {}
+	yaml_dir = os.path.dirname(os.path.abspath(media_dir))
+	safe_stem = ''.join(
+		character if character.isalnum() or character in '_-' else '_'
+		for character in stem)
+	for block_index, block in enumerate(record['question']['statement'], start=1):
+		image_ref = block.get('image')
+		if isinstance(image_ref, str) and ef_tools.bbq_html.is_rendered_image_ref(image_ref):
+			basename = _rendered_image_basename(
+				safe_stem, 'statement', block_index, image_ref)
+			block['image'] = _save_rendered_image(
+				image_ref, image_store, media_dir, yaml_dir, basename, saved_images)
+	for field_name in ('choices', 'choices_list', 'prompts_list'):
+		for index, item in enumerate(record['question'].get(field_name, []), start=1):
+			if not isinstance(item, dict):
+				continue
+			image_ref = item.get('image')
+			if isinstance(image_ref, str) and ef_tools.bbq_html.is_rendered_image_ref(image_ref):
+				basename = _rendered_image_basename(
+					safe_stem, field_name, index, image_ref)
+				item['image'] = _save_rendered_image(
+					image_ref, image_store, media_dir, yaml_dir, basename,
+					saved_images)
+	for block in record['question']['statement']:
+		if 'html_table' in block:
+			block['html_table'] = ef_tools.bbq_html.embed_rendered_images_in_table(
+				block['html_table'], image_store)
+	for table_group in (record['choice_tables'], record['prompt_tables']):
+		for tables in table_group.values():
+			for index, table_html in enumerate(tables):
+				tables[index] = ef_tools.bbq_html.embed_rendered_images_in_table(
+					table_html, image_store)
+	record.pop('rendered_images', None)
 	statement_table_html = [
 		block['html_table'] for block in record['question']['statement']
 		if 'html_table' in block]
@@ -236,6 +318,39 @@ def render_record_tables(record: dict, renderer: object, media_dir: str, stem: s
 		prompt_paths[index] = ef_tools.bbq_html.write_table_pngs(
 			tables, renderer, media_dir, f"{stem}_prompt{index}")
 	attach_table_images(record, statement_paths, choice_paths, prompt_paths)
+
+
+#============================================
+def _rendered_image_basename(stem: str, field_name: str, index: int,
+			image_ref: str) -> str:
+	"""Build an asset name that identifies generated equations and canvases."""
+	if image_ref.startswith(ef_tools.bbq_html.MATHML_IMAGE_PREFIX):
+		kind = 'equation'
+	else:
+		kind = 'canvas'
+	basename = f"{stem}_{field_name}_{index}_{kind}.png"
+	return basename
+
+
+#============================================
+def _save_rendered_image(image_ref: str, image_store: dict, media_dir: str,
+			yaml_dir: str, filename: str, saved_images: dict) -> str:
+	"""Write one standalone generated image and return its YAML path."""
+	if image_ref.startswith(ef_tools.bbq_html.RDKIT_IMAGE_PREFIX):
+		key = image_ref[len(ef_tools.bbq_html.RDKIT_IMAGE_PREFIX):]
+	else:
+		key = image_ref[len(ef_tools.bbq_html.MATHML_IMAGE_PREFIX):]
+	if key in saved_images:
+		return saved_images[key]
+	if key not in image_store:
+		raise ValueError(f"question refers to missing rendered image {key!r}")
+	os.makedirs(media_dir, exist_ok=True)
+	path = os.path.join(media_dir, filename)
+	with open(path, 'wb') as handle:
+		handle.write(image_store[key])
+	relative_path = os.path.relpath(path, yaml_dir)
+	saved_images[key] = relative_path
+	return relative_path
 
 
 #============================================

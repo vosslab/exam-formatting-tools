@@ -5,8 +5,9 @@ Each resolved task runs its generator until one usable question appears, then
 contributes that question. List-valued aliases create one task per script.
 The local settings choose YMATCH for Matching and YWHICH for Which One? MC.
 Quiz mode accepts MC, MA, MAT, and ORD of any size; exam mode keeps only
-questions that fit a ZipGrade A-E bubble sheet. Drawing tables are rendered
-to `<stem>_files/*.png`, and `<stem>-key.txt` holds the answers.
+questions that fit a ZipGrade A-E bubble sheet. Drawing tables, RDKit canvases,
+and supported MathML equations become PNG assets beside the YAML. The sibling
+`<stem>-key.txt` holds the answers.
 Tasks whose generator only emits skipped types (NUM, FIB, FIB_PLUS) or never
 fits the mode are reported to stderr and left out.
 
@@ -111,7 +112,8 @@ def collect_questions(tasks: list, pythonpath: str, reject_fn: object, media_dir
 	with qti_package_maker.html_to_image.render_table.TableRenderer() as renderer:
 		for index, task in enumerate(tasks, start=1):
 			print(f"[{index}/{len(tasks)}] {task['label']}", file=sys.stderr)
-			record, reason = ef_tools.bbq_tasks.generate_question(task, pythonpath, reject_fn)
+			record, reason = ef_tools.bbq_tasks.generate_question(
+				task, pythonpath, reject_fn, math_renderer=renderer)
 			if record is None:
 				skipped.append(reason)
 				continue

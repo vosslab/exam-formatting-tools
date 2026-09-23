@@ -15,6 +15,7 @@ import functools
 import io
 import os
 import re
+import base64
 
 # PIP3 modules
 import lxml.html
@@ -27,6 +28,7 @@ import ef_tools.style_loader
 import ef_tools.text_utils
 import ef_tools.statement_content
 import qti_package_maker.html_to_image.selectors
+import qti_package_maker.html_to_image.render_canvas
 import qti_package_maker.html_to_image.render_table
 
 
@@ -54,6 +56,8 @@ HEADING_TAGS = ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
 BREAK_TAGS = ('br', 'hr')
 # tags dropped entirely, keeping their text
 UNWRAP_TAGS = ('span', 'font', 'a', 'u', 'small', 'big')
+RDKIT_IMAGE_PREFIX = 'rdkit:'
+MATHML_IMAGE_PREFIX = 'mathml:'
 
 # whitespace normalization
 _SPACE_RUN_RE = re.compile(r'[ \t]+')
@@ -75,6 +79,120 @@ def _parse(html: str) -> lxml.html.HtmlElement:
 	"""Parse an HTML fragment into a wrapper div element."""
 	root = qti_package_maker.html_to_image.selectors.parse_html_fragment(html)
 	return root
+
+
+#============================================
+def render_rdkit_canvases(html: str, image_store: dict,
+			field_name: str) -> str:
+	"""Replace supported RDKit canvas markup with opaque image references.
+
+	The source JavaScript is parsed only for the drawing values understood by
+	qti-package-maker. It is never evaluated, and the known external loader is
+	removed before this HTML reaches the exam text or table renderer.
+	"""
+	root = _parse(html)
+	selectors = qti_package_maker.html_to_image.selectors
+	loader_scripts = [
+		script for script in root.xpath('.//script')
+		if selectors.is_rdkit_loader_script(script)]
+	selectors.remove_rdkit_loader_scripts(root)
+	targets = selectors.iter_canvas_targets(root)
+	if not targets and not loader_scripts:
+		return html
+	for canvas, script, source in targets:
+		try:
+			png_bytes = qti_package_maker.html_to_image.render_canvas.render_canvas_png(source)
+		except (ImportError, ValueError) as exc:
+			raise ValueError(f"{field_name}: {exc}") from exc
+		key = str(len(image_store) + 1)
+		image_store[key] = png_bytes
+		image = lxml.html.Element('img')
+		image.set('src', f"{RDKIT_IMAGE_PREFIX}{key}")
+		image.set('alt', source.legend or 'Molecular structure')
+		parent = canvas.getparent()
+		parent.replace(canvas, image)
+		# Keep any text following the drawing script when removing the consumed
+		# script node. Current generators place the drawing script last.
+		if script.tail:
+			previous = script.getprevious()
+			if previous is not None:
+				previous.tail = (previous.tail or '') + script.tail
+			else:
+				script.getparent().text = (script.getparent().text or '') + script.tail
+		script.getparent().remove(script)
+	new_html = _serialize(root)
+	return new_html
+
+
+#============================================
+def render_mathml_equations(html: str, image_store: dict,
+			renderer: object, field_name: str) -> str:
+	"""Replace supported MathML equations with rendered image references."""
+	root = _parse(html)
+	math_elements = root.xpath('.//math')
+	if not math_elements:
+		return html
+	if renderer is None:
+		raise ValueError(f"{field_name}: MathML equations need an image renderer")
+	for math_element in math_elements:
+		mathml_html = qti_package_maker.html_to_image.selectors.outer_html(math_element)
+		try:
+			png_bytes = renderer.render_mathml_png(mathml_html)
+		except ValueError as exc:
+			raise ValueError(f"{field_name}: {exc}") from exc
+		key = str(len(image_store) + 1)
+		image_store[key] = png_bytes
+		image = lxml.html.Element('img')
+		image.set('src', f"{MATHML_IMAGE_PREFIX}{key}")
+		image.set('alt', 'Mathematical equation')
+		image.tail = math_element.tail
+		math_element.getparent().replace(math_element, image)
+	new_html = _serialize(root)
+	return new_html
+
+
+#============================================
+def is_rendered_image_ref(source: str) -> bool:
+	"""Return whether source is an opaque reference to a generated PNG."""
+	result = source.startswith((RDKIT_IMAGE_PREFIX, MATHML_IMAGE_PREFIX))
+	return result
+
+
+#============================================
+def standalone_rendered_image_refs(html: str) -> list:
+	"""Return generated image references outside drawing tables."""
+	root = _parse(html)
+	refs = []
+	for image in root.xpath('.//img'):
+		source = image.get('src', '')
+		if not is_rendered_image_ref(source):
+			continue
+		if image.xpath('ancestor::table'):
+			continue
+		refs.append(source)
+	return refs
+
+
+#============================================
+def embed_rendered_images_in_table(table_html: str, image_store: dict) -> str:
+	"""Replace generated image references in a table with PNG data URLs."""
+	if not any(prefix in table_html for prefix in (
+			RDKIT_IMAGE_PREFIX, MATHML_IMAGE_PREFIX)):
+		return table_html
+	root = _parse(table_html)
+	for image in root.xpath('.//img'):
+		source = image.get('src', '')
+		if not is_rendered_image_ref(source):
+			continue
+		if source.startswith(RDKIT_IMAGE_PREFIX):
+			key = source[len(RDKIT_IMAGE_PREFIX):]
+		else:
+			key = source[len(MATHML_IMAGE_PREFIX):]
+		if key not in image_store:
+			raise ValueError(f"table refers to missing rendered image {key!r}")
+		encoded = base64.b64encode(image_store[key]).decode('ascii')
+		image.set('src', f'data:image/png;base64,{encoded}')
+	return _serialize(root)
 
 
 #============================================
@@ -169,6 +287,10 @@ def _emit(element: lxml.html.HtmlElement, parts: list) -> None:
 	tag = element.tag
 	# comments and processing instructions carry a callable tag; drop them
 	if not isinstance(tag, str):
+		return
+	if tag == 'img':
+		if not is_rendered_image_ref(element.get('src', '')):
+			raise ValueError('unsupported image markup in answer choice')
 		return
 	span_color = _span_text_color(element) if tag == 'span' else None
 	if tag in HEADING_TAGS:
@@ -274,6 +396,13 @@ def _emit_statement(element: lxml.html.HtmlElement, statement: list,
 	"""Walk BBQ markup once, retaining table positions in statement order."""
 	tag = element.tag
 	if not isinstance(tag, str):
+		return
+	if tag == 'img':
+		source = element.get('src', '')
+		if not is_rendered_image_ref(source):
+			raise ValueError('unsupported image markup in question statement')
+		_append_statement_text_block(statement, parts)
+		statement.append({'image': source})
 		return
 	if tag == 'table':
 		_append_statement_text_block(statement, parts)

@@ -233,7 +233,8 @@ def generate_candidate(task: dict, pythonpath: str) -> str:
 
 #============================================
 def generate_question(task: dict, pythonpath: str, reject_fn: object,
-		candidate_fn: object = generate_candidate) -> tuple:
+		candidate_fn: object = generate_candidate,
+		math_renderer: object = None) -> tuple:
 	"""Generate candidates until one parses and passes the mode rule.
 
 	Args:
@@ -242,6 +243,7 @@ def generate_question(task: dict, pythonpath: str, reject_fn: object,
 		reject_fn: Callable(question_dict) -> '' when the question is usable,
 			otherwise a short reason (the quiz/exam rule).
 		candidate_fn: Callable(task, pythonpath) -> bbq line (test seam).
+		math_renderer: Optional renderer for supported MathML equations.
 
 	Returns:
 		(record, '') on success, or (None, reason) after MAX_ATTEMPTS
@@ -253,10 +255,13 @@ def generate_question(task: dict, pythonpath: str, reject_fn: object,
 		# an unprintable candidate (e.g. table-drawing matching prompts) is
 		# a reason to try again, the same as a skipped type
 		try:
-			record = ef_tools.bbq_parse.parse_bbq_line(line)
+			record = ef_tools.bbq_parse.parse_bbq_line(
+				line, math_renderer=math_renderer)
 		except ef_tools.bbq_parse.UnprintableQuestion as exc:
 			last_reason = f"unprintable: {exc}"
 			continue
+		except ValueError as exc:
+			raise ValueError(f"{task['label']}: {exc}") from exc
 		if record is None:
 			question_type = line.split('\t')[0].strip()
 			last_reason = f"skipped type {question_type}"

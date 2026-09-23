@@ -167,6 +167,44 @@ def test_add_image_choices_tabbed_mixed_text_and_images(tmp_path: object) -> Non
 
 
 #============================================
+def test_wide_mixed_choices_keep_text_only_options(tmp_path: object) -> None:
+	"""The wide-image fallback must render plain-text members of a mixed list."""
+	import PIL.Image
+	wide_path = tmp_path / 'wide_drawing.png'
+	PIL.Image.new('RGB', (2240, 272), color='white').save(
+		wide_path, dpi=(192, 192))
+	choices = [
+		{'text': '', 'image': str(wide_path)},
+		'plain-text answer',
+		{'text': '', 'image': str(wide_path)},
+	]
+	doc = _make_styled_doc()
+	ef_tools.docx_choice_builder.add_image_choices_tabbed(
+		doc, choices, ef_tools.docx_images.DrawingSizer(0.7))
+	assert len(doc.inline_shapes) == 2
+	paragraph_text = [paragraph.text for paragraph in doc.paragraphs]
+	assert any('(B) plain-text answer' in text for text in paragraph_text)
+
+
+#============================================
+def test_captioned_mixed_choices_keep_text_only_options(tmp_path: object) -> None:
+	"""Long image captions can stack beside ordinary text choices."""
+	image_path = _write_pngs(tmp_path, 1)[0]
+	caption = 'A long descriptive caption that needs its own choice row.'
+	choices = [
+		{'text': caption, 'image': image_path},
+		'plain-text answer',
+	]
+	doc = _make_styled_doc()
+	ef_tools.docx_choice_builder.add_image_choices_tabbed(
+		doc, choices, ef_tools.docx_images.FitSizer(3.4, 2.0))
+	assert len(doc.inline_shapes) == 1
+	paragraph_text = [paragraph.text for paragraph in doc.paragraphs]
+	assert any('(B) plain-text answer' in text for text in paragraph_text)
+	assert any(caption in text for text in paragraph_text)
+
+
+#============================================
 def test_image_choice_max_width_per_cols_clamps_5col(tmp_path: object) -> None:
 	"""5-col rows must be clamped to IMAGE_CHOICE_MAX_WIDTH_BY_COLS[5]
 	even when the caller passes a much larger image_width. Without this

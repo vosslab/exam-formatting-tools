@@ -11,9 +11,19 @@
 - DOCX `<code>`/`<tt>` runs use the named Regular face of Atkinson Hyperlegible Mono. HTML table
   rendering continues to use the family name. This keeps the output font family consistent while
   giving LibreOffice an explicit upright face; bold and italic still come from surrounding markup.
+- The task-CSV importer converts supported RDKit molecule canvases in statements, tables, and
+  choices into static exam images. Statement and choice canvases become image assets; canvases
+  inside drawing tables are embedded before the existing table screenshot step.
+- The exam import keeps peptide N-terminal atom and peptide-bond highlights, canvas dimensions,
+  labels, and explicit methyl settings from `moleculelib` and `aminoacidlib` output.
 
 ### Fixes and Maintenance
 
+- The task-CSV and legacy BBQ importers rasterize the current Henderson-Hasselbalch MathML subset
+  into normal exam image assets. Equations in statements, choices, and tables are handled before
+  HTML cleanup; unsupported MathML fails with question and task context.
+- Wide and captioned DOCX choice stacks preserve text-only choices when the same matching list
+  contains table images.
 - Added a workflow audit recording launcher ownership, output publication,
   and YAML serialization findings for planned cleanup.
 - Task-CSV tests now model `YMATCH` and `YWHICH` as separate selectors. Added a synthetic task-CSV
@@ -22,11 +32,21 @@
   E2E is supplementary evidence; fixtures and fast tests protect owned conversion contracts.
 - Fixture guidance now allows a minimal captured input when it protects a real source boundary;
   small synthetic cases remain inline and no fixture requires human sign-off.
+- Recognized RDKit CDN loader and canvas drawing scripts are removed before HTML cleanup or table
+  rendering. Invalid dimensions, SMILES, highlights, and unmatched canvas markup now fail with
+  question and task context.
 
 ### Removals and Deprecations
 
 - Removed duplicate statement-order and color checks now covered by synthetic import-to-DOCX
   pipelines. Removed the host-specific PDF rendering probe from permanent test coverage.
+
+### Decisions and Failures
+
+- Initial biochemistry verification stopped on an existing `<math>` tag in a Henderson-Hasselbalch
+  choice; the current equation subset is now rendered as image assets. Earlier verification used
+  the 12 molecule-generating CSV rows, which built 14 printable questions and skipped one FIB task
+  under the existing print-format contract.
 
 ### Developer Tests and Notes
 
@@ -45,8 +65,16 @@
   carries the production Atkinson face.
 - The focused DOCX/PDF/task-CSV/HTML lane passed 26 tests. Full `pytest tests/` passed 1582 tests;
   its one advisory reports `ef_tools/docx_builder.py` at 925 lines, within 75 of the file limit.
+- MathML choices, statements, and table content pass focused importer coverage; the legacy BBQ
+  entry point also saves MathML images. Full `pytest tests/` passed 1668 tests.
+- The full biochemistry task CSV built 75 questions and skipped eight nonprintable NUM/FIB tasks.
+  All 39 image references resolved (four equations and 23 RDKit canvases among them); its 21-page
+  DOCX/PDF rendered successfully, and the equation and peptide-highlight pages were visually checked.
 - This audit removed the permanent host-specific PDF probe, dropped an unused monospace fallback
   setting, and corrected stale YAML, image-sizing, header, and output-collision documentation.
+- RDKit import coverage passed 33 focused tests. The temporary molecule-task YAML, DOCX, and
+  13-page PDF built successfully; all image paths resolved, no active scripts remained, and the
+  representative peptide PNGs retained green highlights.
 
 ## 2026-09-22
 

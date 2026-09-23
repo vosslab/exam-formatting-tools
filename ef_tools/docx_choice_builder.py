@@ -170,16 +170,23 @@ def _add_captioned_image_choices_stacked(doc: docx.Document, choices: list,
 		letter = chr(ord('A') + index)
 		prefix = para.add_run(f"({letter})")
 		prefix.bold = True
+		meaningful_alt = _is_meaningful_alt(choice)
 		image_path = ef_tools.layout.choice_image(choice)
-		image_run = para.add_run()
-		ef_tools.docx_images.place_inline_picture(
-			image_run, image_path, sizer.kwargs(image_path))
-		caption = doc.add_paragraph()
-		caption.style = doc.styles[style_name]
-		caption.paragraph_format.space_before = docx.shared.Pt(0)
-		caption.paragraph_format.space_after = docx.shared.Pt(0)
-		ef_tools.docx_builder.add_rich_text_runs(
-			caption, ef_tools.layout.choice_text(choice))
+		if image_path:
+			image_run = para.add_run()
+			ef_tools.docx_images.place_inline_picture(
+				image_run, image_path, sizer.kwargs(image_path))
+		elif ef_tools.layout.choice_text(choice):
+			choice_text = ef_tools.layout.choice_text(choice)
+			para.add_run(' ')
+			ef_tools.docx_builder.add_rich_text_runs(para, choice_text)
+		if meaningful_alt:
+			caption = doc.add_paragraph()
+			caption.style = doc.styles[style_name]
+			caption.paragraph_format.space_before = docx.shared.Pt(0)
+			caption.paragraph_format.space_after = docx.shared.Pt(0)
+			ef_tools.docx_builder.add_rich_text_runs(
+				caption, ef_tools.layout.choice_text(choice))
 
 
 #============================================
@@ -199,9 +206,15 @@ def _add_wide_image_choices_stacked(doc: docx.Document, choices: list,
 		prefix = para.add_run(f"({letter})")
 		prefix.bold = True
 		image_path = ef_tools.layout.choice_image(choice)
-		image_run = para.add_run()
-		ef_tools.docx_images.place_inline_picture(
-			image_run, image_path, sizer.kwargs(image_path))
+		if image_path:
+			image_run = para.add_run()
+			ef_tools.docx_images.place_inline_picture(
+				image_run, image_path, sizer.kwargs(image_path))
+		else:
+			choice_text = ef_tools.layout.choice_text(choice)
+			if choice_text:
+				para.add_run(' ')
+				ef_tools.docx_builder.add_rich_text_runs(para, choice_text)
 		if meaningful_alt:
 			caption = doc.add_paragraph()
 			caption.style = doc.styles[style_name]
