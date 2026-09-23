@@ -77,6 +77,14 @@ def test_clean_inline_html_preserves_color_spans_and_splits_paragraphs() -> None
 
 
 #============================================
+def test_clean_inline_html_normalizes_bare_bptools_hex_color() -> None:
+	"""bptools color-wheel hex values without a leading hash stay colored."""
+	cleaned = ef_tools.bbq_html.clean_inline_html(
+		'<p><span style="color: fd0305;">Metabolite X</span></p>')
+	assert cleaned == '<span style="color: #fd0305;">Metabolite X</span>'
+
+
+#============================================
 def test_clean_inline_html_preserves_code_markup() -> None:
 	"""Code and teletype spans survive bptools HTML conversion."""
 	cleaned = ef_tools.bbq_html.clean_inline_html(

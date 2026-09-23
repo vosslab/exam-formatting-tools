@@ -63,8 +63,8 @@ shared fixtures for these established needs:
 3. Use an existing repository file when that shipped file's required shape or loader behavior is
    the contract under test.
 
-A committed `tests/fixtures/` directory is shared infrastructure. Add one with explicit human
-approval when durable shared data is clearer than inline setup.
+A committed `tests/fixtures/` directory is shared infrastructure. Add a minimal fixture when a
+captured input expresses a real boundary more clearly than inline setup; keep synthetic cases inline.
 
 An external test-data file is another dependency that can move, be renamed, or disappear. Loading
 one at module import time can prevent the entire test module from collecting. Embed small inputs in

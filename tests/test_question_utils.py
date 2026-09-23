@@ -20,9 +20,9 @@ def test_select_question_style_after_chapter() -> None:
 #============================================
 def test_question_span_matching_block_spans_prompts() -> None:
 	"""A matching block spans one row per prompt; MC spans one row."""
-	matching = {"statement": "Match.", "prompts_list": ["a", "b", "c", "d"], "choices_list": ["w"]}
+	matching = {"statement": [{"text": "Match."}], "prompts_list": ["a", "b", "c", "d"], "choices_list": ["w"]}
 	assert ef_tools.question_utils.question_span(matching) == 4
-	assert ef_tools.question_utils.question_span({"statement": "MC", "choices": ["a", "b"]}) == 1
+	assert ef_tools.question_utils.question_span({"statement": [{"text": "MC"}], "choices": ["a", "b"]}) == 1
 
 
 #============================================
@@ -46,8 +46,8 @@ def test_count_total_questions_matching_prompts_list() -> None:
 	"""
 	sections = [
 		{"questions": [
-			{"statement": "Match.", "prompts_list": ["a", "b", "c"], "choices_list": ["x", "y", "z"]},
-			{"statement": "Plain MC.", "choices": ["one", "two"]},
+			{"statement": [{"text": "Match."}], "prompts_list": ["a", "b", "c"], "choices_list": ["x", "y", "z"]},
+			{"statement": [{"text": "Plain MC."}], "choices": ["one", "two"]},
 		]},
 	]
 	result = ef_tools.question_utils.count_total_questions(sections)

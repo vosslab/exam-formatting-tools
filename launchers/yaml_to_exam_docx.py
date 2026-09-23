@@ -27,7 +27,9 @@ import ef_tools.exam_defaults
 import ef_tools.question_utils
 import ef_tools.docx_images
 import ef_tools.docx_builder
+import ef_tools.docx_choice_builder
 import ef_tools.docx_table_builder
+import ef_tools.statement_content
 
 
 #============================================
@@ -314,25 +316,65 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 			# prompts_list drives the question-number span and the numbered
 			# blanks; choices_list is the lettered (A)/(B)/... options.
 			prompts_list = question.get('prompts_list', [])
+			choice_font = question.get('choice_font')
 			question_span = ef_tools.question_utils.question_span(question)
 			question_total += question_span
 			if question_span > 1:
 				question_prefix = f"Q{question_number}-{question_number + question_span - 1}. "
 			else:
 				question_prefix = f"{question_number}. "
-			# build question statement with number prefix
-			statement = question.get('statement', '')
-			if statement:
-				# strip existing number prefix and add our own
-				stripped = ef_tools.text_utils.strip_number_prefix(statement)
-				# select style based on previous element
-				style_name = ef_tools.question_utils.select_question_style(prev_element)
-				# split statement on \n / <br> into separate paragraphs
-				# (hard breaks) instead of soft Word line breaks
-				ef_tools.docx_builder.add_rich_text_paragraphs(
-					doc, style_name, stripped, prefix=question_prefix,
-					boxed_prefix=True)
-				prev_element = 'question'
+			# The statement list is the single ordered source for question prose,
+			# images, rendered source tables, and structured data tables.
+			statement = question.get('statement', [])
+			ef_tools.statement_content.validate(statement)
+			heading_written = False
+			for block in statement:
+				if 'text' in block:
+					text = block['text']
+					if not text.strip():
+						continue
+					if not heading_written:
+						text = ef_tools.text_utils.strip_number_prefix(text)
+						style_name = ef_tools.question_utils.select_question_style(prev_element)
+						prefix = question_prefix
+						heading_written = True
+					else:
+						style_name = 'Question Follow'
+						prefix = ''
+					ef_tools.docx_builder.add_rich_text_paragraphs(
+						doc, style_name, text, prefix=prefix, boxed_prefix=bool(prefix))
+					prev_element = 'question'
+					continue
+				if not heading_written:
+					style_name = ef_tools.question_utils.select_question_style(prev_element)
+					ef_tools.docx_builder.add_rich_text_paragraphs(
+						doc, style_name, '', prefix=question_prefix, boxed_prefix=True)
+					heading_written = True
+					prev_element = 'question'
+				if 'table' in block:
+					table_data = block['table']
+					table_bg = styles['colors']['table_header_bg'].lstrip('#')
+					center_header = flags['table_header_centered']
+					ef_tools.docx_builder.add_table(
+						doc, table_data['columns'], table_data['rows'],
+						header_bg=table_bg, center_header=center_header)
+					prev_element = 'table'
+					continue
+				table_html = block.get('html_table')
+				if (native_tables and table_html
+						and ef_tools.docx_table_builder.supports_html_table(table_html)):
+					ef_tools.docx_table_builder.add_html_table(doc, table_html)
+					prev_element = 'table'
+					continue
+				resolved_image_path = resolve_media_path(block['image'], base_dir)
+				if os.path.isfile(resolved_image_path):
+					paragraph = doc.add_paragraph()
+					paragraph.style = doc.styles['Normal']
+					statement_sizer = drawing_sizer if table_html else statement_fit
+					paragraph.add_run().add_picture(
+						resolved_image_path,
+						**statement_sizer.kwargs(resolved_image_path))
+					prev_element = 'image'
 			# matching layout matches reference artifacts in ARTIFACTS/:
 			# lettered (A)/(B)/... choices come FIRST as the answer key,
 			# then numbered blanks the student fills in.
@@ -341,7 +383,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 			if try_add_native_table_choices(doc, choices_list, native_tables):
 				prev_element = 'choices'
 			elif choices_list and has_image_choice(choices_list):
-				ef_tools.docx_builder.add_image_choices_tabbed(
+				ef_tools.docx_choice_builder.add_image_choices_tabbed(
 					doc, choices_list, choice_sizer,
 					wide_sizer=pick_sizer(
 						choices_list, drawing_sizer, choice_strip_fit),
@@ -351,56 +393,17 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 			elif choices_list:
 				tab_style, items_per_row = resolve_choice_layout(
 					question, choices_list, layout_limits)
-				ef_tools.docx_builder.add_choices_paragraph(
+				ef_tools.docx_choice_builder.add_choices_paragraph(
 					doc, choices_list, tab_style, items_per_row,
-					sizer=choice_sizer)
+					sizer=choice_sizer, font_family=choice_font)
 				prev_element = 'choices'
 			if prompts_list:
 				resolved_prompts = resolve_choice_images(prompts_list, base_dir)
-				ef_tools.docx_builder.add_matching_prompts(
+				ef_tools.docx_choice_builder.add_matching_prompts(
 					doc, resolved_prompts, question_number,
 					sizer=pick_sizer(resolved_prompts, drawing_sizer, prompt_fit),
 					native_tables=native_tables)
 				prev_element = 'choices'
-			# Preserved statement tables are the native-table counterpart to the
-			# rasterized images attached by the BBQ parser.
-			html_tables = question.get('html_tables', [])
-			native_statement_tables = (
-				native_tables and html_tables
-				and all(ef_tools.docx_table_builder.supports_html_table(table_html)
-					for table_html in html_tables))
-			if native_statement_tables:
-				for table_html in html_tables:
-					ef_tools.docx_table_builder.add_html_table(doc, table_html)
-			# images (before choices, after question text)
-			image_paths = []
-			image_path = question.get('image', None)
-			if image_path is not None:
-				image_paths.append(image_path)
-			image_paths.extend(question.get('images', []))
-			if native_statement_tables:
-				image_paths = []
-			for current_image_path in image_paths:
-				resolved_image_path = resolve_media_path(current_image_path, base_dir)
-				if os.path.isfile(resolved_image_path):
-					# Rendered drawings print at the shared fixed scale;
-					# ordinary external images fit the page-width box.
-					statement_sizer = drawing_sizer if html_tables else statement_fit
-					doc.add_picture(
-						resolved_image_path,
-						**statement_sizer.kwargs(resolved_image_path))
-					prev_element = 'image'
-			# table
-			table_data = question.get('table', None)
-			if table_data is not None:
-				columns = table_data['columns']
-				rows = table_data['rows']
-				# pass table header background color and alignment from styles
-				table_bg = styles['colors']['table_header_bg'].lstrip('#')
-				center_header = flags['table_header_centered']
-				ef_tools.docx_builder.add_table(doc, columns, rows,
-					header_bg=table_bg, center_header=center_header)
-				prev_element = 'table'
 			# choices (image paths resolved against the YAML directory)
 			choices = question.get('choices', None)
 			if choices is not None:
@@ -412,7 +415,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 					question_counter += question_span
 					continue
 				if has_image_choice(choices):
-					ef_tools.docx_builder.add_image_choices_tabbed(
+					ef_tools.docx_choice_builder.add_image_choices_tabbed(
 						doc, choices, choice_sizer,
 						wide_sizer=pick_sizer(
 							choices, drawing_sizer, choice_strip_fit),
@@ -423,9 +426,9 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 					continue
 				tab_style, items_per_row = resolve_choice_layout(
 					question, choices, layout_limits)
-				ef_tools.docx_builder.add_choices_paragraph(
+				ef_tools.docx_choice_builder.add_choices_paragraph(
 					doc, choices, tab_style, items_per_row,
-					sizer=choice_sizer)
+					sizer=choice_sizer, font_family=choice_font)
 				prev_element = 'choices'
 			# increment question counter
 			question_counter += question_span

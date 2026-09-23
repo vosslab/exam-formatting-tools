@@ -27,6 +27,7 @@ import yaml
 
 # local repo modules
 import ef_tools.question_utils
+import ef_tools.statement_content
 
 
 # ZipGrade form constants
@@ -113,8 +114,10 @@ class LineTrackingLoader(yaml.SafeLoader):
 def _statement_excerpt(question: dict) -> str:
 	"""Return up to STATEMENT_PREVIEW_LEN chars of the question statement."""
 	statement = question.get('statement', '')
+	if isinstance(statement, list):
+		statement = ef_tools.statement_content.text_content(statement)
 	if not isinstance(statement, str):
-		return ''
+		raise TypeError("Question 'statement' must be an ordered list of content blocks")
 	# collapse whitespace so YAML newlines don't break the preview
 	cleaned = ' '.join(statement.split())
 	if len(cleaned) <= STATEMENT_PREVIEW_LEN:

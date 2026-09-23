@@ -24,6 +24,8 @@ import PIL.ImageChops
 # local repo modules
 import ef_tools.html_parse
 import ef_tools.style_loader
+import ef_tools.text_utils
+import ef_tools.statement_content
 import qti_package_maker.html_to_image.selectors
 import qti_package_maker.html_to_image.render_table
 
@@ -57,9 +59,6 @@ UNWRAP_TAGS = ('span', 'font', 'a', 'u', 'small', 'big')
 _SPACE_RUN_RE = re.compile(r'[ \t]+')
 _BLANK_LINE_RE = re.compile(r'\n\s*\n+')
 _SPACE_AROUND_NEWLINE_RE = re.compile(r' *\n *')
-_HEX_COLOR_RE = re.compile(r'^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?$')
-
-
 #============================================
 def _span_text_color(element: lxml.html.HtmlElement) -> str | None:
 	"""Return a normalized hex text color from a span's inline style.
@@ -68,20 +67,7 @@ def _span_text_color(element: lxml.html.HtmlElement) -> str | None:
 	Other span CSS (including anti-cheat font sizing) remains presentation
 	metadata and is intentionally discarded.
 	"""
-	style = element.get('style', '')
-	for declaration in style.split(';'):
-		if ':' not in declaration:
-			continue
-		property_name, value = declaration.split(':', 1)
-		if property_name.strip().lower() != 'color':
-			continue
-		color = value.strip()
-		if not _HEX_COLOR_RE.fullmatch(color):
-			return None
-		if len(color) == 4:
-			color = '#' + ''.join(character * 2 for character in color[1:])
-		return color.lower()
-	return None
+	return ef_tools.text_utils.text_color_from_style(element.get('style', ''))
 
 
 #============================================
@@ -249,6 +235,93 @@ def clean_inline_html(html: str) -> str:
 	text = _BLANK_LINE_RE.sub('\n', text)
 	cleaned = text.strip()
 	return cleaned
+
+
+#============================================
+def _normalize_statement_text(text: str) -> str:
+	"""Apply the statement whitespace rules to one table-separated text run."""
+	text = _SPACE_RUN_RE.sub(' ', text)
+	text = _SPACE_AROUND_NEWLINE_RE.sub('\n', text)
+	text = _BLANK_LINE_RE.sub('\n', text)
+	cleaned = text.strip()
+	return cleaned
+
+
+#============================================
+def _append_wrapped_text(parts: list, text: str, wrappers: tuple) -> None:
+	"""Append escaped text with its active inline wrappers kept balanced."""
+	if not text:
+		return
+	opening = ''.join(pair[0] for pair in wrappers)
+	closing = ''.join(pair[1] for pair in reversed(wrappers))
+	parts.append(opening + _escape_text(text) + closing)
+
+
+#============================================
+def _append_statement_text_block(statement: list, parts: list) -> None:
+	"""Flush collected prose into one normalized statement text block."""
+	if not parts:
+		return
+	text = _normalize_statement_text(''.join(parts))
+	if text:
+		ef_tools.statement_content.append_text(statement, text)
+	parts.clear()
+
+
+#============================================
+def _emit_statement(element: lxml.html.HtmlElement, statement: list,
+		parts: list, wrappers: tuple = ()) -> None:
+	"""Walk BBQ markup once, retaining table positions in statement order."""
+	tag = element.tag
+	if not isinstance(tag, str):
+		return
+	if tag == 'table':
+		_append_statement_text_block(statement, parts)
+		statement.append({'html_table': qti_package_maker.html_to_image.selectors.outer_html(element)})
+		return
+	span_color = _span_text_color(element) if tag == 'span' else None
+	active_wrappers = wrappers
+	if tag in HEADING_TAGS:
+		_append_wrapped_text(parts, '\n', wrappers)
+		active_wrappers += (('<b>', '</b>'),)
+	elif tag in BLOCK_TAGS:
+		_append_wrapped_text(parts, '\n', wrappers)
+	elif tag == 'li':
+		_append_wrapped_text(parts, '\n- ', wrappers)
+	elif tag in BREAK_TAGS:
+		_append_wrapped_text(parts, '\n', wrappers)
+	elif tag in INLINE_KEEP_TAGS:
+		active_wrappers += ((f'<{tag}>', f'</{tag}>'),)
+	elif span_color is not None:
+		active_wrappers += ((f'<span style="color: {span_color};">', '</span>'),)
+	elif tag in UNWRAP_TAGS:
+		pass
+	else:
+		raise ValueError(f"unsupported HTML tag in question text: <{tag}>")
+	if element.text:
+		_append_wrapped_text(parts, element.text, active_wrappers)
+	for child in element:
+		_emit_statement(child, statement, parts, active_wrappers)
+		if child.tail:
+			_append_wrapped_text(parts, child.tail, active_wrappers)
+	if tag in HEADING_TAGS or tag in BLOCK_TAGS:
+		_append_wrapped_text(parts, '\n', wrappers)
+
+
+#============================================
+def clean_statement_content(html: str) -> list:
+	"""Convert BBQ statement HTML to ordered prose and drawing-table blocks."""
+	root = _parse(html)
+	statement = []
+	parts = []
+	if root.text:
+		_append_wrapped_text(parts, root.text, ())
+	for child in root:
+		_emit_statement(child, statement, parts)
+		if child.tail:
+			_append_wrapped_text(parts, child.tail, ())
+	_append_statement_text_block(statement, parts)
+	return statement
 
 
 #============================================

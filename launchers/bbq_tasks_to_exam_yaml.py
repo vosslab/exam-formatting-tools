@@ -115,6 +115,8 @@ def collect_questions(tasks: list, pythonpath: str, reject_fn: object, media_dir
 			if record is None:
 				skipped.append(reason)
 				continue
+			if task.get('choice_font'):
+				record['question']['choice_font'] = task['choice_font']
 			ef_tools.bbq_parse.render_record_tables(
 				record, renderer, media_dir, record['answer']['code'])
 			# a new chapter section starts whenever the topic changes

@@ -9,6 +9,13 @@ import pytest
 
 # Local Repo Modules
 import html_to_exam_yaml
+import ef_tools.statement_content
+
+
+#============================================
+def statement_text(question: dict) -> str:
+	"""Join statement prose for assertions that do not inspect block order."""
+	return ef_tools.statement_content.text_content(question["statement"])
 
 
 #============================================
@@ -72,7 +79,7 @@ def test_parse_question_with_text_choices() -> None:
 	"""
 	question_div = lxml.html.fromstring(html_text)
 	result = html_to_exam_yaml.parse_question("Final_Exam/source.html", question_div)
-	assert result["statement"] == "Which molecule is H<sub>2</sub>O?"
+	assert statement_text(result) == "Which molecule is H<sub>2</sub>O?"
 	assert result["choices"] == ["Water", "Salt"]
 
 
@@ -133,7 +140,7 @@ def test_parse_question_keeps_body_text_statement() -> None:
 	"""
 	question_div = lxml.html.fromstring(html_text)
 	result = html_to_exam_yaml.parse_question("Final_Exam/source.html", question_div)
-	assert result["statement"] == "Which one is hydrophobic?"
+	assert statement_text(result) == "Which one is hydrophobic?"
 
 
 #============================================
@@ -165,9 +172,9 @@ def test_parse_matching_block_emits_prompts_and_choices_lists() -> None:
 	question_div = lxml.html.fromstring(html_text)
 	result = html_to_exam_yaml.parse_question("Final_Exam/source.html", question_div)
 	# lead-in prose remains in statement; lettered options must NOT
-	assert "Match the terms." in result["statement"]
-	assert "A. First option" not in result["statement"]
-	assert "B. Second option" not in result["statement"]
+	assert "Match the terms." in statement_text(result)
+	assert "A. First option" not in statement_text(result)
+	assert "B. Second option" not in statement_text(result)
 	# choices_list holds lettered options with the 'A. '/'B. ' prefix stripped
 	assert result["choices_list"] == ["First option", "Second option"]
 	# prompts_list holds the numbered items, preserving inline markup,
@@ -201,7 +208,7 @@ def test_parse_question_preserves_text_after_inline_bold() -> None:
 	"""
 	question_div = lxml.html.fromstring(html_text)
 	result = html_to_exam_yaml.parse_question("Final_Exam/source.html", question_div)
-	statement = result["statement"]
+	statement = statement_text(result)
 	# Text after the inline <b> wrapper survives.
 	assert "Lineweaver-Burk plot is:" in statement
 	# Inline tag wrapping survives, not just the inner text.
@@ -226,7 +233,7 @@ def test_parse_question_preserves_text_after_inline_italic_sub() -> None:
 	"""
 	question_div = lxml.html.fromstring(html_text)
 	result = html_to_exam_yaml.parse_question("Final_Exam/source.html", question_div)
-	statement = result["statement"]
+	statement = statement_text(result)
 	# Entity for the prime character round-trips as ASCII.
 	assert "K&#8242;" in statement
 	# Subscript inside the italic wrapper is preserved.
@@ -265,7 +272,7 @@ def test_is_matching_block_rejects_styled_hint_legend() -> None:
 	hint_div = question_div.xpath(".//div[span[contains(@style, 'display:inline-block')]]")[0]
 	assert html_to_exam_yaml.is_matching_block(hint_div) is False
 	result = html_to_exam_yaml.parse_question("Final_Exam/source.html", question_div)
-	assert "genetic information" in result["statement"]
+	assert "genetic information" in statement_text(result)
 	assert "prompts_list" not in result
 	# Order-independent: both choice texts present, nothing extra leaked.
 	assert set(result["choices"]) >= {"proteins", "nucleic acids"}
@@ -337,9 +344,10 @@ def test_parse_question_preserves_statement_image() -> None:
 	"""
 	question_div = lxml.html.fromstring(html_text)
 	result = html_to_exam_yaml.parse_question("Final_Exam/source.html", question_div)
-	assert "Identify the structure shown" in result["statement"]
-	assert "images" in result
-	assert any(p.endswith("files/structure.png") for p in result["images"])
+	assert result["statement"] == [
+		{"text": "Identify the structure shown below."},
+		{"image": os.path.join("Final_Exam", "files/structure.png")},
+	]
 
 
 #============================================
@@ -372,19 +380,16 @@ def test_parse_question_renders_rdkit_canvas_to_png(tmp_path: object) -> None:
 	question_div = html_doc.xpath(html_to_exam_yaml.TAKE_QUESTION_XPATH)[0]
 	rdkit_out_dir = html_to_exam_yaml.compute_rdkit_out_dir(str(html_path), html_doc)
 	result = html_to_exam_yaml.parse_question(str(html_path), question_div, rdkit_out_dir)
-	# The statement keeps the lead-in prose and does not leak script source.
-	assert "Identify the molecule shown." in result["statement"]
-	assert "initRDKitModule" not in result["statement"]
-	assert "canvas_test_1" not in result["statement"]
-	# A PNG path was emitted into the standard images list.
-	assert "images" in result
-	assert any(path.endswith(".png") for path in result["images"])
+	# Prose and canvas occupy their original positions; script source is omitted.
+	assert "Identify the molecule shown." in statement_text(result)
+	assert "initRDKitModule" not in statement_text(result)
+	assert "canvas_test_1" not in statement_text(result)
+	assert result["statement"][0] == {"text": "Identify the molecule shown."}
+	assert result["statement"][1]["image"].endswith(".png")
 	# The PNG actually exists on disk.
-	for path in result["images"]:
-		if path.endswith(".png") and "rdkit_" in os.path.basename(path):
-			assert os.path.isfile(path)
-			return
-	raise AssertionError("expected an rdkit_*.png entry in question images")
+	path = result["statement"][1]["image"]
+	assert "rdkit_" in os.path.basename(path)
+	assert os.path.isfile(path)
 
 
 #============================================

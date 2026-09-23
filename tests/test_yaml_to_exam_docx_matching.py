@@ -22,7 +22,7 @@ def _matching_yaml() -> dict:
 				'heading': 'Section A',
 				'questions': [
 					{
-						'statement': 'Match each term with its definition.',
+						'statement': [{'text': 'Match each term with its definition.'}],
 						'prompts_list': [
 							'<b>alpha</b>',
 							'<b>beta</b>',
@@ -109,11 +109,11 @@ def test_question_statement_follow_paragraph_uses_compact_style(tmp_path: object
 	"""A hard-break continuation of a stem uses Question Follow."""
 	exam_data = _matching_yaml()
 	exam_data['sections'][0]['questions'].insert(0, {
-		'statement': 'A preceding question.',
+		'statement': [{'text': 'A preceding question.'}],
 		'choices': ['one', 'two', 'three'],
 	})
-	exam_data['sections'][0]['questions'][1]['statement'] = (
-		'Match each term.\nUse each answer once.')
+	exam_data['sections'][0]['questions'][1]['statement'] = [{
+		'text': 'Match each term.<br/>Use each answer once.'}]
 	output_path = tmp_path / "matching_follow.docx"
 	yaml_to_exam_docx.build_document(exam_data, str(output_path))
 	doc = docx.Document(str(output_path))
@@ -140,7 +140,7 @@ def test_matching_prompt_style_is_registered_and_applied(tmp_path: object) -> No
 	style = doc.styles['Matching Prompt']
 	assert style.base_style.name == 'Question Heading'
 	assert style.font.bold is False
-	assert style.font.italic is False
+	assert style.font.italic is None
 	assert style.paragraph_format.line_spacing == 1.25
 	tab_positions = [stop.position for stop in style.paragraph_format.tab_stops]
 	# 0.5" and 3.5" expressed in EMU (914400 per inch)
@@ -195,7 +195,7 @@ def test_legacy_matching_terms_key_raises(tmp_path: object) -> None:
 		'sections': [{
 			'heading': 'Section A',
 			'questions': [{
-				'statement': 'Match.',
+				'statement': [{'text': 'Match.'}],
 				'matching_terms': ['a', 'b'],
 			}],
 		}],
@@ -210,7 +210,7 @@ def test_matching_question_advances_counter_by_prompt_span(tmp_path: object) -> 
 	"""A 3-prompt matching block followed by a question numbers the next as 4."""
 	exam_data = _matching_yaml()
 	exam_data['sections'][0]['questions'].append({
-		'statement': 'A regular MC question.',
+		'statement': [{'text': 'A regular MC question.'}],
 		'choices': ['one', 'two', 'three', 'four'],
 	})
 	output_path = tmp_path / "matching_counter.docx"
@@ -233,3 +233,18 @@ def test_yaml_safe_load_round_trip_matches_synthetic(tmp_path: object) -> None:
 	assert 'prompts_list' in question
 	assert 'choices_list' in question
 	assert 'matching_terms' not in question
+
+
+#============================================
+def test_builder_rejects_scalar_statement_schema(tmp_path: object) -> None:
+	"""The renderer refuses obsolete scalar statements instead of guessing."""
+	exam_data = {
+		'title': 'Invalid schema',
+		'date': '2026-09-22',
+		'sections': [{'questions': [{
+			'statement': 'This question uses the obsolete scalar shape.',
+			'choices': ['yes', 'no'],
+		}]}],
+	}
+	with pytest.raises(TypeError, match='ordered list'):
+		yaml_to_exam_docx.build_document(exam_data, str(tmp_path / 'invalid.docx'))

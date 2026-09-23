@@ -89,7 +89,7 @@ source source_me.sh && python3 launchers/html_to_exam_yaml.py -i Cleaned_Final_E
 
 Matching questions are emitted as `prompts_list` plus `choices_list`; see [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md) for the schema.
 
-RDKit HTML5 canvas widgets in the cleaned HTML are auto-rendered to PNG (named `rdkit_<canvas_id>.png`) inside the existing Blackboard `*_files/` directory and emitted as standard `images:` entries; nothing extra to configure on the command line.
+RDKit HTML5 canvas widgets in the cleaned HTML are auto-rendered to PNG (named `rdkit_<canvas_id>.png`) inside the existing Blackboard `*_files/` directory and emitted as ordered `statement` image blocks; nothing extra to configure on the command line.
 
 bptools bbq text (`bbq-*-questions.txt`) to YAML plus an answer key:
 
@@ -106,8 +106,9 @@ skipped. Drawing tables (gels, chi-square tables) are rendered to
 
 ## Build a quiz or exam from a bptools task CSV
 
-`bbq_tasks_to_exam_yaml.py` reads the website task CSV format unchanged
-(`subject,topic,script,flags,input,notes`; `{bp_root}`/`YMATCH`-style aliases
+`bbq_tasks_to_exam_yaml.py` reads the website task CSV format
+(`subject,topic,script,flags,input,notes`), with an optional local `choice_font`
+column for professor-selected typography (`{bp_root}`/`YMATCH`-style aliases
 come from the repo's [bbq_settings.yml](../bbq_settings.yml), whose paths
 follow the website settings; pass `-s` to use another) and contributes **one
 question per resolved task**. The quiz settings define `YMATCH` as the
@@ -120,11 +121,11 @@ fresh run, up to three attempts, then the task is reported as `SKIPPED` on
 stderr and left out.
 
 ```csv
-subject,topic,script,flags,input,notes
-genetics,dna_structure,{bp_root}/molecular_biology-problems/chargaff_dna_percent.py,,,
-genetics,dna_structure,YMCS,,{bp_mcs}/biochemistry/dna_structure.yml,
-genetics,mendelian,YMATCH,,{bp_match}/inheritance/genetics_terminology.yml,
-genetics,dna_profiling,{bp_root}/dna_profiling-problems/who_father_html.py,--easy,,
+subject,topic,script,flags,input,notes,choice_font
+genetics,dna_structure,{bp_root}/molecular_biology-problems/chargaff_dna_percent.py,,,,IBM Plex Sans Condensed
+genetics,dna_structure,YMCS,,{bp_mcs}/biochemistry/dna_structure.yml,,
+genetics,mendelian,YMATCH,,{bp_match}/inheritance/genetics_terminology.yml,,
+genetics,dna_profiling,{bp_root}/dna_profiling-problems/who_father_html.py,--easy,,,
 ```
 
 Use `YMATCH` for the matching version or `YWHICH` for the "Which One?" MC

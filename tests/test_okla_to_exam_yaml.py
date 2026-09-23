@@ -7,6 +7,12 @@ import yaml
 
 # local repo modules
 import okla_to_exam_yaml
+import ef_tools.statement_content
+
+
+def _statement_text(question: dict) -> str:
+	"""Read question prose from its ordered statement blocks."""
+	return ef_tools.statement_content.text_content(question['statement'])
 
 
 def test_strip_question_number() -> None:
@@ -67,7 +73,7 @@ def test_parse_block_mc_question() -> None:
 	]
 	result = okla_to_exam_yaml.parse_block(lines)
 	assert result is not None
-	assert result['statement'] == 'What is the answer?'
+	assert _statement_text(result) == 'What is the answer?'
 	assert result['choices'] == ['Wrong', 'Correct', 'Wrong']
 
 
@@ -81,7 +87,7 @@ def test_parse_block_ma_question() -> None:
 	]
 	result = okla_to_exam_yaml.parse_block(lines)
 	assert result is not None
-	assert result['statement'] == 'Select all that apply:'
+	assert _statement_text(result) == 'Select all that apply:'
 	assert result['choices'] == ['First correct', 'Second correct', 'Wrong']
 
 
@@ -186,11 +192,11 @@ d) Yellow
 	assert len(result['sections'][0]['questions']) == 2
 
 	q1 = result['sections'][0]['questions'][0]
-	assert q1['statement'] == 'What is 2+2?'
+	assert _statement_text(q1) == 'What is 2+2?'
 	assert q1['choices'] == ['3', '4', '5']
 
 	q2 = result['sections'][0]['questions'][1]
-	assert q2['statement'] == 'Which are primary colors?'
+	assert _statement_text(q2) == 'Which are primary colors?'
 	assert q2['choices'] == ['Red', 'Blue', 'Green', 'Yellow']
 
 
@@ -221,8 +227,8 @@ b) B / 2
 	# Only 2 MC questions should be included
 	questions = result['sections'][0]['questions']
 	assert len(questions) == 2
-	assert questions[0]['statement'] == 'Normal MC question?'
-	assert questions[1]['statement'] == 'Another MC question?'
+	assert _statement_text(questions[0]) == 'Normal MC question?'
+	assert _statement_text(questions[1]) == 'Another MC question?'
 
 
 def test_yaml_output_format(tmp_path: object) -> None:
@@ -250,7 +256,7 @@ b) Wrong
 	assert 'date' in loaded
 	assert len(loaded['sections']) == 1
 	assert len(loaded['sections'][0]['questions']) == 1
-	assert loaded['sections'][0]['questions'][0]['statement'] == 'Question 1?'
+	assert loaded['sections'][0]['questions'][0]['statement'] == [{'text': 'Question 1?'}]
 
 
 def test_special_characters_in_questions(tmp_path: object) -> None:
@@ -263,7 +269,7 @@ def test_special_characters_in_questions(tmp_path: object) -> None:
 	result = okla_to_exam_yaml.convert_okla_to_yaml(str(input_file), 'Chemistry')
 
 	question = result['sections'][0]['questions'][0]
-	assert 'H2O' in question['statement']
+	assert 'H2O' in _statement_text(question)
 	assert 'H2O molecule' in question['choices']
 
 
@@ -281,6 +287,6 @@ c) No relationship exists
 	result = okla_to_exam_yaml.convert_okla_to_yaml(str(input_file), 'Complex')
 
 	question = result['sections'][0]['questions'][0]
-	assert 'rate of reaction' in question['statement']
-	assert 'temperature effects' in question['statement']
+	assert 'rate of reaction' in _statement_text(question)
+	assert 'temperature effects' in _statement_text(question)
 	assert len(question['choices']) == 3

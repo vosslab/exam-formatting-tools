@@ -17,6 +17,7 @@ import docx.oxml.ns
 
 # Local Repo Modules
 import ef_tools.cli_checks
+import ef_tools.statement_content
 
 
 #============================================
@@ -203,6 +204,19 @@ def parse_docx_questions(doc: docx.Document, para_images: dict) -> list:
 	paragraphs = doc.paragraphs
 	questions = []
 	current_question = None
+	consumed_image_paragraphs = set()
+	statement_block_positions = {}
+	question_ranges = []
+
+	def append_image(question: dict, paragraph_index: int) -> None:
+		"""Append one image at its paragraph position, at most once."""
+		if paragraph_index in consumed_image_paragraphs:
+			return
+		image_path = para_images.get(paragraph_index)
+		if image_path:
+			question['statement'].append({'image': image_path})
+			statement_block_positions[id(question)].append(paragraph_index)
+			consumed_image_paragraphs.add(paragraph_index)
 	# track which paragraph indices belong to tables
 	# (python-docx intermixes tables and paragraphs in the body)
 	# we need to find tables by checking the document body XML
@@ -239,18 +253,23 @@ def parse_docx_questions(doc: docx.Document, para_images: dict) -> list:
 		if q_num > 0:
 			# save previous question
 			if current_question is not None:
+				question_ranges[-1][2] = i - 1
 				questions.append(current_question)
 			# parse inline choices
 			question_text, inline_choices = parse_inline_choices(text)
 			current_question = {
-				'statement': question_text,
+				'statement': (
+					[ef_tools.statement_content.text_block(question_text)]
+					if question_text else []),
 			}
+			statement_block_positions[id(current_question)] = (
+				[i] if question_text else [])
+			question_ranges.append([current_question, i, None])
 			if inline_choices is not None:
 				current_question['choices'] = inline_choices
 			else:
 				# check for List Paragraph choices following
 				list_choices = []
-				continuation_text = []
 				j = i + 1
 				blank_count = 0
 				while j < len(paragraphs):
@@ -260,7 +279,7 @@ def parse_docx_questions(doc: docx.Document, para_images: dict) -> list:
 					# check for image paragraphs
 					if j in para_images:
 						# image paragraph between question and choices
-						current_question['image'] = para_images[j]
+						append_image(current_question, j)
 						j += 1
 						blank_count = 0
 						continue
@@ -281,11 +300,10 @@ def parse_docx_questions(doc: docx.Document, para_images: dict) -> list:
 						break
 					# otherwise it is continuation text
 					blank_count = 0
-					continuation_text.append(next_text)
+					current_question['statement'].append(
+						ef_tools.statement_content.text_block(next_text))
+					statement_block_positions[id(current_question)].append(j)
 					j += 1
-				# attach continuation text to the question statement
-				if continuation_text:
-					current_question['statement'] += '\n' + '\n'.join(continuation_text)
 				if list_choices:
 					# strip letter prefixes from choices
 					cleaned_choices = []
@@ -297,12 +315,15 @@ def parse_docx_questions(doc: docx.Document, para_images: dict) -> list:
 					i = j
 					continue
 			# check for image on the same paragraph or nearby
-			if i in para_images and 'image' not in current_question:
-				current_question['image'] = para_images[i]
+			if i in para_images:
+				append_image(current_question, i)
 			# check paragraph right after for image
-			if (i + 1) in para_images and 'image' not in current_question:
-				current_question['image'] = para_images[i + 1]
-			i += 1
+			if (i + 1) in para_images:
+				append_image(current_question, i + 1)
+			if inline_choices is None:
+				i = j
+			else:
+				i += 1
 			continue
 
 		# non-question paragraph that might be continuation text
@@ -310,15 +331,18 @@ def parse_docx_questions(doc: docx.Document, para_images: dict) -> list:
 			# check if it is continuation text for the current question
 			if text and style != 'List Paragraph':
 				# append to the question statement
-				current_question['statement'] += '\n' + text
+				current_question['statement'].append(
+					ef_tools.statement_content.text_block(text))
+				statement_block_positions[id(current_question)].append(i)
 			# check for image
 			if i in para_images:
-				current_question['image'] = para_images[i]
+				append_image(current_question, i)
 
 		i += 1
 
 	# save last question
 	if current_question is not None:
+		question_ranges[-1][2] = len(paragraphs) - 1
 		questions.append(current_question)
 
 	# attach table data to questions that reference tables
@@ -328,22 +352,38 @@ def parse_docx_questions(doc: docx.Document, para_images: dict) -> list:
 		if table_idx >= len(tables):
 			continue
 		table_data = extract_table_data(tables[table_idx])
-		# find the question closest to this table position
-		# assign table to the most recently parsed question
-		if questions:
+		# Place the table in its original position inside the question statement.
+		matching_ranges = [
+			item for item in question_ranges
+			if item[1] <= para_idx <= item[2] + 1]
+		if matching_ranges:
+			preceding_ranges = [item for item in matching_ranges if item[1] < para_idx]
+			best_q = (preceding_ranges[-1] if preceding_ranges else matching_ranges[0])[0]
+		elif questions:
 			best_q = questions[-1]
-			if 'table' not in best_q:
-				best_q['table'] = table_data
+		else:
+			best_q = None
+		if best_q is not None:
+			positions = statement_block_positions[id(best_q)]
+			insert_at = next(
+				(index for index, block_position in enumerate(positions)
+					if block_position >= para_idx),
+				len(positions))
+			best_q['statement'].insert(insert_at, {'table': table_data})
+			positions.insert(insert_at, para_idx)
 
 	# post-process: parse choices from statement field if question has no choices
 	for q in questions:
 		if 'choices' in q:
 			continue
+		if any('text' not in block for block in q['statement']):
+			continue
 		# statement is required, try parsing choices from it
-		text = q['statement']
+		text = ef_tools.statement_content.text_content(q['statement'])
 		q_text, choices = parse_inline_choices(text)
 		if choices is not None:
-			q['statement'] = q_text if q_text else q['statement']
+			media = [block for block in q['statement'] if 'text' not in block]
+			q['statement'] = [ef_tools.statement_content.text_block(q_text)] + media
 			q['choices'] = choices
 		else:
 			# try a different pattern: lines starting with A) B) etc
@@ -355,7 +395,8 @@ def parse_docx_questions(doc: docx.Document, para_images: dict) -> list:
 				# everything before first match is question continuation
 				pre_text = text[:line_matches[0].start()].strip()
 				if pre_text:
-					q['statement'] = pre_text
+					media = [block for block in q['statement'] if 'text' not in block]
+					q['statement'] = [ef_tools.statement_content.text_block(pre_text)] + media
 				choices = []
 				for m in line_matches:
 					choice_text = m.group(2).strip()

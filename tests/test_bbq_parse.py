@@ -33,7 +33,7 @@ class FakeRenderer:
 def test_mc_and_ma_letters_point_at_correct_choices() -> None:
 	mc = ef_tools.bbq_parse.parse_bbq_line(MC_LINE)
 	assert mc['answer']['code'] == 'c555_9c1d'
-	assert mc['question']['statement'] == 'What is 2+2?'
+	assert mc['question']['statement'] == [{'text': 'What is 2+2?'}]
 	assert [mc['question']['choices'][LETTERS.index(x)] for x in mc['answer']['letters']] == ['4']
 	ma = ef_tools.bbq_parse.parse_bbq_line(MA_LINE)
 	assert [ma['question']['choices'][LETTERS.index(x)] for x in ma['answer']['letters']] == ['2', '3']
@@ -67,16 +67,21 @@ def test_skipped_types_and_blank_lines_return_none() -> None:
 
 #============================================
 def test_tables_in_statement_choice_and_prompt_become_images(tmp_path: object) -> None:
-	line = (f"MAT\t<p>ab12_cd34</p><p>Match gels</p>{GEL_TABLE}"
+	line = (f"MAT\t<p>ab12_cd34</p><p>Before the diagram.</p>{GEL_TABLE}"
+		f"<p>After the diagram.</p>"
 		f"\t{GEL_TABLE}\tplain match\tB\t{GEL_TABLE}")
 	record = ef_tools.bbq_parse.parse_bbq_line(line)
-	assert '<table' not in record['question']['statement']
+	statement = record['question']['statement']
+	assert statement[0] == {'text': 'Before the diagram.'}
+	assert statement[1]['html_table'].startswith('<table')
+	assert 'gel' in statement[1]['html_table']
+	assert statement[2] == {'text': 'After the diagram.'}
 	ef_tools.bbq_parse.render_record_tables(record, FakeRenderer(), str(tmp_path / 'q_files'), 'ab12')
 	question = record['question']
-	assert question['images'] == ['q_files/ab12_table_1.png']
-	assert len(question['html_tables']) == 1
-	assert '<table' in question['html_tables'][0]
-	assert 'gel' in question['html_tables'][0]
+	assert question['statement'][1]['image'] == 'q_files/ab12_table_1.png'
+	assert 'html_table' in question['statement'][1]
+	assert '<table' in question['statement'][1]['html_table']
+	assert 'gel' in question['statement'][1]['html_table']
 	# prompt 0 was a table; prompts keep their order
 	assert question['prompts_list'][0]['image'] == 'q_files/ab12_prompt0_table_1.png'
 	assert '<table' in question['prompts_list'][0]['html_table']

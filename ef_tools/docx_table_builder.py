@@ -20,6 +20,8 @@ import lxml.html
 # Local Repo Modules
 import ef_tools.bbq_html
 import ef_tools.layout
+import ef_tools.docx_builder
+import ef_tools.text_utils
 
 
 class UnsupportedHtmlTable(ValueError):
@@ -190,10 +192,7 @@ def _shade_cell(cell: object, color: str) -> None:
 #============================================
 def _add_cell_text(cell: object, text: str, header: bool) -> None:
 	"""Write rich text and hard-break paragraphs into one Word cell."""
-	# Imported lazily to avoid a module cycle: docx_builder owns the rich-text
-	# run emitter and imports this table backend at module load time.
-	import ef_tools.docx_builder
-	paragraphs = ef_tools.docx_builder._PARAGRAPH_BREAK_RE.split(text)
+	paragraphs = ef_tools.text_utils.split_on_hard_breaks(text)
 	paragraphs = [paragraph for paragraph in paragraphs if paragraph.strip()]
 	if not paragraphs:
 		paragraphs = ['']
@@ -243,9 +242,6 @@ def add_html_table(doc: object, table_html: str) -> object:
 #============================================
 def add_native_table_choices_stacked(doc: object, choices: list) -> None:
 	"""Render table-based choices as one labeled native Word table each."""
-	# Imported lazily to avoid a module cycle: the rich-text emitter lives in
-	# docx_builder and imports this table backend at module load time.
-	import ef_tools.docx_builder
 	if not all(supports_html_table(choice['html_table']) for choice in choices):
 		raise UnsupportedHtmlTable('one or more choice tables are unsupported')
 	style_name = ef_tools.layout.choices_style_name(1)

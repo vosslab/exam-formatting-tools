@@ -48,9 +48,14 @@ Each launcher has one primary direction and a small argparse surface. Run a laun
 
 Modules are single-purpose and imported directly. Add a matching test named `tests/test_<module>.py` when a new stable behavior warrants permanent coverage.
 
+DOCX assembly and shared text formatting live in `docx_builder.py`; answer choices and matching prompts live in `docx_choice_builder.py`; image sizing and native table conversion each have their own modules.
+
 ### `tests/`
 
-Fast unit and integration tests live at the top level. Real generators, Chromium, and DOCX rendering run through [../tests/e2e/e2e_bbq_tasks_quiz.py](../tests/e2e/e2e_bbq_tasks_quiz.py), outside the ordinary pytest lane. Browser-specific tests belong under `tests/playwright/`.
+Fast unit and integration tests live at the top level, including a synthetic
+HTML-to-YAML-to-DOCX pipeline. The real-generator workflow runs through
+[../tests/e2e/e2e_bbq_tasks_quiz.py](../tests/e2e/e2e_bbq_tasks_quiz.py), outside
+the ordinary pytest lane. Browser-specific tests belong under `tests/playwright/`.
 
 ### `devel/`
 
@@ -79,6 +84,7 @@ Tracked configuration is the exception to the broad YAML ignore: [../styles/exam
 | [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md) | Canonical exam YAML schema |
 | [EXAM_DOCUMENT_STYLES.md](EXAM_DOCUMENT_STYLES.md) | Current DOCX style reference |
 | [CODE_ARCHITECTURE.md](CODE_ARCHITECTURE.md) | Components and data flow |
+| [WORKFLOW_LOGIC_AUDIT.md](WORKFLOW_LOGIC_AUDIT.md) | Converter ownership, output publication, and follow-up priorities |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Symptoms, causes, and recovery steps |
 | [FAQ.md](FAQ.md) | Short answers to recurring workflow questions |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Test, documentation, and release workflows |

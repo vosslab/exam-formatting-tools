@@ -153,12 +153,11 @@ def parse_bbq_line(line: str) -> dict | None:
 		raise ValueError(f"unknown bbq question type: {question_type!r}")
 	# statement: strip the CRC paragraph, pull tables, clean the rest
 	code, statement_html = ef_tools.bbq_html.split_question_code(parts[1])
-	statement, statement_tables = _clean_field(statement_html)
+	statement = ef_tools.bbq_html.clean_statement_content(statement_html)
 	question = {'statement': statement, **question}
 	record = {
 		'question': question,
 		'answer': {'code': code, 'type': question_type, 'letters': letters},
-		'statement_tables': statement_tables,
 		'choice_tables': choice_tables,
 		'prompt_tables': prompt_tables,
 	}
@@ -183,10 +182,12 @@ def attach_table_images(record: dict, statement_paths: list, choice_paths: dict,
 			YAML choice and prompt dicts hold a single image.
 	"""
 	question = record['question']
-	if statement_paths:
-		question['images'] = list(statement_paths)
-	if record['statement_tables']:
-		question['html_tables'] = list(record['statement_tables'])
+	table_blocks = [block for block in question['statement'] if 'html_table' in block]
+	if len(table_blocks) != len(statement_paths):
+		raise ValueError(
+			f"statement has {len(table_blocks)} table blocks but {len(statement_paths)} rendered images")
+	for block, path in zip(table_blocks, statement_paths):
+		block['image'] = path
 	# choice_paths is keyed by the original bbq choice index; for shuffled
 	# matching lists the answer letters recover the printed position
 	for index, paths in choice_paths.items():
@@ -205,7 +206,9 @@ def attach_table_images(record: dict, statement_paths: list, choice_paths: dict,
 #============================================
 def has_tables(record: dict) -> bool:
 	"""Return whether a parsed record carries any drawing table."""
-	found = bool(record['statement_tables'] or record['choice_tables'] or record['prompt_tables'])
+	statement = record['question']['statement']
+	found = bool(any('html_table' in block for block in statement)
+		or record['choice_tables'] or record['prompt_tables'])
 	return found
 
 
@@ -219,8 +222,11 @@ def render_record_tables(record: dict, renderer: object, media_dir: str, stem: s
 		media_dir: `<yaml_dir>/<stem>_files` directory for the PNGs.
 		stem: Filename stem for this question (its CRC code).
 	"""
+	statement_table_html = [
+		block['html_table'] for block in record['question']['statement']
+		if 'html_table' in block]
 	statement_paths = ef_tools.bbq_html.write_table_pngs(
-		record['statement_tables'], renderer, media_dir, stem)
+		statement_table_html, renderer, media_dir, stem)
 	choice_paths = {}
 	for index, tables in record['choice_tables'].items():
 		choice_paths[index] = ef_tools.bbq_html.write_table_pngs(

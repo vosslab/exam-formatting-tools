@@ -15,21 +15,21 @@ def _exam_data() -> dict:
 			{
 				"questions": [
 					{
-						"statement": "Warm-up question.",
+						"statement": [{"text": "Warm-up question."}],
 						"choices": ["A", "B"],
 					},
 					{
 						"number": 12,
-						"statement": (
+						"statement": [{"text": (
 							"Plain <code>ATGC</code> with <tt>GCTA</tt> and "
 							"<b>explicit emphasis</b> and "
 							"<strong><i><code>GCAT</code></i></strong>."
 							"\nQuestion continuation."
-						),
+						)}],
 						"choices": ["A", "B"],
 					},
 					{
-						"statement": "Match the terms.",
+						"statement": [{"text": "Match the terms."}],
 						"prompts_list": ["first", "second"],
 						"choices_list": ["one", "two"],
 					},
@@ -59,7 +59,7 @@ def test_question_labels_are_boxed_and_question_text_uses_configured_emphasis(
 	question_heading_style = doc.styles["Question Heading"]
 	question_follow_style = doc.styles["Question Follow"]
 	assert question_heading_style.font.bold is False
-	assert question_heading_style.font.italic is False
+	assert question_heading_style.font.italic is None
 	assert question_follow_style.base_style == question_heading_style
 	assert question_follow_style.font.bold is None
 	assert question_follow_style.font.italic is None
@@ -88,13 +88,14 @@ def test_question_labels_are_boxed_and_question_text_uses_configured_emphasis(
 		assert doc.styles[style_name].font.name == "Atkinson Hyperlegible Next"
 	code_runs = [run for run in question_para.runs if run.text in ("ATGC", "GCTA")]
 	assert len(code_runs) == 2
-	assert all(run.font.name == "Atkinson Hyperlegible Mono" for run in code_runs)
+	assert all(
+		run.font.name == "Atkinson Hyperlegible Mono Regular"
+		for run in code_runs)
 	assert all(run.font.bold is None for run in code_runs)
-	assert all(run.font.italic is None for run in code_runs)
-	assert all(style.name != "Exam Code" for style in doc.styles)
+	assert all(run.font.italic is False for run in code_runs)
 	explicit_code_run = next(
 		run for run in question_para.runs if run.text == "GCAT")
-	assert explicit_code_run.font.name == "Atkinson Hyperlegible Mono"
+	assert explicit_code_run.font.name == "Atkinson Hyperlegible Mono Regular"
 	assert explicit_code_run.bold is True
 	assert explicit_code_run.italic is True
 	explicit_bold_run = next(

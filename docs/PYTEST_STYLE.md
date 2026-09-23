@@ -116,15 +116,15 @@ For all other tests, write the input directly in the test.
 
 Use `tmp_path` for file-shaped test input, such as a CSV, YAML, JSON, or image, that exists only for
 the test. Write the inline data into a `tmp_path` file at runtime so the data lives in the test and
-the file exists only during the run. Add a permanent committed file only when that file already has
-a non-test purpose in the repository, or when a human explicitly approves it as durable shared test
-infrastructure.
+the file exists only during the run. Add a permanent test-data file when it captures a real input
+boundary that cannot be stated clearly with inline synthetic data. Keep the captured case minimal
+and record its source; do not add shared fixtures for convenience.
 
 During early implementation, keep scratch setup in the test. Once the behavior is pinned, keep that
 setup in the test instead of moving it into a shared fixture.
 
-Treat a committed `tests/fixtures/` directory as shared test infrastructure. Get explicit human
-sign-off before adding one. These directories often accumulate stale files after their first use.
+Treat `tests/fixtures/` as shared test infrastructure. Add a fixture there when a minimal captured
+input is clearer than inline setup, and remove it when no test needs it.
 
 ## Assertion shapes
 

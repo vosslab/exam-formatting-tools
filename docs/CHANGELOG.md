@@ -1,5 +1,53 @@
 # Changelog
 
+## 2026-09-23
+
+### Behavior or Interface Changes
+
+- Individual questions can select a font family for choice text with `choice_font` in exam YAML
+  or in the optional task-CSV column. Atkinson Hyperlegible Next remains the default.
+- Choice and matching renderers now live in `ef_tools/docx_choice_builder.py`; `docx_builder.py`
+  owns document styles, shared rich text, statements, tables, and page headers.
+- DOCX `<code>`/`<tt>` runs use the named Regular face of Atkinson Hyperlegible Mono. HTML table
+  rendering continues to use the family name. This keeps the output font family consistent while
+  giving LibreOffice an explicit upright face; bold and italic still come from surrounding markup.
+
+### Fixes and Maintenance
+
+- Added a workflow audit recording launcher ownership, output publication,
+  and YAML serialization findings for planned cleanup.
+- Task-CSV tests now model `YMATCH` and `YWHICH` as separate selectors. Added a synthetic task-CSV
+  to YAML, answer-key, and DOCX pipeline check that does not run sibling-repository generators.
+- Removed manual acceptance and visual-measurement steps from the roadmap. The standalone task-CSV
+  E2E is supplementary evidence; fixtures and fast tests protect owned conversion contracts.
+- Fixture guidance now allows a minimal captured input when it protects a real source boundary;
+  small synthetic cases remain inline and no fixture requires human sign-off.
+
+### Removals and Deprecations
+
+- Removed duplicate statement-order and color checks now covered by synthetic import-to-DOCX
+  pipelines. Removed the host-specific PDF rendering probe from permanent test coverage.
+
+### Developer Tests and Notes
+
+- The choice-renderer split passed 339 focused tests. `./make_quiz.sh` rebuilt all 26 questions;
+  the six-page PDF retained its condensed Chargaff choices on single lines.
+- The Chargaff task row selects IBM Plex Sans Condensed for its choice text. `./make_quiz.sh`
+  regenerated the six-page PDF; the DOCX and embedded PDF fonts confirm the override, and page 1
+  shows all four choices on single lines.
+- Used a one-time LibreOffice PDF inspection for code slant and condensed-choice layout; this
+  host-dependent check is not retained as a permanent test.
+- `./make_quiz.sh` completed 20 task rows with 26 questions and zero skips. LibreOffice ran with
+  both `--headless` and `--norestore`; the six-page PDF was rasterized and every page inspected.
+  The embedded Atkinson Mono output contains upright sequence runs and bold-italic enzyme names.
+- One-time PDF inspection used Liberation Mono as a control face because this host's installed
+  Atkinson Mono catalog makes isolated LibreOffice font selection inconsistent. DOCX markup
+  carries the production Atkinson face.
+- The focused DOCX/PDF/task-CSV/HTML lane passed 26 tests. Full `pytest tests/` passed 1582 tests;
+  its one advisory reports `ef_tools/docx_builder.py` at 925 lines, within 75 of the file limit.
+- This audit removed the permanent host-specific PDF probe, dropped an unused monospace fallback
+  setting, and corrected stale YAML, image-sizing, header, and output-collision documentation.
+
 ## 2026-09-22
 
 ### Additions and New Features
@@ -18,6 +66,22 @@
 
 ### Behavior or Interface Changes
 
+- Exam YAML v2 makes `statement` an ordered list of `{text}`, `{image}`, and
+  `{table}` blocks. BBQ drawings carry their HTML and PNG fallback in the same
+  block, and the DOCX builder renders each block in author order. Scalar
+  statements and question-level statement media/table fields are no longer
+  accepted.
+- HTML color imports normalize three- and six-digit hex (with or without the
+  producer's optional `#`) to one canonical `#rrggbb` form. Blackboard HTML,
+  bptools statements, and DOCX rich-text runs now share that color contract.
+- HTML statement media paths are relativized in the ordered-block schema. A
+  synthetic HTML-to-YAML-to-DOCX regression checks relative paths, text/image
+  order, and saved Word run colors without external exam files.
+- Statement validation rejects empty questions, blank image paths, malformed
+  structured tables, and blocks with mixed or unknown fields at the schema
+  boundary.
+- Moved body-page headers to 0.3in from the page top so they clear content at
+  the 0.6in body margin, including chapter headings at the start of a page.
 - Question Heading and Question Follow use regular, non-italic text. Both keep with the next
   paragraph; answer choice paragraphs do not. The question label remains selectable text inside a
   2pt black rectangular border; matching prompt numbers remain unchanged.
@@ -31,14 +95,18 @@
 - Colored `<span>` markup is now ignored when measuring answer-choice widths, so the five short
   colored labels in restriction-enzyme questions lay out across one row instead of stacking.
 - Inline `<code>`/`<tt>` runs now translate to direct Atkinson Hyperlegible Mono run formatting;
-  bold and italic still follow surrounding paragraph and markup. The saved DOCX contains no
-  code-specific character style.
+  bold and italic still follow surrounding paragraph and markup. Upright code runs set an
+  explicit normal slant and leave the complex-script font slot inherited, because LibreOffice
+  otherwise selects Mono Italic for Latin code. The saved DOCX contains no code-specific
+  character style.
 - Fixed rendered tables printing at a different text size in each question. The renderer screenshots CSS pixels at `DEVICE_SCALE_FACTOR = 2`, so its PNGs are 192 px/in, but `styles/exam_styles.yaml` declared `table_image_source_dpi: 96`. Every drawing was therefore believed to be twice its true physical size, blew past its per-slot inch cap, and was clamped -- and clamping normalizes width, not text size, so each drawing landed at its own arbitrary scale. Two identical-looking DNA strips of 924 and 1090 px both clamped to 5.6 in, at 0.58x and 0.49x. The same defect forced the matching-prompt strips to one height, stretching short prompts. Sizing now reads each PNG's recorded resolution.
 - Removed the configured resolution rather than correcting it to 192. A configured value is what allowed the drift in the first place; a drawing that records no resolution now raises a `ValueError` naming the file instead of silently assuming one. Safe to require because nothing downstream is in production yet.
 - Fixed the direction of the baseline-centering offset, caught in a rendered PDF: an inline picture rests its BOTTOM edge on the baseline, so centering means moving it DOWN by half its height. The first implementation raised it instead, lifting each drawing clear of its line and leaving the `(A)` prefix at the picture's bottom edge. `tests/test_docx_builder_image_choices.py` now pins the sign.
 
 ### Developer Tests and Notes
 
+- The synthetic HTML-to-YAML-to-DOCX pipeline regression checks relative image paths, both image positions, and direct DOCX color. The focused statement/HTML/DOCX lane passed: 139 tests.
+- `./make_quiz.sh` completed with 26 questions and zero skipped tasks. Its LibreOffice export used both `--headless` and `--norestore`; the resulting six-page PDF was rendered and all six pages reviewed for placement, color, and layout.
 - Added focused coverage for the 2pt number border, regular Question Heading/Follow styles, Atkinson
   font assignments, code-markup preservation, and monospace DOCX runs; 67 focused tests passed.
   Visual rendering was unavailable because headless LibreOffice aborted even for an unstyled DOCX,

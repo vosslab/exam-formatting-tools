@@ -8,6 +8,7 @@ import docx.oxml.ns
 import pytest
 
 import ef_tools.docx_builder
+import ef_tools.docx_choice_builder
 import ef_tools.docx_images
 import ef_tools.layout
 import ef_tools.style_loader
@@ -45,7 +46,7 @@ def test_add_image_choices_tabbed_emits_no_tables(tmp_path: object) -> None:
 	image_paths = _write_pngs(tmp_path, 4)
 	choices = [{"text": "curve", "image": path} for path in image_paths]
 	doc = _make_styled_doc()
-	ef_tools.docx_builder.add_image_choices_tabbed(
+	ef_tools.docx_choice_builder.add_image_choices_tabbed(
 		doc, choices, ef_tools.docx_images.FitSizer(1.0),
 	)
 	assert len(doc.tables) == 0
@@ -61,7 +62,7 @@ def test_add_image_choices_tabbed_uses_choices_n_style(tmp_path: object) -> None
 	image_paths = _write_pngs(tmp_path, 4)
 	choices = [{"text": "", "image": path} for path in image_paths]
 	doc = _make_styled_doc()
-	ef_tools.docx_builder.add_image_choices_tabbed(
+	ef_tools.docx_choice_builder.add_image_choices_tabbed(
 		doc, choices, ef_tools.docx_images.FitSizer(1.0),
 	)
 	# image paragraph is the last one (or second-to-last when alt text is
@@ -82,7 +83,7 @@ def test_add_image_choices_tabbed_inlines_one_image_per_choice(tmp_path: object)
 	image_paths = _write_pngs(tmp_path, 3)
 	choices = [{"text": "", "image": path} for path in image_paths]
 	doc = _make_styled_doc()
-	ef_tools.docx_builder.add_image_choices_tabbed(
+	ef_tools.docx_choice_builder.add_image_choices_tabbed(
 		doc, choices, ef_tools.docx_images.FitSizer(1.0),
 	)
 	assert len(doc.inline_shapes) == 3
@@ -100,7 +101,7 @@ def test_wide_image_choices_stack_at_readable_width(tmp_path: object) -> None:
 	choices = [{"text": "", "image": path} for path in image_paths]
 	doc = _make_styled_doc()
 	before = len(doc.paragraphs)
-	ef_tools.docx_builder.add_image_choices_tabbed(
+	ef_tools.docx_choice_builder.add_image_choices_tabbed(
 		doc, choices, ef_tools.docx_images.FitSizer(1.49, 2.0),
 		wide_sizer=ef_tools.docx_images.FitSizer(5.6, 2.0),
 		wide_image_min_aspect=5.0,
@@ -118,7 +119,7 @@ def test_add_image_choices_tabbed_renders_letter_prefixes(tmp_path: object) -> N
 	image_paths = _write_pngs(tmp_path, 3)
 	choices = [{"text": "", "image": path} for path in image_paths]
 	doc = _make_styled_doc()
-	ef_tools.docx_builder.add_image_choices_tabbed(
+	ef_tools.docx_choice_builder.add_image_choices_tabbed(
 		doc, choices, ef_tools.docx_images.FitSizer(1.0),
 	)
 	# letter prefixes live in the same combined paragraph as the images;
@@ -146,7 +147,7 @@ def test_add_image_choices_tabbed_mixed_text_and_images(tmp_path: object) -> Non
 		{"text": "third", "image": image_paths[1]},
 	]
 	doc = _make_styled_doc()
-	ef_tools.docx_builder.add_image_choices_tabbed(
+	ef_tools.docx_choice_builder.add_image_choices_tabbed(
 		doc, choices, ef_tools.docx_images.FitSizer(1.0),
 	)
 	# only the choices that supplied an image are embedded
@@ -175,7 +176,7 @@ def test_image_choice_max_width_per_cols_clamps_5col(tmp_path: object) -> None:
 	choices = [{"text": "", "image": path} for path in image_paths]
 	doc = _make_styled_doc()
 	# request 3.0" wide images; the per-col cap should clamp to 0.96"
-	ef_tools.docx_builder.add_image_choices_tabbed(
+	ef_tools.docx_choice_builder.add_image_choices_tabbed(
 		doc, choices, ef_tools.docx_images.FitSizer(3.0, 3.0),
 	)
 	cap_5col = ef_tools.docx_images.IMAGE_CHOICE_MAX_WIDTH_BY_COLS[5]
@@ -201,7 +202,7 @@ def test_zero_inline_image_margins_sets_dist_attrs_to_zero(tmp_path: object) -> 
 	image_paths = _write_pngs(tmp_path, 3)
 	choices = [{"text": "", "image": path} for path in image_paths]
 	doc = _make_styled_doc()
-	ef_tools.docx_builder.add_image_choices_tabbed(
+	ef_tools.docx_choice_builder.add_image_choices_tabbed(
 		doc, choices, ef_tools.docx_images.FitSizer(1.0),
 	)
 	WP = 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing'
@@ -224,7 +225,7 @@ def test_alt_text_paragraph_skipped_for_placeholder_image_text(tmp_path: object)
 	choices = [{"text": "image", "image": path} for path in image_paths]
 	doc = _make_styled_doc()
 	before = len(doc.paragraphs)
-	ef_tools.docx_builder.add_image_choices_tabbed(
+	ef_tools.docx_choice_builder.add_image_choices_tabbed(
 		doc, choices, ef_tools.docx_images.FitSizer(1.0),
 	)
 	# only the combined paragraph was added; no alt-text paragraph
@@ -244,7 +245,7 @@ def test_alt_text_paragraph_emitted_for_meaningful_alt_text(tmp_path: object) ->
 	]
 	doc = _make_styled_doc()
 	before = len(doc.paragraphs)
-	ef_tools.docx_builder.add_image_choices_tabbed(
+	ef_tools.docx_choice_builder.add_image_choices_tabbed(
 		doc, choices, ef_tools.docx_images.FitSizer(1.0),
 	)
 	# combined paragraph + alt-text paragraph = 2 new paragraphs
@@ -263,7 +264,7 @@ def test_long_image_captions_stack_to_preserve_choice_mapping(tmp_path: object) 
 	caption = 'Visual representation of test reactions: OO%O'
 	choices = [{"text": caption, "image": path} for path in image_paths]
 	doc = _make_styled_doc()
-	ef_tools.docx_builder.add_image_choices_tabbed(
+	ef_tools.docx_choice_builder.add_image_choices_tabbed(
 		doc, choices, ef_tools.docx_images.FitSizer(3.4, 2.0),
 	)
 	assert len(doc.paragraphs) == 10

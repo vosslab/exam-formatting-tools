@@ -1,11 +1,12 @@
 """Load website-style bptools task CSVs and generate one question per task.
 
-The CSV contract mirrors biology-problems-website/run_bbq_tasks.py so a task
-file such as bbq_control/task_files/genetics_tasks1.csv works unchanged:
+The CSV contract mirrors biology-problems-website/run_bbq_tasks.py so website
+task files work unchanged. An optional local ``choice_font`` column selects a
+manual font override for text choices on one task:
 
-	subject,topic,script,flags,input,notes
-	genetics,dna_structure,{bp_root}/molecular_biology-problems/chargaff_dna_percent.py,,,
-	genetics,mendelian,YMATCH,,{bp_match}/inheritance/genetics_terminology.yml,
+	subject,topic,script,flags,input,notes,choice_font
+	genetics,dna_structure,{bp_root}/molecular_biology-problems/chargaff_dna_percent.py,,,,IBM Plex Sans Condensed
+	genetics,mendelian,YMATCH,,{bp_match}/inheritance/genetics_terminology.yml,,
 
 Path aliases ({bp_root}, {bp_match}, ...) and script aliases come from
 bbq_settings.yml. A script alias may expand to several scripts; each becomes
@@ -149,8 +150,8 @@ def load_tasks(csv_path: str, settings: dict) -> list:
 	"""Resolve every CSV row into tasks the way the website runner does.
 
 	Returns:
-		List of {'script', 'args', 'topic', 'label'} dicts, one per resolved
-		script.
+		List of task dicts, one per resolved script. A non-empty optional
+		``choice_font`` value is carried through to the generated question.
 
 	Raises:
 		FileNotFoundError: a resolved script path does not exist.
@@ -171,6 +172,7 @@ def load_tasks(csv_path: str, settings: dict) -> list:
 			flags = (row['flags'] or '').strip()
 			input_value = (row['input'] or '').strip()
 			topic = (row['topic'] or '').strip()
+			choice_font = (row.get('choice_font') or '').strip()
 			# separator row
 			if not script and not flags:
 				continue
@@ -193,6 +195,8 @@ def load_tasks(csv_path: str, settings: dict) -> list:
 					'topic': topic,
 					'label': _task_label(script_path, input_path),
 				}
+				if choice_font:
+					task['choice_font'] = choice_font
 				tasks.append(task)
 	return tasks
 

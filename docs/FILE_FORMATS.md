@@ -6,7 +6,7 @@ This reference lists the source files accepted by the launchers and the artifact
 
 - Cleaned Blackboard HTML uses `.html` or `.htm` and is read by [html_to_exam_yaml.py](../launchers/html_to_exam_yaml.py).
 - bptools BBQ text uses `.txt` and is read by [bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py).
-- Website task CSV uses `.csv` with `subject,topic,script,flags,input,notes`; [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) resolves aliases from [../bbq_settings.yml](../bbq_settings.yml).
+- Website task CSV uses `.csv` with `subject,topic,script,flags,input,notes` and may add the local `choice_font` column; [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) resolves aliases from [../bbq_settings.yml](../bbq_settings.yml).
 - Oklahoma exports use `.txt` and are read by [okla_to_exam_yaml.py](../launchers/okla_to_exam_yaml.py).
 - Existing exam DOCX files use `.docx` and are read by [docx_to_exam_yaml.py](../launchers/docx_to_exam_yaml.py).
 - Exam YAML uses `.yml` or `.yaml` and is read by [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py) and [validate_zip_grade_yaml.py](../launchers/validate_zip_grade_yaml.py).

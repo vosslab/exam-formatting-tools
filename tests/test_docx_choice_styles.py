@@ -19,6 +19,7 @@ import docx
 import file_utils
 import ef_tools.docx_images
 import ef_tools.docx_builder
+import ef_tools.docx_choice_builder
 import ef_tools.style_loader
 
 # put the repo root on sys.path so yaml_to_exam_docx.py is importable
@@ -58,7 +59,7 @@ def test_text_choices_use_concrete_choices_n_style() -> None:
 	"""Four short text choices land on a Choices [2-5] style."""
 	doc = _make_styled_doc()
 	choices = ["yes", "no", "maybe", "unknown"]
-	ef_tools.docx_builder.add_choices_paragraph(
+	ef_tools.docx_choice_builder.add_choices_paragraph(
 		doc, choices, tab_style=4, items_per_row=4,
 	)
 	style_name = doc.paragraphs[-1].style.name
@@ -70,7 +71,7 @@ def test_text_choices_use_concrete_choices_n_style() -> None:
 def test_choice_rows_do_not_keep_with_the_next_paragraph() -> None:
 	"""Choice rows can flow independently across page boundaries."""
 	doc = _make_styled_doc()
-	ef_tools.docx_builder.add_choices_paragraph(
+	ef_tools.docx_choice_builder.add_choices_paragraph(
 		doc, ['one', 'two', 'three', 'four', 'five'],
 		tab_style=3, items_per_row=3,
 	)
@@ -92,7 +93,7 @@ def test_long_text_choices_avoid_bare_choice_style() -> None:
 	doc = _make_styled_doc()
 	# tab_style=1 used to map to bare 'Choice'; it now maps to Choices 2
 	choices = ["a long answer", "another long answer"]
-	ef_tools.docx_builder.add_choices_paragraph(
+	ef_tools.docx_choice_builder.add_choices_paragraph(
 		doc, choices, tab_style=1, items_per_row=1,
 	)
 	style_name = doc.paragraphs[-1].style.name
@@ -114,7 +115,7 @@ def test_mixed_text_image_choices_avoid_bare_choice_style(tmp_path: object) -> N
 		{"text": "third option"},
 	]
 	doc = _make_styled_doc()
-	ef_tools.docx_builder.add_choices_paragraph(
+	ef_tools.docx_choice_builder.add_choices_paragraph(
 		doc, choices, tab_style=3, items_per_row=3,
 		sizer=ef_tools.docx_images.FitSizer(1.0),
 	)
@@ -128,7 +129,7 @@ def test_all_image_choices_avoid_bare_choice_style(tmp_path: object) -> None:
 	images = [_write_png(tmp_path, f"img_{i}.png") for i in range(4)]
 	choices = [{"text": "", "image": path} for path in images]
 	doc = _make_styled_doc()
-	ef_tools.docx_builder.add_image_choices_tabbed(
+	ef_tools.docx_choice_builder.add_image_choices_tabbed(
 		doc, choices, ef_tools.docx_images.FitSizer(1.0),
 	)
 	style_name = doc.paragraphs[-1].style.name
@@ -163,6 +164,31 @@ def test_rich_text_color_span_sets_docx_run_color() -> None:
 
 
 #============================================
+def test_manual_choice_font_preserves_markup_and_monospace() -> None:
+	"""A question override changes choice prose while code stays monospace."""
+	doc = _make_styled_doc()
+	ef_tools.docx_choice_builder.add_choices_paragraph(
+		doc,
+		['<span style="color: #004d00;"><strong>adenine (A): 43%</strong></span>',
+			'<code>ATGC</code>', '<i><code>GCTA</code></i>'],
+		tab_style=3,
+		items_per_row=3,
+		font_family='IBM Plex Sans Condensed',
+	)
+	choice_para = doc.paragraphs[0]
+	adenine = next(run for run in choice_para.runs if 'adenine' in run.text)
+	code = next(run for run in choice_para.runs if run.text == 'ATGC')
+	italic_code = next(run for run in choice_para.runs if run.text == 'GCTA')
+	assert adenine.font.name == 'IBM Plex Sans Condensed'
+	assert adenine.bold is True
+	assert str(adenine.font.color.rgb) == '004D00'
+	assert code.font.name == 'Atkinson Hyperlegible Mono Regular'
+	assert code.italic is False
+	assert italic_code.font.name == 'Atkinson Hyperlegible Mono Regular'
+	assert italic_code.italic is True
+
+
+#============================================
 def test_matching_choices_list_uses_multi_column_style(tmp_path: object) -> None:
 	"""A matching question's choices_list lands on a Choices [2-5] style.
 
@@ -179,7 +205,7 @@ def test_matching_choices_list_uses_multi_column_style(tmp_path: object) -> None
 				"heading": "Test",
 				"questions": [
 					{
-						"statement": "Match each bond type with an example.",
+						"statement": [{"text": "Match each bond type with an example."}],
 						"prompts_list": [
 							"<b>non-polar covalent</b>",
 							"<b>ionic</b>",

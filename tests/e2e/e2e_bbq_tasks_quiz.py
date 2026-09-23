@@ -96,10 +96,15 @@ def check_quiz(exam: dict) -> None:
 	questions = []
 	for section in exam['sections']:
 		questions.extend(section['questions'])
-	with_images = [q for q in questions if q.get('images')]
+	with_images = [
+		q for q in questions
+		if any('image' in block for block in q['statement'])]
 	check(len(with_images) >= 1, "at least one question carries rendered table images")
 	for question in with_images:
-		for path in question['images']:
+		for block in question['statement']:
+			if 'image' not in block:
+				continue
+			path = block['image']
 			full = os.path.join(OUT_DIR, path)
 			check(os.path.isfile(full) and os.path.getsize(full) > 0, f"png exists: {path}")
 	with open(os.path.join(OUT_DIR, 'quiz-key.txt')) as handle:

@@ -9,13 +9,17 @@ and the contracts on filter_exam, LineTrackingLoader, and format_report:
 """
 
 # Standard Library
-import textwrap
-
 # PIP3 modules
 import yaml
 
 # Local Repo Modules
 import ef_tools.zip_grade
+
+
+#============================================
+def _statement(text: str) -> list:
+	"""Build the canonical one-block statement used by validator cases."""
+	return [{'text': text}]
 
 
 #============================================
@@ -37,7 +41,7 @@ def _exam_with_question(question: dict) -> dict:
 def test_severity_mc_five_choices_is_ok() -> None:
 	"""5-choice MC fits A-E exactly; classified OK so no Issue emitted."""
 	exam = _exam_with_question({
-		'statement': 'Pick one.',
+		'statement': _statement('Pick one.'),
 		'choices': ['a', 'b', 'c', 'd', 'e'],
 	})
 	issues = ef_tools.zip_grade.validate(exam)
@@ -48,7 +52,7 @@ def test_severity_mc_five_choices_is_ok() -> None:
 def test_severity_mc_two_choices_is_ok() -> None:
 	"""2-choice MC is the lower OK boundary."""
 	exam = _exam_with_question({
-		'statement': 'Pick one.',
+		'statement': _statement('Pick one.'),
 		'choices': ['yes', 'no'],
 	})
 	issues = ef_tools.zip_grade.validate(exam)
@@ -60,7 +64,7 @@ def test_severity_mc_six_choices_is_fixable() -> None:
 	"""6-choice MC is FIXABLE: one distractor over A-E, but tooling
 	cannot pick which to remove (no answer key in this YAML schema)."""
 	exam = _exam_with_question({
-		'statement': 'Pick one.',
+		'statement': _statement('Pick one.'),
 		'choices': ['a', 'b', 'c', 'd', 'e', 'f'],
 	})
 	issues = ef_tools.zip_grade.validate(exam)
@@ -73,7 +77,7 @@ def test_severity_mc_six_choices_is_fixable() -> None:
 def test_severity_mc_seven_choices_is_error() -> None:
 	"""7+ choice MC is ERROR: not realistically reducible without rewrite."""
 	exam = _exam_with_question({
-		'statement': 'Pick one.',
+		'statement': _statement('Pick one.'),
 		'choices': ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
 	})
 	issues = ef_tools.zip_grade.validate(exam)
@@ -86,7 +90,7 @@ def test_severity_mc_seven_choices_is_error() -> None:
 def test_severity_mc_one_choice_is_error() -> None:
 	"""<2 choices is ERROR: not bubbleable."""
 	exam = _exam_with_question({
-		'statement': 'Pick one.',
+		'statement': _statement('Pick one.'),
 		'choices': ['only'],
 	})
 	issues = ef_tools.zip_grade.validate(exam)
@@ -99,7 +103,7 @@ def test_severity_mc_one_choice_is_error() -> None:
 def test_severity_matching_five_choices_is_ok() -> None:
 	"""Matching with 5 choices_list items is OK regardless of prompts_list size."""
 	exam = _exam_with_question({
-		'statement': 'Match.',
+		'statement': _statement('Match.'),
 		'prompts_list': ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8'],
 		'choices_list': ['c1', 'c2', 'c3', 'c4', 'c5'],
 	})
@@ -111,7 +115,7 @@ def test_severity_matching_five_choices_is_ok() -> None:
 def test_severity_matching_six_choices_is_fixable() -> None:
 	"""Matching with 6 choices_list items is FIXABLE."""
 	exam = _exam_with_question({
-		'statement': 'Match.',
+		'statement': _statement('Match.'),
 		'prompts_list': ['p1', 'p2'],
 		'choices_list': ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'],
 	})
@@ -125,7 +129,7 @@ def test_severity_matching_six_choices_is_fixable() -> None:
 def test_severity_matching_one_choice_is_error() -> None:
 	"""Matching with <2 choices_list items is ERROR: not bubbleable."""
 	exam = _exam_with_question({
-		'statement': 'Match.',
+		'statement': _statement('Match.'),
 		'prompts_list': ['p1', 'p2'],
 		'choices_list': ['only'],
 	})
@@ -139,7 +143,7 @@ def test_severity_matching_one_choice_is_error() -> None:
 def test_severity_matching_seven_choices_is_error() -> None:
 	"""Matching with 7+ choices_list items is ERROR."""
 	exam = _exam_with_question({
-		'statement': 'Match.',
+		'statement': _statement('Match.'),
 		'prompts_list': ['p1', 'p2'],
 		'choices_list': ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7'],
 	})
@@ -153,7 +157,7 @@ def test_severity_matching_seven_choices_is_error() -> None:
 def test_severity_no_choices_no_prompts_is_error() -> None:
 	"""Bare statement with no answer surface is ERROR (fill-in/hotspot)."""
 	exam = _exam_with_question({
-		'statement': 'Calculate the equilibrium constant.',
+		'statement': _statement('Calculate the equilibrium constant.'),
 	})
 	issues = ef_tools.zip_grade.validate(exam)
 	assert len(issues) == 1
@@ -166,7 +170,7 @@ def test_severity_total_rows_overflow_is_error() -> None:
 	"""Whole-exam row total >100 emits one ERROR with no question_number."""
 	# 101 single-MC questions
 	questions = [
-		{'statement': f'Q{i}', 'choices': ['a', 'b', 'c', 'd']}
+		{'statement': _statement(f'Q{i}'), 'choices': ['a', 'b', 'c', 'd']}
 		for i in range(101)
 	]
 	exam = {
@@ -193,18 +197,18 @@ def test_filter_drops_error_and_fixable_keeps_ok() -> None:
 		'date': '2026-05-07',
 		'sections': [
 			{'questions': [
-				{'statement': 'OK1', 'choices': ['a', 'b', 'c']},
-				{'statement': 'FIX', 'choices': ['a', 'b', 'c', 'd', 'e', 'f']},
-				{'statement': 'ERR', 'choices': ['a', 'b', 'c', 'd', 'e', 'f', 'g']},
-				{'statement': 'OK2', 'choices': ['x', 'y']},
+				{'statement': _statement('OK1'), 'choices': ['a', 'b', 'c']},
+				{'statement': _statement('FIX'), 'choices': ['a', 'b', 'c', 'd', 'e', 'f']},
+				{'statement': _statement('ERR'), 'choices': ['a', 'b', 'c', 'd', 'e', 'f', 'g']},
+				{'statement': _statement('OK2'), 'choices': ['x', 'y']},
 			]},
 		],
 	}
 	filtered, issues = ef_tools.zip_grade.filter_exam(exam)
 	kept = filtered['sections'][0]['questions']
 	assert len(kept) == 2
-	assert kept[0]['statement'] == 'OK1'
-	assert kept[1]['statement'] == 'OK2'
+	assert kept[0]['statement'] == _statement('OK1')
+	assert kept[1]['statement'] == _statement('OK2')
 	# two non-OK issues reported
 	assert len(issues) == 2
 
@@ -212,17 +216,17 @@ def test_filter_drops_error_and_fixable_keeps_ok() -> None:
 #============================================
 def test_filter_strips_line_markers_recursively() -> None:
 	"""filter_exam removes every '__line__' key it copies in."""
-	yaml_text = textwrap.dedent('''
-		title: Test
-		date: 2026-05-07
-		sections:
-		  - questions:
-		      - statement: Pick one
-		        choices:
-		          - a
-		          - b
-		          - c
-		''').strip()
+	yaml_text = '''title: Test
+date: 2026-05-07
+sections:
+  - questions:
+      - statement:
+          - text: Pick one
+        choices:
+          - a
+          - b
+          - c
+'''
 	# LineTrackingLoader extends yaml.SafeLoader, so this is safe
 	exam = yaml.load(yaml_text, Loader=ef_tools.zip_grade.LineTrackingLoader)  # nosec B506
 	# loader injected at least one __line__
@@ -248,10 +252,10 @@ def test_filter_preserves_section_structure() -> None:
 		'date': '2026-05-07',
 		'sections': [
 			{'heading': 'Section A', 'questions': [
-				{'statement': 'BAD', 'choices': ['a']},
+				{'statement': _statement('BAD'), 'choices': ['a']},
 			]},
 			{'heading': 'Section B', 'questions': [
-				{'statement': 'OK', 'choices': ['a', 'b']},
+				{'statement': _statement('OK'), 'choices': ['a', 'b']},
 			]},
 		],
 	}
@@ -271,7 +275,7 @@ def test_filter_skips_inline_chapter_pseudo_questions() -> None:
 		'sections': [
 			{'questions': [
 				{'chapter': 'Chapter 1'},
-				{'statement': 'OK', 'choices': ['a', 'b']},
+				{'statement': _statement('OK'), 'choices': ['a', 'b']},
 			]},
 		],
 	}
@@ -287,16 +291,16 @@ def test_filter_skips_inline_chapter_pseudo_questions() -> None:
 #============================================
 def test_line_tracking_loader_attaches_line_numbers() -> None:
 	"""LineTrackingLoader injects a 1-based __line__ on every mapping."""
-	yaml_text = textwrap.dedent('''
-		title: Test
-		date: 2026-05-07
-		sections:
-		  - questions:
-		      - statement: Pick one
-		        choices:
-		          - a
-		          - b
-		''').strip()
+	yaml_text = '''title: Test
+date: 2026-05-07
+sections:
+  - questions:
+      - statement:
+          - text: Pick one
+        choices:
+          - a
+          - b
+'''
 	# LineTrackingLoader extends yaml.SafeLoader, so this is safe
 	exam = yaml.load(yaml_text, Loader=ef_tools.zip_grade.LineTrackingLoader)  # nosec B506
 	# the question dict starts on a known line in the source; we only
@@ -312,15 +316,15 @@ def test_line_tracking_loader_attaches_line_numbers() -> None:
 #============================================
 def test_validate_uses_line_numbers_from_loader() -> None:
 	"""validate() reads __line__ from each question into Issue.line_number."""
-	yaml_text = textwrap.dedent('''
-		title: Test
-		date: 2026-05-07
-		sections:
-		  - questions:
-		      - statement: Bad question
-		        choices:
-		          - only
-		''').strip()
+	yaml_text = '''title: Test
+date: 2026-05-07
+sections:
+  - questions:
+      - statement:
+          - text: Bad question
+        choices:
+          - only
+'''
 	# LineTrackingLoader extends yaml.SafeLoader, so this is safe
 	exam = yaml.load(yaml_text, Loader=ef_tools.zip_grade.LineTrackingLoader)  # nosec B506
 	issues = ef_tools.zip_grade.validate(exam)

@@ -2,6 +2,7 @@
 
 # Standard Library
 import os
+import pathlib
 
 # PIP3 modules
 import pytest
@@ -9,10 +10,10 @@ import pytest
 # local repo modules
 import ef_tools.bbq_tasks
 
-# rows copied from biology-problems-website genetics_tasks1.csv
+# Small task rows modeled on the website CSV contract.
 CSV_ROWS = (
 	"subject,topic,script,flags,input,notes\n"
-	"genetics,genetic_disorders,YMATCH,,{bp_match}/inheritance/genetic_disorders.yml,\n"
+	"genetics,genetic_disorders,YPAIR,,{bp_match}/inheritance/genetic_disorders.yml,\n"
 	",,,,,\n"
 	"genetics,dna_structure,{bp_root}/molecular_biology-problems/complementary_sequences.py,--mc --prime,,\n"
 	"genetics,dna_structure,YMCS,,{bp_mcs}/biochemistry/dna_structure.yml,\n"
@@ -37,7 +38,9 @@ def _settings(repo_dir: str) -> dict:
 			'bp_mcs': '{bp_root}/multiple_choice_statements',
 		},
 		'script_aliases': {
-			'YMATCH': ['{bp_match}/yaml_match_to_bbq.py', '{bp_match}/yaml_which_one_mc_to_bbq.py'],
+			'YMATCH': '{bp_match}/yaml_match_to_bbq.py',
+			'YWHICH': '{bp_match}/yaml_which_one_mc_to_bbq.py',
+			'YPAIR': ['{bp_match}/yaml_match_to_bbq.py', '{bp_match}/yaml_which_one_mc_to_bbq.py'],
 			'YMCS': '{bp_mcs}/yaml_mc_statements_to_bbq.py',
 		},
 	}
@@ -82,6 +85,19 @@ def test_load_tasks_resolves_input_and_flags(task_repo: tuple) -> None:
 	assert ymcs['args'] == ['-y', expected_input]
 	assert tasks[2]['args'] == ['--mc', '--prime']
 	assert tasks[4]['topic'] == 'dna_profiling'
+
+
+#============================================
+def test_quiz_settings_select_matching_or_which_one() -> None:
+	"""The quiz aliases select one question format apiece."""
+	repo_root = pathlib.Path(__file__).resolve().parents[1]
+	settings = ef_tools.bbq_tasks.load_settings(
+		str(repo_root / 'bbq_settings.yml'))
+	aliases = settings['script_aliases']
+	assert isinstance(aliases['YMATCH'], str)
+	assert isinstance(aliases['YWHICH'], str)
+	assert os.path.basename(aliases['YMATCH']) == 'yaml_match_to_bbq.py'
+	assert os.path.basename(aliases['YWHICH']) == 'yaml_which_one_mc_to_bbq.py'
 
 
 #============================================

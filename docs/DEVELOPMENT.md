@@ -24,7 +24,8 @@ source source_me.sh && python3 -m pytest tests/test_bbq_parse.py tests/test_bbq_
 source source_me.sh && python3 -m pytest tests/test_markdown_links.py tests/test_ascii_compliance.py tests/test_pyflakes_code_lint.py -q
 ```
 
-The real-generator workflow is intentionally outside the fast pytest lane:
+The real-generator workflow is intentionally outside the fast pytest lane. The
+synthetic HTML-to-YAML-to-DOCX contract runs in pytest:
 
 ```bash
 source source_me.sh && python3 tests/e2e/e2e_bbq_tasks_quiz.py

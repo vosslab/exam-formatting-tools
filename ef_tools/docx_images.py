@@ -299,7 +299,7 @@ def zero_inline_image_margins(run: object) -> None:
 #============================================
 def set_run_baseline_center(run: object, height_inches: float,
 		font_size_pt: float = BASELINE_FONT_SIZE_PT) -> None:
-	"""Raise an as-character picture so it centers on its text line.
+	"""Center an as-character picture on its text line with a signed offset.
 
 	An inline picture rests its BOTTOM edge on the baseline, so it occupies the
 	band from the baseline up to its own height and its center sits far above
@@ -332,8 +332,8 @@ def place_inline_picture(run: object, image_path: str, kwargs: dict) -> None:
 	"""Insert one picture into a run with the shared inline treatment.
 
 	Every inline picture in the exam gets the same three steps: the picture,
-	zeroed edge distances so it hugs its run, and a baseline lift so it centers
-	on its text line.
+	zeroed edge distances so it hugs its run, and a signed baseline offset so it
+	centers on its text line.
 	"""
 	run.add_picture(image_path, **kwargs)
 	zero_inline_image_margins(run)

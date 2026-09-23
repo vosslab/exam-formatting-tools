@@ -60,11 +60,9 @@ _RICH_TEXT_TAG_PATTERN = re.compile(
 	re.IGNORECASE,
 )
 
-_SPAN_COLOR_RE = re.compile(
-	r'\bstyle\s*=\s*["\'][^"\']*\bcolor\s*:\s*'
-	r'(#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)\b[^"\']*["\']',
-	re.IGNORECASE,
-)
+_SPAN_STYLE_RE = re.compile(r'\bstyle\s*=\s*["\']([^"\']*)["\']', re.IGNORECASE)
+_HEX_COLOR_RE = re.compile(r'^#?([0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)$')
+_HARD_BREAK_RE = re.compile(r'(?:\r?\n|<br\s*/?>)+', re.IGNORECASE)
 
 # map tag names to canonical names for consistent handling
 _TAG_ALIASES = {
@@ -72,6 +70,45 @@ _TAG_ALIASES = {
 	'em': 'i',
 	'tt': 'code',
 }
+
+
+#============================================
+def normalize_hex_color(value: str) -> str | None:
+	"""Normalize a three- or six-digit hex color to lowercase ``#RRGGBB``.
+
+	The bptools color wheel emits hex values without ``#``. Accept both forms
+	at the HTML import boundary so downstream formats use one canonical form.
+	"""
+	match = _HEX_COLOR_RE.fullmatch(value.strip())
+	if match is None:
+		return None
+	digits = match.group(1)
+	if len(digits) == 3:
+		digits = ''.join(character * 2 for character in digits)
+	return f'#{digits.lower()}'
+
+
+#============================================
+def text_color_from_style(style: str) -> str | None:
+	"""Read and normalize the CSS ``color`` declaration in an inline style."""
+	for declaration in style.split(';'):
+		property_name, separator, value = declaration.partition(':')
+		if not separator or property_name.strip().lower() != 'color':
+			continue
+		return normalize_hex_color(value)
+	return None
+
+
+#============================================
+def split_on_hard_breaks(text: str) -> list[str]:
+	"""Split text at newline and HTML ``<br>`` boundaries."""
+	return _HARD_BREAK_RE.split(text)
+
+
+#============================================
+def contains_hard_break(text: str) -> bool:
+	"""Return whether text contains a newline or HTML ``<br>`` boundary."""
+	return _HARD_BREAK_RE.search(text) is not None
 
 
 #============================================
@@ -113,12 +150,11 @@ def parse_rich_text(text: str) -> list:
 					active_tags.discard(tag)
 			continue
 		if re.match(r'^<span\b', part, re.IGNORECASE):
-			color_match = _SPAN_COLOR_RE.search(part)
-			if color_match:
-				color = color_match.group(1)
-				if len(color) == 4:
-					color = '#' + ''.join(character * 2 for character in color[1:])
-				active_tags.add(f'color:{color.lower()}')
+			style_match = _SPAN_STYLE_RE.search(part)
+			if style_match:
+				color = text_color_from_style(style_match.group(1))
+				if color:
+					active_tags.add(f'color:{color}')
 			continue
 		tag_match = re.match(r'^<(/?)(\w+)>$', part)
 		if tag_match:

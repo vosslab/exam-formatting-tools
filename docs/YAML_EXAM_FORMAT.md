@@ -1,6 +1,6 @@
 # YAML exam format
 
-Version 1.0 -- exam-formatting-tools
+Version 2.0 -- exam-formatting-tools
 
 This document specifies the YAML exam format used by [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py). It serves as the canonical reference for both human authors and machine readers/writers, including qti-package-maker engines.
 
@@ -44,20 +44,37 @@ Each question object represents a single exam item.
 
 | Field | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `statement` | string | yes | -- | Question stem/body text |
+| `statement` | list of content blocks | yes | -- | Ordered stem/body text, images, and tables |
 | `number` | integer | no | auto | Numeric override; does not change the "##." format |
 | `choices` | list of strings or choice objects | no | -- | Answer choices (plain text, no letter prefixes), optionally with image paths |
 | `prompts_list` | list of strings or choice objects | no | -- | Numbered matching prompts; each consumes one question number and renders as `___ N.`; a `{text, image}` object puts a drawing (DNA strip, pedigree) beside the blank |
 | `choices_list` | list of strings or choice objects | no | -- | Lettered matching choices rendered as `(A) (B) (C) ...` below the prompts; image objects use the tabbed image-choice layout |
 | `layout` | integer | no | auto | Choices column layout: 3, 4, or 5 |
-| `image` | string | no | -- | Relative path to an image file |
-| `images` | list of strings | no | -- | Additional relative image paths for questions with multiple figures |
-| `html_tables` | list of strings | no | -- | Preserved statement tables for the optional `--native-tables` DOCX path; rasterized `images` remain the default fallback |
-| `table` | object | no | -- | Data table (see below) |
+| `choice_font` | string | no | inherited | Optional font-family override for text-only `choices` or `choices_list` paragraphs; for example, `IBM Plex Sans Condensed` |
 
 ### Statement text
 
-The `statement` field contains the full question stem. It may include an existing number prefix (e.g., "22) Which of the following...") which the builder strips before re-numbering.
+The `statement` field is an ordered list. Every text run, image, or table is a
+separate block, and the DOCX builder emits those blocks in list order. Text
+blocks may include an existing number prefix (e.g., "22) Which of the
+following...") which the builder strips before re-numbering.
+
+Every question must have at least one non-empty text, image, or table block.
+Structured tables use `{table: {columns: [...], rows: [[...], ...]}}`; each row
+has one string cell per column.
+
+```yaml
+statement:
+  - text: "Look at the pathway below."
+  - image: exam_files/pathway.png
+  - text: "Which metabolite is missing?"
+```
+
+Supported statement blocks are `{text: ...}`, `{image: ...}`, and
+`{table: {columns: [...], rows: [...]}}`. An image block may also include `html_table`, which preserves a
+source drawing table for the optional `--native-tables` DOCX path while the
+`image` remains its faithful raster fallback. Structured data tables use a
+`table` block and render at their position in the statement.
 
 HTML entities are supported for special characters: `&Delta;`, `&alpha;`, `&beta;`, `&deg;`, `&prime;`, `&rarr;`, `&micro;`.
 
@@ -73,9 +90,9 @@ Inline HTML tags are supported for formatting within statement and choice text:
 | `<em>`, `</em>` | Italic (alias for `<i>`) | `<em>emphasis</em>` |
 | `<code>`, `</code>` | Atkinson Hyperlegible Mono | `<code>ATGC</code>` |
 | `<tt>`, `</tt>` | Atkinson Hyperlegible Mono (legacy alias) | `<tt>ATGC</tt>` |
-| `<span style="color: #RRGGBB;">`, `</span>` | Hex text color | `<span style="color: #ba372a;">FALSE</span>` |
+| `<span style="color: #rrggbb;">`, `</span>` | Hex text color | `<span style="color: #ba372a;">FALSE</span>` |
 
-Engines writing exam YAML should preserve these inline HTML tags verbatim in statement and choice text. HTML entities (e.g., `&deg;`) should also be preserved as-is; the builder decodes them at render time. Color spans preserve only the six- or three-digit hexadecimal `color` declaration; unrelated span CSS is discarded.
+Engines writing exam YAML should preserve these inline HTML tags verbatim in statement text blocks and choice text. HTML entities (e.g., `&deg;`) should also be preserved as-is; the builder decodes them at render time. Color spans preserve only a three- or six-digit hexadecimal `color` declaration in canonical lowercase `#rrggbb` form; importers normalize bptools' bare hex values and discard unrelated span CSS.
 
 ### Question numbering
 
@@ -89,6 +106,12 @@ The `number` field overrides the counter value only. Example: `number: 15` makes
 ### Choices
 
 Choices are plain text strings. The builder generates bold **(A) (B) (C) (D) (E)** letter prefixes during rendering.
+Set `choice_font` on an individual question when text-only answers need a
+narrower face. This is a manual instructor decision; the default remains the
+configured Atkinson Hyperlegible Next face. The named font must be installed
+where the DOCX is rendered or opened. Inline `<code>`/`<tt>` keeps the
+configured monospace face. Text baked into choice images or preserved tables
+keeps its source appearance.
 
 ```yaml
 choices:
@@ -118,10 +141,10 @@ fallback. `yaml_to_exam_docx.py --native-tables` renders a set of table-based
 choices as labeled native Word tables; nested, malformed, browser-positioned,
 or `colgroup` layout tables continue to use their PNGs.
 
-Image widths are clamped per column count by
-`ef_tools.docx_builder.IMAGE_CHOICE_MAX_WIDTH_BY_COLS`, which sets
-empirical per-column caps that prevent a trailing image from pushing
-the cursor past its tab stop and wrapping to a new line:
+Ordinary image-choice widths are fitted to per-column limits owned by
+`ef_tools.docx_images.IMAGE_CHOICE_MAX_WIDTH_BY_COLS`. Renderer-produced
+drawings keep their configured fixed scale; the same limits are a fit check
+that stacks a row when a drawing would push the cursor past its tab stop:
 
 | Columns | Image width cap |
 | --- | --- |
@@ -130,15 +153,15 @@ the cursor past its tab stop and wrapping to a new line:
 | 4 | 1.49in |
 | 5 | 1.13in |
 
-Caps are tuned via `devel/measure_image_choices.py` so each image's right
-edge sits ~0.02in inside the next tab stop. Re-run that tool after
-changing any of `IMAGE_CHOICE_MAX_WIDTH_BY_COLS`, `layout_tab_stops`, or
-`choice_indent`.
+The ordinary-image caps were tuned via `devel/measure_image_choices.py` so
+each image's right edge sits ~0.02in inside the next tab stop. Re-run that
+tool after changing any of `IMAGE_CHOICE_MAX_WIDTH_BY_COLS`,
+`layout_tab_stops`, or `choice_indent`.
 
-The cap dominates `choice_image_max_width` and `choice_image_max_height`
-in `styles/exam_styles.yaml` for any layout where the per-column budget
-is tighter. All images in a row render at one shared height computed
-from the binding-constraint image, and inline-image edge margins
+For ordinary images, the per-column cap can be tighter than
+`choice_image_max_width` or `choice_image_max_height` in
+`styles/exam_styles.yaml`. Images in an ordinary-image row share the height
+implied by its most constrained image. Inline-image edge margins
 (`distT`/`distB`/`distL`/`distR`) are zeroed so images pack tight.
 
 Wide image choices such as DNA sequence strips are detected by aspect ratio
@@ -153,10 +176,9 @@ remain readable. With `--native-tables`, a choice set whose entries all carry
 `html_table` is instead rendered as one labeled native Word table per choice;
 unsupported tables retain the PNG fallback. Browser-positioned drawing tables
 and `colgroup`-based layout tables are intentionally unsupported because their
-meaning depends on rendered geometry rather than a logical cell grid. Data
-tables declared via the
-question-level `table` field (a separate concept) are always rendered as real
-tables.
+meaning depends on rendered geometry rather than a logical cell grid.
+Structured data tables use a `{table: ...}` statement block and render as real
+Word tables at that point in the statement.
 
 ### Matching
 
@@ -165,7 +187,8 @@ Matching questions use `prompts_list` (the numbered items students label) and
 `MATCH(question_text, prompts_list, choices_list)`.
 
 ```yaml
-- statement: "Match each functional group with its description."
+- statement:
+    - text: "Match each functional group with its description."
   prompts_list:
     - "Phosphate"
     - "Carboxyl"
@@ -230,7 +253,8 @@ is never applied to a paragraph.
 Override with an explicit `layout` value when needed:
 
 ```yaml
-- statement: "A thermodynamically unfavorable reaction:"
+- statement:
+    - text: "A thermodynamically unfavorable reaction:"
   choices:
     - "Occurs spontaneously"
     - "Requires energy input"
@@ -240,40 +264,43 @@ Override with an explicit `layout` value when needed:
 ### Images
 
 ```yaml
-- statement: "What type of reaction is shown?"
-  image: images/exam_figure_01.png
+- statement:
+    - text: "What type of reaction is shown?"
+    - image: images/exam_figure_01.png
   choices:
     - "Oxidation"
     - "Reduction"
 ```
 
-Images are embedded in the DOCX with their original aspect ratio preserved. A relative image path (question `image`/`images` or a choice `image`) is resolved against the directory of the YAML file, so a YAML and its `<stem>_files/` folder move together. Absolute paths pass through unchanged.
+Images are embedded in the DOCX with their original aspect ratio preserved. A relative statement image path is resolved against the directory of the YAML file, so a YAML and its `<stem>_files/` folder move together. Absolute paths pass through unchanged. Statement images remain between their surrounding text blocks.
 
-PNG table drawings rendered by the BBQ converters use the browser-standard 96
-CSS-pixels-per-inch baseline from `styles/exam_styles.yaml` before page-role
-caps are applied. This prevents a small source drawing from being enlarged
-just because a large maximum width is available. The source-derived size is
-still clamped by the statement, choice, matching-prompt, and wide-strip caps
-so a large HTML table cannot exceed the printable page.
+PNG table drawings rendered by the BBQ converters use the resolution recorded
+in each PNG, multiplied by the single `table_image_scale` value in
+`styles/exam_styles.yaml`. They are not clamped to page-role width or height
+limits; unusually wide drawings can extend beyond the text column. Fixed-scale
+image-choice rows that exceed their per-column fit budget are stacked rather
+than shrunk. Ordinary images use their configured fit boxes and strip-height
+limits instead.
 
-bptools tables (gels, chi-square critical values, test-cross counts, metabolic pathways, genotype grids) are rendered to PNG by [bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py) and [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) through `qti_package_maker.html_to_image` and listed under `images` (or as a choice `image`); the images render after the full statement text.
+bptools drawing tables (gels, chi-square critical values, test-cross counts, metabolic pathways, genotype grids) are rendered to PNG by [bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py) and [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) through `qti_package_maker.html_to_image`. Each drawing occupies an image block at its authored position; its source HTML is kept on that block for the optional native-table path.
 
-For cleaned Blackboard HTML exports, use [html_to_exam_yaml.py](../launchers/html_to_exam_yaml.py) to create YAML first; it preserves statement images as `images` and image-based answer choices as structured choice objects.
+For cleaned Blackboard HTML exports, use [html_to_exam_yaml.py](../launchers/html_to_exam_yaml.py) to create YAML first; it preserves the DOM order of statement text and images and keeps image-based answer choices as structured choice objects.
 
-RDKit HTML5 canvas widgets are also handled: when a `<canvas class="cleaned-statement-media">` is paired with an inline `initRDKitModule()` script, [ef_tools/rdkit_render.py](../ef_tools/rdkit_render.py) extracts the SMILES literal and renders a PNG into the existing `*_files/` directory. The PNG path is added to the standard `images` list (or to a structured choice `image` field for canvas-based answer choices), so the YAML schema is unchanged.
+RDKit HTML5 canvas widgets are also handled: when a `<canvas class="cleaned-statement-media">` is paired with an inline `initRDKitModule()` script, [ef_tools/rdkit_render.py](../ef_tools/rdkit_render.py) extracts the SMILES literal and renders a PNG into the existing `*_files/` directory. The PNG is emitted as an image block in statement order (or as a structured choice `image` field for canvas-based answer choices).
 
 ### Tables
 
 ```yaml
-- statement: "Using the data below, determine Km:"
-  table:
-    columns:
-      - "[S] (mM)"
-      - "v (&micro;mol/min)"
-    rows:
-      - ["1", "10"]
-      - ["2", "17"]
-      - ["5", "25"]
+- statement:
+    - text: "Using the data below, determine Km:"
+    - table:
+        columns:
+          - "[S] (mM)"
+          - "v (&micro;mol/min)"
+        rows:
+          - ["1", "10"]
+          - ["2", "17"]
+          - ["5", "25"]
   choices:
     - "2 mM"
     - "5 mM"
@@ -318,19 +345,22 @@ student_line: "Name:_____________________________"
 sections:
   - heading: "Multiple Choice"
     questions:
-      - statement: "Which feature is essential for any chemical reaction to occur?"
+      - statement:
+          - text: "Which feature is essential for any chemical reaction to occur?"
         choices:
           - "Loss of atoms"
           - "Change in molecular identity"
           - "Release of heat"
           - "Decrease in entropy"
           - "Occurrence outside living systems"
-      - statement: "A negative &Delta;G indicates:"
+      - statement:
+          - text: "A negative &Delta;G indicates:"
         choices:
           - "Energy must be added"
           - "The reaction proceeds spontaneously"
-      - statement: "What type of enzymatic reaction is this:"
-        image: images/exam_image_01.png
+      - statement:
+          - text: "What type of enzymatic reaction is this:"
+          - image: images/exam_image_01.png
         choices:
           - "Hydrolase"
           - "Lyase"
@@ -339,15 +369,16 @@ sections:
           - "Isomerase"
   - chapter: "Chapter 2 -- Kinetics"
     questions:
-      - statement: "Use the table below to determine Km:"
-        table:
-          columns:
-            - "[S] (mM)"
-            - "v (&micro;mol/min)"
-          rows:
-            - ["1", "10"]
-            - ["2", "17"]
-            - ["5", "25"]
+      - statement:
+          - text: "Use the table below to determine Km:"
+          - table:
+              columns:
+                - "[S] (mM)"
+                - "v (&micro;mol/min)"
+              rows:
+                - ["1", "10"]
+                - ["2", "17"]
+                - ["5", "25"]
         choices:
           - "2 mM"
           - "5 mM"
@@ -369,7 +400,7 @@ A read engine should:
    - Has `prompts_list` and `choices_list` -> **MATCH**
    - Has `choices` list -> **MC** (single answer; answer key is not stored in this format)
 4. Create item objects:
-   - `question_text` = the `statement` field (strip any leading number prefix like "22) ")
+   - `question_text` = the text blocks in `statement`, joined in order (strip any leading number prefix like "22) ")
    - For **MC**: `choices_list` = the `choices` field (already plain text, no prefixes)
    - For **MATCH**: `prompts_list` and `choices_list` come straight from the matching fields
    - `answer_text` = not available (this is a print format, not a grading format)
@@ -378,7 +409,7 @@ A read engine should:
 
 | Exam YAML field | qti-package-maker field | Notes |
 | --- | --- | --- |
-| `statement` | `question_text` | Strip number prefix |
+| `statement` | `question_text` | Join text blocks in order, then strip number prefix |
 | `choices` | `choices_list` | MC, direct mapping |
 | `prompts_list` | `prompts_list` | MATCH, direct mapping |
 | `choices_list` | `choices_list` | MATCH, direct mapping |
@@ -390,7 +421,7 @@ These fields have no equivalent in the qti item model and are silently dropped:
 - `title`, `date`, `student_line`, `total_points`, `scoring_sections`
 - `heading`, `chapter` (section structure)
 - `number`, `layout` (formatting hints)
-- `image`, `images` (embedded figures)
+- Statement images and tables (embedded figures)
 - Answer correctness (not stored in exam YAML)
 
 ### Writing exam YAML from an ItemBank
@@ -402,7 +433,7 @@ A write engine should:
    - `date`: use today's date in ISO format
    - `sections`: one section containing all questions
 2. For each item in the ItemBank:
-   - `statement` = `item.question_text` (preserve inline HTML tags: `<sub>`, `<sup>`, `<i>`, `<b>`, `<strong>`, `<em>`)
+   - `statement` = one `{text: ...}` block containing `item.question_text` (preserve inline HTML tags: `<sub>`, `<sup>`, `<i>`, `<b>`, `<strong>`, `<em>`)
    - `choices` = `item.choices_list` (strip any prefixes with `remove_prefix_from_list()`; preserve inline HTML tags)
 3. Item type mapping:
    - **MC**: `statement` + `choices` (answer_text is lost since exam YAML has no answer key)

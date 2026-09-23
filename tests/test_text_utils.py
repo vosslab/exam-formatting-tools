@@ -81,6 +81,14 @@ def test_parse_rich_text_color_span() -> None:
 
 
 #============================================
+def test_parse_rich_text_normalizes_bare_hex_color() -> None:
+	"""Producer-side bare three-digit hex becomes canonical RGB color."""
+	result = ef_tools.text_utils.parse_rich_text(
+		'<span style="color: f03;">X</span>')
+	assert result == [('X', frozenset({'color:#ff0033'}))]
+
+
+#============================================
 def test_parse_rich_text_break_tag() -> None:
 	"""Test that HTML break tags become line break segments."""
 	result = ef_tools.text_utils.parse_rich_text("one<br/>two")

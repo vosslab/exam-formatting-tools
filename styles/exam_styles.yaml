@@ -2,7 +2,10 @@ fonts:
   primary: "Atkinson Hyperlegible Next"
   fallback: "Atkinson Hyperlegible Next"
   monospace: "Atkinson Hyperlegible Mono"
-  monospace_fallback: "Atkinson Hyperlegible Mono"
+  # The named regular face helps LibreOffice avoid the ambiguous family lookup
+  # on systems that install both variable and static Atkinson Mono fonts. HTML
+  # keeps the family name.
+  docx_monospace_face: "Atkinson Hyperlegible Mono Regular"
 
 sizes:
   normal: 10
@@ -65,7 +68,7 @@ style_flags:
 
 page:
   margin: 0.6
-  header_distance: 0.5
+  header_distance: 0.3
   header_center_tab: 3.65
   header_right_tab: 7.3
   # Left edge of the first-page name/score block. The title sits flush left on

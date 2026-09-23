@@ -15,11 +15,10 @@ Use this guide for failures reported by the launchers or by the repository's doc
 - Cause: the Python Playwright package is installed without its Chromium browser.
 - Fix: run `playwright install chromium` after installing [../pip_requirements.txt](../pip_requirements.txt).
 
-## Output already exists
+## Output path collisions
 
-- Symptom: a launcher raises `FileExistsError` for the requested YAML or DOCX output.
-- Cause: the conversion tools protect existing authored or generated files instead of overwriting them.
-- Fix: choose a new `-o` path. For regeneration, write to `/tmp/` and copy the verified artifact into place as shown in [USAGE.md](USAGE.md).
+- Some converters refuse to overwrite an existing output, while others replace it. Check the selected launcher's behavior before reusing a path.
+- For an output that must be preserved, choose a new `-o` path and compare the generated artifact before replacing the original.
 
 ## No usable questions
 
@@ -36,5 +35,5 @@ Use this guide for failures reported by the launchers or by the repository's doc
 ## Missing or misplaced images
 
 - Symptom: a DOCX build cannot find an image, or a drawing appears after the statement instead of at its source position.
-- Cause: image paths are resolved relative to the YAML file, and table images are currently appended after cleaned statement text.
-- Fix: keep `<stem>_files/` beside the YAML and check the paths described in [FILE_FORMATS.md](FILE_FORMATS.md). Mid-statement placement is a tracked roadmap item.
+- Cause: a statement image path does not resolve from the YAML file's directory, or the exam YAML does not preserve the source order of its statement blocks.
+- Fix: give each `{image: ...}` block a path relative to the YAML file. The HTML importer rewrites source-image paths during conversion, and the DOCX builder emits text, drawings, and tables in block order. The automated synthetic pipeline case is in `tests/test_html_to_docx_pipeline.py`.

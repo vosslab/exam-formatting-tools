@@ -17,6 +17,8 @@ import ef_tools.cli_checks
 import ef_tools.html_parse
 import ef_tools.exam_yaml_writer
 import ef_tools.rdkit_render
+import ef_tools.statement_content
+import ef_tools.text_utils
 
 
 TAKE_QUESTION_XPATH = ef_tools.html_parse.TAKE_QUESTION_XPATH
@@ -97,6 +99,14 @@ def element_to_inline_html(element: object) -> str:
 			continue
 		if tag == "br":
 			parts.append("\n")
+		elif tag == "span":
+			color = ef_tools.text_utils.text_color_from_style(child.get("style", ""))
+			if color:
+				parts.append(f'<span style="color: {color};">')
+				parts.append(element_to_inline_html(child))
+				parts.append("</span>")
+			else:
+				parts.append(element_to_inline_html(child))
 		elif tag in INLINE_TAGS:
 			canonical = tag
 			if tag == "strong":
@@ -121,6 +131,114 @@ def element_to_inline_html(element: object) -> str:
 	result = re.sub(r"\s+<(sub|sup)>", r"<\1>", result)
 	result = re.sub(r"</(sub|sup)> +(?=[A-Z0-9(<])", r"</\1>", result)
 	return result.strip()
+
+
+#============================================
+def _flush_statement_text(statement: list, parts: list, before_media: bool = False) -> None:
+	"""Merge one adjacent text run into the ordered statement blocks."""
+	if not parts:
+		return
+	text = ''.join(parts)
+	text = re.sub(r"[ \t\r\f\v]+", " ", text)
+	text = re.sub(r" *\n *", "\n", text)
+	text = re.sub(r"\n+", "\n", text)
+	text = re.sub(r"<(sub|sup|b|i)>\s+", r"<\1>", text)
+	text = re.sub(r"\s+</(sub|sup|b|i)>", r"</\1>", text)
+	text = re.sub(r"\s+<(sub|sup)>", r"<\1>", text)
+	text = re.sub(r"</(sub|sup)> +(?=[A-Z0-9(<])", r"</\1>", text)
+	if before_media:
+		text = text.rstrip()
+	if text:
+		ef_tools.statement_content.append_text(statement, text)
+	parts.clear()
+
+
+#============================================
+def element_to_statement_content(
+	html_path: str, element: object, script_scope: object = None,
+	rdkit_out_dir: str | None = None,
+) -> list:
+	"""Convert a statement DOM subtree to ordered text and image blocks."""
+	canvas_paths = {}
+	if script_scope is not None and rdkit_out_dir is not None:
+		canvases = element.xpath(RDKIT_CANVAS_XPATH)
+		canvas_paths = dict(zip(
+			canvases,
+			resolve_rdkit_canvases(
+				html_path, element, script_scope, rdkit_out_dir)))
+	statement = []
+	parts = []
+
+	def append_text(text: str) -> None:
+		if text:
+			parts.append(escape_text(text))
+
+	def append_media(image_path: str, wrappers: tuple) -> None:
+		parts.extend(pair[1] for pair in reversed(wrappers))
+		_flush_statement_text(statement, parts, before_media=True)
+		statement.append({"image": image_path})
+		parts.extend(pair[0] for pair in wrappers)
+
+	def visit(node: object, wrappers: tuple = ()) -> None:
+		tag = node.tag.lower() if isinstance(node.tag, str) else ""
+		if tag in ("input", "script", "style", "h5"):
+			return
+		classes = set(node.get("class", "").split())
+		if tag == "img" and "cleaned-statement-media" in classes:
+			src = node.get("src", "")
+			if src:
+				append_media(
+					ef_tools.html_parse.resolve_image_path(html_path, src), wrappers)
+			return
+		if tag == "canvas" and "cleaned-statement-media" in classes:
+			image_path = canvas_paths.get(node)
+			if image_path:
+				append_media(image_path, wrappers)
+			return
+		if tag == "br":
+			append_text("\n")
+			return
+		active_wrappers = wrappers
+		if tag in INLINE_TAGS:
+			canonical = {"strong": "b", "em": "i"}.get(tag, tag)
+			pair = (f"<{canonical}>", f"</{canonical}>")
+			parts.append(pair[0])
+			active_wrappers += (pair,)
+		elif tag == "span":
+			color = ef_tools.text_utils.text_color_from_style(node.get("style", ""))
+			if color:
+				pair = (f'<span style="color: {color};">', "</span>")
+				parts.append(pair[0])
+				active_wrappers += (pair,)
+		if node.text:
+			append_text(node.text)
+		for child in node:
+			visit(child, active_wrappers)
+			if child.tail:
+				append_text(child.tail)
+		if tag in ("div", "p", "li"):
+			append_text("\n")
+		if active_wrappers != wrappers:
+			parts.append(active_wrappers[-1][1])
+
+	if element.text:
+		append_text(element.text)
+	for child in element:
+		visit(child)
+		if child.tail:
+			append_text(child.tail)
+	_flush_statement_text(statement, parts)
+	# Block wrappers add hard breaks. They are meaningful between content, but
+	# should not leave padding before the question number or after its final line.
+	statement[:] = [
+		block for block in statement
+		if 'image' in block or block['text'].strip()
+	]
+	text_blocks = [block for block in statement if 'text' in block]
+	if text_blocks:
+		text_blocks[0]['text'] = text_blocks[0]['text'].lstrip()
+		text_blocks[-1]['text'] = text_blocks[-1]['text'].rstrip()
+	return statement
 
 
 #============================================
@@ -255,30 +373,31 @@ def resolve_rdkit_canvases(
 	Returns:
 		Absolute paths of the rendered PNG files in canvas document order.
 	"""
-	paths = []
 	canvases = element.xpath(RDKIT_CANVAS_XPATH)
 	if not canvases:
-		return paths
+		return []
 	scripts = script_scope.xpath(".//script")
-	for canvas in canvases:
-		canvas_id = canvas.get("id")
-		script = find_rdkit_script_for_canvas(scripts, canvas_id)
-		if script is None:
-			raise ValueError(
-				f"RDKit canvas {canvas_id!r} in {html_path} has no matching script"
-			)
-		# find_rdkit_script_for_canvas already required initRDKitModule in
-		# the script text, so extract_smiles_from_rdkit_script can only
-		# return a string here or raise; no None branch to handle.
-		smiles = ef_tools.rdkit_render.extract_smiles_from_rdkit_script(script)
-		# Filename uses the canvas id directly so each rendered PNG maps
-		# obviously back to the source widget on disk.
-		basename = f"rdkit_{canvas_id}"
-		png_path = ef_tools.rdkit_render.render_smiles_to_png(
-			smiles, out_dir, basename=basename
-		)
-		paths.append(png_path)
+	paths = [
+		resolve_rdkit_canvas(canvas, html_path, scripts, out_dir)
+		for canvas in canvases]
 	return paths
+
+
+#============================================
+def resolve_rdkit_canvas(canvas: object, html_path: str,
+		scripts: list, out_dir: str) -> str:
+	"""Render one RDKit canvas using its matching inline script."""
+	canvas_id = canvas.get("id")
+	script = find_rdkit_script_for_canvas(scripts, canvas_id)
+	if script is None:
+		raise ValueError(
+			f"RDKit canvas {canvas_id!r} in {html_path} has no matching script"
+		)
+	smiles = ef_tools.rdkit_render.extract_smiles_from_rdkit_script(script)
+	basename = f"rdkit_{canvas_id}"
+	png_path = ef_tools.rdkit_render.render_smiles_to_png(
+		smiles, out_dir, basename=basename)
+	return png_path
 
 
 #============================================
@@ -287,21 +406,23 @@ def resolve_images(
 ) -> list[str]:
 	"""Resolve relevant images contained in an element.
 
-	Image sources are returned in document order: `<img>` tags first, then
-	RDKit canvases re-rendered to PNG via `ef_tools.rdkit_render`. The
-	`script_scope` and `rdkit_out_dir` arguments default to None so the
-	function can also be used from callers that only need `<img>`
-	resolution; current callers always pass both.
+	Image sources are returned in DOM order, including RDKit canvases.
 	"""
 	images = []
-	for image in element.xpath(IMAGE_CLASS_XPATH):
-		src = image.get("src", "")
-		if not src:
-			continue
-		image_path = ef_tools.html_parse.resolve_image_path(html_path, src)
-		images.append(image_path)
-	if script_scope is not None and rdkit_out_dir is not None:
-		images.extend(resolve_rdkit_canvases(html_path, element, script_scope, rdkit_out_dir))
+	scripts = script_scope.xpath(".//script") if script_scope is not None else []
+	for node in element.iter():
+		tag = node.tag.lower() if isinstance(node.tag, str) else ""
+		classes = set(node.get("class", "").split())
+		if tag == "img" and classes & {
+			"cleaned-statement-media", "cleaned-choice-media"}:
+			src = node.get("src", "")
+			if src:
+				images.append(ef_tools.html_parse.resolve_image_path(html_path, src))
+		elif tag == "canvas" and classes & {
+			"cleaned-statement-media", "cleaned-choice-media"}:
+			if rdkit_out_dir is None or script_scope is None:
+				continue
+			images.append(resolve_rdkit_canvas(node, html_path, scripts, rdkit_out_dir))
 	return images
 
 
@@ -421,16 +542,13 @@ def parse_question(
 	remove_statement_noise(statement_body)
 	remove_choice_blocks(statement_body)
 	remove_matching_blocks(statement_body)
-	statement = clean_statement_html(element_to_inline_html(statement_body))
-	# Image resolution runs against the pruned body so we don't pull in
-	# images that belonged to choices; RDKit script_scope stays the full
-	# question_div so canvases on the statement still find their script.
-	images = resolve_images(html_path, statement_body, question_div, rdkit_out_dir)
+	# Resolve text and media together against the pruned body so their source
+	# order is preserved and choice images cannot leak into the statement.
+	statement = element_to_statement_content(
+		html_path, statement_body, question_div, rdkit_out_dir)
 	question = {
 		"statement": statement,
 	}
-	if images:
-		question["images"] = images
 	if choices:
 		question["choices"] = choices
 	if prompts_list:
@@ -475,14 +593,13 @@ def build_yaml(input_files: list[str], title: str, date: str) -> dict:
 def relativize_image_paths(exam_data: dict, yaml_dir: str) -> None:
 	"""Rewrite every image path in exam_data relative to yaml_dir, in place.
 
-	Covers question-level `images` and structured choice `image` fields.
+	Covers ordered statement blocks and structured choice objects.
 	"""
 	for section in exam_data["sections"]:
 		for question in section.get("questions", []):
-			if "images" in question:
-				question["images"] = [
-					os.path.relpath(path, yaml_dir) for path in question["images"]
-				]
+			for block in question.get("statement", []):
+				if block.get("image"):
+					block["image"] = os.path.relpath(block["image"], yaml_dir)
 			for choice in question.get("choices", []):
 				if isinstance(choice, dict) and choice.get("image"):
 					choice["image"] = os.path.relpath(choice["image"], yaml_dir)

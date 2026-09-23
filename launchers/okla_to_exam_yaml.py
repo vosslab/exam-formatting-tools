@@ -17,6 +17,7 @@ import yaml
 
 # Local Repo Modules
 import ef_tools.cli_checks
+import ef_tools.statement_content
 
 
 def parse_args() -> argparse.Namespace:
@@ -144,7 +145,7 @@ def parse_block(lines: list) -> dict:
 		return None
 
 	question_dict = {
-		'statement': statement,
+		'statement': [ef_tools.statement_content.text_block(statement)],
 		'choices': choices,
 	}
 
