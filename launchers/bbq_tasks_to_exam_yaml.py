@@ -90,8 +90,8 @@ def reject_exam(question: dict) -> str:
 #============================================
 def chapter_label(topic: str) -> str:
 	"""Turn a CSV topic such as dna_structure into a chapter heading."""
-	label = topic.replace('_', ' ').capitalize()
-	return label
+	label = topic.replace('_', ' ')
+	return label[:1].upper() + label[1:]
 
 
 

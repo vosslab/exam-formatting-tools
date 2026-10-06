@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-10-06
+
+### Fixes and Maintenance
+
+- Use explicit Chapter 4 and Chapter 5 titles in the Quiz 2 task CSV. Preserve supplied
+  capitalization when converting task topics to chapter headings.
+
+## 2026-10-05
+
+### Additions and New Features
+
+- Add `genetics_tasks-quiz2.csv` with the approved Topic 04 and 05 selection: 17 blocks
+  totaling 22 question equivalents, using four-item matching banks and a medium two-item
+  autosomal pedigree match.
+- Add `make_quiz2.sh` to generate Quiz 2 YAML, answer key, DOCX, and PDF using the existing
+  quiz pipeline and Quiz 1 PDF export settings.
+
 ## 2026-09-23
 
 ### Behavior or Interface Changes
