@@ -245,7 +245,7 @@ def setup_styles(doc: docx.Document, styles: dict) -> None:
 	# Matching Prompt: numbered fill-in lines for matching questions.
 	# Mirrors the legacy ARTIFACTS/2019_exam2-final.docx "Question" style
 	# (verified via LibreOffice style dialog). Two tab stops let prompts
-	# render in a two-column layout: "___ 1. text<tab>___ 2. text".
+	# render in a two-column layout: "______ 1. text<tab>______ 2. text".
 	matching_prompt = doc.styles.add_style(
 		'Matching Prompt', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
 	matching_prompt.base_style = qh

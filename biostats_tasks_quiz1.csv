@@ -1,0 +1,7 @@
+subject,topic,script,flags,input,notes
+biostatistics,Hypothesis testing: matching 0.5 pt each; MC 1 pt each,YMATCH,--num-choices 6,{bp_match}/biostatistics/hypothesis_testing_terms.yml,Six matches = 3 points
+biostatistics,Hypothesis testing: matching 0.5 pt each; MC 1 pt each,YMCS,--no-false,{bp_mcs}/biostatistics/hypothesis_testing_decisions.yml,One MC = 1 point
+biostatistics,Hypothesis testing: matching 0.5 pt each; MC 1 pt each,YMCS,--no-false,{bp_mcs}/biostatistics/z_test_vs_t_test.yml,One short Z-test versus t-test TRUE MC = 1 point
+biostatistics,Measures of center: 0.5 pt per answer,YMATCH,--num-choices 4,{bp_match}/biostatistics/measures_of_center.yml,Four matches = 2 points
+biostatistics,Measures of center: 0.5 pt per answer,{bp_root}/biostatistics-problems/measures_of_center.py,--matching,,Four matches with arithmetic shown = 2 points
+biostatistics,Measures of center: 0.5 pt per answer,{bp_root}/biostatistics-problems/measures_of_center.py,--median-change,,One MC = 0.5 points

@@ -47,7 +47,7 @@ Each question object represents a single exam item.
 | `statement` | list of content blocks | yes | -- | Ordered stem/body text, images, and tables |
 | `number` | integer | no | auto | Numeric override; does not change the "##." format |
 | `choices` | list of strings or choice objects | no | -- | Answer choices (plain text, no letter prefixes), optionally with image paths |
-| `prompts_list` | list of strings or choice objects | no | -- | Numbered matching prompts; each consumes one question number and renders as `___ N.`; a `{text, image}` object puts a drawing (DNA strip, pedigree) beside the blank |
+| `prompts_list` | list of strings or choice objects | no | -- | Numbered matching prompts; each consumes one question number and renders as `______ N.`; a `{text, image}` object puts a drawing (DNA strip, pedigree) beside the blank |
 | `choices_list` | list of strings or choice objects | no | -- | Lettered matching choices rendered as `(A) (B) (C) ...` below the prompts; image objects use the tabbed image-choice layout |
 | `layout` | integer | no | auto | Choices column layout: 3, 4, or 5 |
 | `choice_font` | string | no | inherited | Optional font-family override for text-only `choices` or `choices_list` paragraphs; for example, `IBM Plex Sans Condensed` |
@@ -98,7 +98,7 @@ Engines writing exam YAML should preserve these inline HTML tags verbatim in sta
 
 Questions are auto-numbered sequentially starting at 1, across all sections. The text label remains
 `##.` (period after number); DOCX output draws a 2pt rectangular outline around that label. Matching
-question ranges such as `Q1-3.` use the same outline. Matching prompt numbers such as `___ 1.` remain
+question ranges such as `Q1-3.` use the same outline. Matching prompt numbers such as `______ 1.` remain
 unboxed.
 
 The `number` field overrides the counter value only. Example: `number: 15` makes the next question "15." and continues from there. It does not change the period format.
@@ -201,7 +201,7 @@ If this question starts at number 5, the DOCX builder renders:
 
 - header `Q5-6. Match each functional group with its description.`
 - lettered options `(A) Energy transfer  (B) C-terminus` (auto-laid-out like MC)
-- numbered blanks `___ 5. Phosphate` and `___ 6. Carboxyl` on one two-column row when both prompts are plain text
+- numbered blanks `______ 5. Phosphate` and `______ 6. Carboxyl` on one two-column row when both prompts are plain text
 - the next question starts at 7.
 
 The lettered choices render before the numbered blanks so students see the
@@ -211,7 +211,7 @@ Do not embed `A. ... B. ...` enumerations inside `statement` -- put the
 options in `choices_list` so the builder formats them consistently.
 
 Prompt and choice entries may be `{text, image}` objects. A prompt image
-renders inline after `___ N.`; its height is capped by
+renders inline after `______ N.`; its height is capped by
 `prompt_image_max_height` in `styles/exam_styles.yaml`, and wide one-row
 strips (aspect at least `prompt_strip_min_aspect`) by `prompt_strip_max_height`
 so short and long DNA strips share one cell size.
@@ -320,7 +320,7 @@ The builder applies these named paragraph styles automatically:
 | Question Heading | Questions following other questions or choices (normal flow) |
 | Question Follow | Questions following an image, table, or heading (after a visual break) |
 | Choices3 / Choices4 / Choices5 | Multiple choice answer rows |
-| Matching Prompt | Numbered fill-in lines for matching questions (`___ N. text`); two-column tab stops at 0.5" and 3.5", inherits from Question Heading. See `ARTIFACTS/2019_exam2-final.docx` |
+| Matching Prompt | Numbered fill-in lines for matching questions (`______ N. text`); two-column tab stops at 0.5" and 3.5", inherits from Question Heading. See `ARTIFACTS/2019_exam2-final.docx` |
 | Standard | Default body text |
 
 Style selection between "Question Heading" and "Question Follow" is automatic based on the preceding element.

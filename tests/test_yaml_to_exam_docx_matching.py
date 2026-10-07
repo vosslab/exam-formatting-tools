@@ -52,9 +52,9 @@ def test_matching_question_renders_prompts_blanks_and_choice_letters(tmp_path: o
 	# multi-prompt span header
 	assert 'Q1-3.' in body_text
 	# numbered blanks: each prompt consumes one slot
-	assert '___ 1.' in body_text
-	assert '___ 2.' in body_text
-	assert '___ 3.' in body_text
+	assert '______ 1.' in body_text
+	assert '______ 2.' in body_text
+	assert '______ 3.' in body_text
 	# all prompt texts present (rich text strips the <b> tags into runs)
 	assert 'alpha' in body_text
 	assert 'beta' in body_text
@@ -71,7 +71,7 @@ def test_matching_renders_choices_before_prompts(tmp_path: object) -> None:
 	"""Lettered choices_list must render before numbered prompt blanks.
 
 	Compares paragraph indices (not character offsets) so a stray '(A)'
-	or '___ 1.' in the question statement cannot give a false positive.
+	or '______ 1.' in the question statement cannot give a false positive.
 	"""
 	exam_data = _matching_yaml()
 	output_path = tmp_path / "matching_order.docx"
@@ -80,7 +80,7 @@ def test_matching_renders_choices_before_prompts(tmp_path: object) -> None:
 	# index of the first paragraph that starts with the choices block
 	choices_para = next(i for i, p in enumerate(doc.paragraphs) if p.text.startswith('(A)'))
 	# index of the first numbered prompt blank
-	prompt_para = next(i for i, p in enumerate(doc.paragraphs) if p.text.startswith('___ 1.'))
+	prompt_para = next(i for i, p in enumerate(doc.paragraphs) if p.text.startswith('______ 1.'))
 	assert choices_para < prompt_para
 
 
@@ -96,9 +96,9 @@ def test_plain_matching_prompts_share_two_columns(tmp_path: object) -> None:
 		if paragraph.style.name == 'Matching Prompt'
 	]
 	assert len(prompt_paras) == 2
-	assert '___ 1.' in prompt_paras[0].text
-	assert '___ 2.' in prompt_paras[0].text
-	assert '___ 3.' in prompt_paras[1].text
+	assert '______ 1.' in prompt_paras[0].text
+	assert '______ 2.' in prompt_paras[0].text
+	assert '______ 3.' in prompt_paras[1].text
 	assert '\t' in prompt_paras[0].text
 	assert prompt_paras[0].paragraph_format.keep_with_next is True
 	assert prompt_paras[1].paragraph_format.keep_with_next is False
@@ -146,7 +146,7 @@ def test_matching_prompt_style_is_registered_and_applied(tmp_path: object) -> No
 	# 0.5" and 3.5" expressed in EMU (914400 per inch)
 	assert tab_positions == [docx.shared.Inches(0.5), docx.shared.Inches(3.5)]
 	# every prompt paragraph in the doc carries this style
-	prompt_paras = [p for p in doc.paragraphs if p.text.startswith('___ ')]
+	prompt_paras = [p for p in doc.paragraphs if p.text.startswith('______ ')]
 	assert len(prompt_paras) >= 1
 	for para in prompt_paras:
 		assert para.style.name == 'Matching Prompt'

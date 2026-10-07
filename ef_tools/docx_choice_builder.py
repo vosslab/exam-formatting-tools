@@ -40,7 +40,7 @@ def add_choice_content(para: object, choice: object, sizer: object = None,
 #============================================
 def add_matching_prompt(doc: object, prompt: object, prefix: str,
 		sizer: object = None, native_tables: bool = False) -> None:
-	"""Add one `___ N.` matching prompt row; the prompt may carry an image.
+	"""Add one `______ N.` matching prompt row; the prompt may carry an image.
 
 	A plain string prompt renders as text (hard breaks become paragraphs).
 	A dict prompt ({'text', 'image'}) renders its text, then its image
@@ -100,15 +100,15 @@ def add_matching_prompts(doc: object, prompts: list, start_number: int,
 			para = doc.add_paragraph()
 			para.style = doc.styles['Matching Prompt']
 			_add_matching_prompt_text(
-				para, prompt, f"___ {start_number + index}. ")
+				para, prompt, f"______ {start_number + index}. ")
 			para.add_run("\t")
 			_add_matching_prompt_text(
-				para, next_prompt, f"___ {start_number + index + 1}. ")
+				para, next_prompt, f"______ {start_number + index + 1}. ")
 			para.paragraph_format.keep_with_next = index + 2 < len(prompts)
 			index += 2
 			continue
 		add_matching_prompt(
-			doc, prompt, f"___ {start_number + index}. ",
+			doc, prompt, f"______ {start_number + index}. ",
 			sizer=sizer, native_tables=native_tables)
 		# Hard-break prompts can emit more than one paragraph; only the final
 		# paragraph needs to chain to the next prompt.

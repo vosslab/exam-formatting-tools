@@ -102,5 +102,5 @@ def test_question_labels_are_boxed_and_question_text_uses_configured_emphasis(
 		run for run in question_para.runs if run.text == "explicit emphasis")
 	assert explicit_bold_run.bold is True
 
-	prompt_para = next(para for para in doc.paragraphs if para.text.startswith("___ 13."))
+	prompt_para = next(para for para in doc.paragraphs if para.text.startswith("______ 13."))
 	assert all(run.style.name != "Question Number" for run in prompt_para.runs)

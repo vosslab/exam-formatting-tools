@@ -1,5 +1,66 @@
 # Changelog
 
+## 2026-10-07
+
+### Additions and New Features
+
+- Initially add the 10-point calculator-free BIOL 318/418 Quiz 1 task CSV and build launcher.
+  Include seven hypothesis-testing term matches, one decision-statements TRUE MC item,
+  one short Z-test versus t-test TRUE MC item,
+  four measures-of-center definition matches, four worked-calculation matches,
+  and one median-change MC item. Matching uses YMATCH only; scoring appears in
+  the section headings and the document score line. Each topic starts on its own
+  page so matching choices and prompts stay together. Statistical MC statements use
+  one choice per line to prevent wrapped continuations from crossing columns.
+- Rebuild the quiz with four-choice decision statements in plain language. Affirmative
+  phrases use dark blue and negative phrases use dark red-orange. Select a generated
+  version with two choices of each color so color does not single out the correct choice.
+  This initial version had 10 points; the later six-term revision below has 9.5 points.
+
+### Behavior or Interface Changes
+
+- Add `make_biostats_quiz1.sh` as the flat quiz build script. Keep the title,
+  JPEG quality, DPI, total points, task CSV, and output names at the top for editing.
+  Use the existing quiz launchers and LibreOffice PDF export settings. Reduce
+  `make_biostats_quiz1.py` to scoring and layout of generated YAML/DOCX files.
+  Verify a complete build in a temporary folder with an edited title; preserve
+  the finished quiz files. Shell syntax, scoped lint, and six root-script checks pass.
+
+### Fixes and Maintenance
+
+- Address the six-pass audit: archive generated build history outside current quiz output,
+  clarify the DOCX layout helper's YAML companion, and update matching-blank examples.
+  Label initial-build evidence separately from the final 17-answer, 9.5-point quiz.
+
+- Replace the theory-focused Z/t item with a question about the SD input used
+  in the tutorials. Keep the quiz TRUE-only and preserve the other questions.
+  Rebuild the key, DOCX, and PDF; inspect both pages.
+
+- Re-export the quiz with green TRUE labels supplied by the shared statement
+  generator, including custom bold stems. Preserve all questions, choices, and keys.
+
+- Rewrite the median-change item as a server-tip scenario with the original mean
+  and median supplied. State that the other four totals stay the same and use
+  "Does not change" as the middle choice. Use the requested $13, $13, $17, $21,
+  $41 example and $16 extra tip in the printed quiz; preserve the other questions.
+  Re-render and inspect both PDF pages.
+
+- Double matching answer blanks from three to six underscores in the shared DOCX
+  renderer, for both paired and full-width prompts. Give students more writing space
+  and make letters easier to grade. Regenerate the quiz from its existing YAML;
+  inspect both PDF pages and pass 21 focused DOCX tests.
+
+- Use six hypothesis-testing term matches (3 points) and a 9.5-point quiz total.
+  Rebuild PDF, DOCX, and key with dark indigo null-hypothesis text and green
+  test-statistic text. Inspect both pages and independently verify all 17 answers.
+
+### Developer Tests and Notes
+
+- Final build: all six quiz blocks, 17 numbered answers, 9.5 points, and zero skipped tasks.
+  Inspected both pages of the rendered PDF; the editable DOCX and answer key use
+  the same generated questions. An independent reader verified all 17 answer keys.
+  Scoped `pyflakes` and six root-script checks passed.
+
 ## 2026-10-06
 
 ### Fixes and Maintenance
