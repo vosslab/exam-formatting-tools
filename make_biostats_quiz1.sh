@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Edit these settings for this quiz.
-TITLE='BIOL 318/418 Quiz 1: No calculators'
+TITLE='BIOL 318/418 Quiz 1'
 JPEG_QUALITY=70
 DPI=100
 TOTAL_POINTS=9.5
