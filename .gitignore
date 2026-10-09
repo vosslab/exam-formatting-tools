@@ -23,7 +23,7 @@ site/
 # -------------------- LOCAL REPOSITORY RULES --------------------
 # ADD YOUR CUSTOM IGNORES BELOW
 # Propagation preserves this section.
-report_*.txt
+*.pdf
 ARTIFACTS/
 images/
 *.docx
