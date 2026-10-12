@@ -24,6 +24,7 @@ import PIL.Image
 # local repo modules
 import ef_tools.bbq_html
 import ef_tools.bbq_media
+import ef_tools.svg_media
 import ef_tools.question_utils
 
 
@@ -161,7 +162,7 @@ def parse_bbq_line(line: str, math_renderer: object = None, base_url: str = '') 
 	Returns:
 		None for blank lines and SKIPPED_TYPES. Otherwise a record:
 		{'question': exam YAML dict, 'answer': {'code', 'type', 'letters'},
-		'rendered_images': opaque PNG references used until media files are saved,
+		'rendered_images': opaque image references used until media files are saved,
 		plus the parsed question and its table sources.
 	Drawing tables are returned as HTML; the caller renders them and may retain
 	the source for the optional native DOCX table backend.
@@ -214,9 +215,9 @@ def attach_table_images(record: dict, statement_paths: list, choice_paths: dict,
 
 	Args:
 		record: Output of parse_bbq_line.
-		statement_paths: PNG paths for record['statement_tables'], in order.
-		choice_paths: index -> [PNG path] for record['choice_tables'].
-		prompt_paths: index -> [PNG path] for record['prompt_tables']
+		statement_paths: Image paths for record['statement_tables'], in order.
+		choice_paths: index -> [image path] for record['choice_tables'].
+		prompt_paths: index -> [image path] for record['prompt_tables']
 			(matching prompts keep their order, so the index is the
 			printed position).
 
@@ -260,19 +261,19 @@ def has_tables(record: dict) -> bool:
 
 #============================================
 def has_rendered_images(record: dict) -> bool:
-	"""Return whether the parsed record contains generated PNG bytes."""
+	"""Return whether the parsed record contains generated image bytes."""
 	found = bool(record['rendered_images'])
 	return found
 
 
 #============================================
 def render_record_tables(record: dict, renderer: object, media_dir: str, stem: str) -> None:
-	"""Save generated images, rasterize tables, and attach PNG paths in place.
+	"""Save generated images, capture tables, and attach image paths in place.
 
 	Args:
 		record: Output of parse_bbq_line.
 		renderer: Shared native HTML renderer.
-		media_dir: `<yaml_dir>/<stem>_files` directory for the PNGs.
+		media_dir: `<yaml_dir>/<stem>_files` directory for captured images.
 		stem: Filename stem for this question (its CRC code).
 	"""
 	image_store = record['rendered_images']
@@ -302,15 +303,15 @@ def render_record_tables(record: dict, renderer: object, media_dir: str, stem: s
 	statement_table_html = [
 		block['html_table'] for block in record['question']['statement']
 		if 'html_table' in block]
-	statement_paths = ef_tools.bbq_html.write_table_pngs(
+	statement_paths = ef_tools.bbq_html.write_table_images(
 		statement_table_html, renderer, media_dir, stem, image_store)
 	choice_paths = {}
 	for index, tables in record['choice_tables'].items():
-		choice_paths[index] = ef_tools.bbq_html.write_table_pngs(
+		choice_paths[index] = ef_tools.bbq_html.write_table_images(
 			tables, renderer, media_dir, f"{stem}_choice{index}", image_store)
 	prompt_paths = {}
 	for index, tables in record['prompt_tables'].items():
-		prompt_paths[index] = ef_tools.bbq_html.write_table_pngs(
+		prompt_paths[index] = ef_tools.bbq_html.write_table_images(
 			tables, renderer, media_dir, f"{stem}_prompt{index}", image_store)
 	attach_table_images(record, statement_paths, choice_paths, prompt_paths)
 	record.pop('rendered_images', None)
@@ -334,8 +335,11 @@ def _save_rendered_image(image_ref: str, image_store: dict, media_dir: str,
 	if key not in image_store:
 		raise ValueError(f"question refers to missing rendered image {key!r}")
 	os.makedirs(media_dir, exist_ok=True)
-	with PIL.Image.open(io.BytesIO(image_store[key])) as image:
-		extension = image.format.lower()
+	if ef_tools.svg_media.is_svg(image_store[key]):
+		extension = 'svg'
+	else:
+		with PIL.Image.open(io.BytesIO(image_store[key])) as image:
+			extension = image.format.lower()
 	filename = os.path.splitext(filename)[0] + '.' + extension
 	path = os.path.join(media_dir, filename)
 	with open(path, 'wb') as handle:

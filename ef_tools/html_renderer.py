@@ -1,4 +1,4 @@
-"""Render browser-compatible HTML elements as print-quality PNG images."""
+"""Render HTML elements as SVG, using PNG for canvas drawings and SVG export failures."""
 
 # Standard Library
 import io
@@ -6,15 +6,19 @@ import html as html_module
 import math
 import os
 import pathlib
+import shutil
+import subprocess
 import tempfile
 import warnings
 
 # PIP3 modules
 import PIL.Image
 import PIL.ImageChops
+import lxml.etree
 import playwright.sync_api
 
 # Local Repo Modules
+import ef_tools.svg_media
 import ef_tools.style_loader
 
 
@@ -263,9 +267,21 @@ class HtmlRenderer:
 				f'{label}: JavaScript canvas did not draw before the browser timeout') from exc
 
 	#============================================
-	def _warn_source_resolution(self, page: playwright.sync_api.Page,
-			targets: dict[str, float | None], measurements: dict[str, dict]) -> None:
-		"""Warn where nested canvas or image source pixels cannot print sharply."""
+	def _canvas_only(self, page: playwright.sync_api.Page, selector: str) -> bool:
+		"""Use PNG for canvas drawings; keep surrounding text and tables vector."""
+		return page.locator(selector).evaluate('''(element) => {
+			if (element.tagName === 'CANVAS') return true;
+			const copy = element.cloneNode(true);
+			copy.querySelectorAll('script, style').forEach(node => node.remove());
+			return !!copy.querySelector('canvas') && !copy.textContent.trim()
+				&& !copy.matches('table, svg, math') && !copy.querySelector('table, svg, math');
+		}''')
+
+	#============================================
+	def _source_resolution_issues(self, page: playwright.sync_api.Page,
+			targets: dict[str, float | None], measurements: dict[str, dict]) -> dict[str, str]:
+		"""Return per-target reasons raster source pixels cannot meet print DPI."""
+		issues = {}
 		for selector, target_width in targets.items():
 			printed_width = self._printed_width_inches(selector, target_width, measurements)
 			assets = page.locator(f'{selector}:is(canvas, img), {selector} canvas, {selector} img')
@@ -284,11 +300,11 @@ class HtmlRenderer:
 					printed_width * asset_data['cssHeight'] / measurements[selector]['width'] * PRINT_DPI)
 				if (asset_data['backingWidth'] < minimum_width
 						or asset_data['backingHeight'] < minimum_height):
-					warnings.warn(
-						f'{selector}: {asset_data["kind"]} source dimensions '
+					issues[selector] = (
+						f'{asset_data["kind"]} source dimensions '
 						f'{asset_data["backingWidth"]}x{asset_data["backingHeight"]}px are below the '
-						f'{minimum_width}x{minimum_height}px needed for {PRINT_DPI} DPI at print size',
-						stacklevel=3)
+						f'{minimum_width}x{minimum_height}px needed for {PRINT_DPI} DPI at print size')
+		return issues
 
 	#============================================
 	def render(self, html: str, targets: dict[str, float | None],
@@ -303,24 +319,43 @@ class HtmlRenderer:
 			label: Context included in actionable rendering failures.
 
 		Returns:
-			PNG bytes indexed by the requested selector.
+			SVG or fallback PNG bytes indexed by the requested selector.
 		"""
 		if not targets:
 			return {}
 		measurement_context, measurement_page = self._load_page(html, base_url, 1, label)
+		rendered = {}
 		try:
 			self._wait_for_canvases(measurement_page, targets, label)
 			measurements = self._target_measurements(measurement_page, targets, label)
-			capture_groups = self._capture_scales(targets, measurements)
+			quality_issues = self._source_resolution_issues(measurement_page, targets, measurements)
+			for selector in targets:
+				try:
+					if self._canvas_only(measurement_page, selector):
+						continue
+					if selector in quality_issues:
+						warnings.warn(
+							f'{label}: {selector}: SVG retains limited source detail: '
+							f'{quality_issues[selector]}', stacklevel=2)
+					rendered[selector] = self._capture_svg(measurement_page, selector, measurements[selector])
+				except (OSError, ValueError, subprocess.SubprocessError,
+						playwright.sync_api.Error, lxml.etree.XMLSyntaxError) as exc:
+					warnings.warn(f'{label}: {selector}: SVG rejected; using PNG: {exc}', stacklevel=2)
+			fallback_targets = {key: value for key, value in targets.items() if key not in rendered}
+			capture_groups = self._capture_scales(fallback_targets, measurements)
 		finally:
 			measurement_context.close()
-		rendered = {}
 		for capture_scale, group_targets in capture_groups.items():
 			capture_context, capture_page = self._load_page(
 				html, base_url, capture_scale, label)
 			try:
 				self._wait_for_canvases(capture_page, group_targets, label)
-				self._warn_source_resolution(capture_page, group_targets, measurements)
+				quality_issues = self._source_resolution_issues(
+					capture_page, group_targets, measurements)
+				for selector, reason in quality_issues.items():
+					warnings.warn(
+						f'{label}: {selector}: PNG source remains below print quality: {reason}; '
+						'increased screenshot density does not restore source detail', stacklevel=2)
 				dpi = CSS_PIXELS_PER_INCH * capture_scale
 				for selector in group_targets:
 					locator = capture_page.locator(selector)
@@ -330,3 +365,46 @@ class HtmlRenderer:
 			finally:
 				capture_context.close()
 		return rendered
+
+	#============================================
+	def _capture_svg(self, page: playwright.sync_api.Page, selector: str, box: dict) -> bytes:
+		"""Print one live element without detaching its canvas or inherited styles."""
+		converter = shutil.which('pdftocairo')
+		if converter is None:
+			raise OSError('pdftocairo is unavailable; install Poppler for SVG output')
+		locator = page.locator(selector)
+		width = math.ceil(box['width'])
+		height = math.ceil(box['height'])
+		locator.evaluate('(element) => element.setAttribute("data-ef-vector-target", "")')
+		# Hidden siblings still affect print shrink-to-fit. Clip the page box
+		# while fixing the target's measured size, without detaching live canvases.
+		style = page.add_style_tag(content=(
+			f'html, body {{ width:{width}px !important; height:{height}px !important;'
+			'overflow:hidden !important; min-width:0 !important; margin:0 !important; }'
+			'* { visibility:hidden !important; -webkit-print-color-adjust:exact !important; }'
+			'[data-ef-vector-target], [data-ef-vector-target] * { visibility:visible !important; }'
+			'[data-ef-vector-target] { position:fixed !important; left:0 !important;'
+			'top:0 !important; margin:0 !important; box-sizing:border-box !important;'
+			f'width:{box["width"]}px !important; height:{box["height"]}px !important; }}'
+			f'@page {{ size:{width}px {height}px; margin:0; }}'))
+		try:
+			page.emulate_media(media='screen')
+			with tempfile.TemporaryDirectory(prefix='ef_tools_vector_') as directory:
+				pdf_path = pathlib.Path(directory) / 'capture.pdf'
+				svg_path = pathlib.Path(directory) / 'capture.svg'
+				page.pdf(path=str(pdf_path), prefer_css_page_size=True,
+					print_background=True, page_ranges='1')
+				# ASVS 1.2.5: authored content never enters a shell command.
+				subprocess.run([converter, '-svg', str(pdf_path), str(svg_path)],
+					check=True, capture_output=True, timeout=30)
+				root = ef_tools.svg_media.svg_root(svg_path.read_bytes())
+				# PDF paper sizes are rounded; keep the measured CSS dimensions
+				# and clip that rounding instead of changing the drawing's scale.
+				root.set('width', f'{width}px')
+				root.set('height', f'{height}px')
+				root.set('viewBox', f'0 0 {width * 0.75} {height * 0.75}')
+				result = lxml.etree.tostring(root, xml_declaration=True, encoding='UTF-8')
+		finally:
+			style.evaluate('(element) => element.remove()')
+			locator.evaluate('(element) => element.removeAttribute("data-ef-vector-target")')
+		return result

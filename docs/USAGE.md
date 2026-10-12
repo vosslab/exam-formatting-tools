@@ -49,7 +49,7 @@ The Genetics Exam 1 and biostatistics quiz recipes select these options where ne
 
 For a backup DOCX that converts preserved simple bptools HTML drawing tables
 to native Word tables, add `--native-tables`. Unsupported or nested tables use
-the normal PNG representation instead:
+the normal captured image representation instead:
 
 ```bash
 source source_me.sh && python3 converters/yaml_to_exam_docx.py \
@@ -147,16 +147,23 @@ MC and MA keep their choices; MAT becomes `prompts_list` plus a shuffled
 `choices_list`; ORD becomes position blanks (`Position 1`, `Position 2`, ...)
 plus shuffled items. NUM, FIB, and FIB_PLUS have no print form and are
 skipped. Drawing tables (gels, chi-square tables) are rendered to
-`<stem>_files/*.png` through EF Tools' native Chromium renderer (see
+`<stem>_files/*.svg` through EF Tools' native Chromium renderer (see
 [INSTALL.md](INSTALL.md)). The answer key lands in `<stem>-key.txt`.
 
-Captures supply at least 600 effective DPI for their DOCX placement: tables retain their
-shared physical scale, while standalone visuals have enough pixels for the largest existing
-image fit box. Increasing capture density does not enlarge the printed drawing. The renderer
-waits for fonts, images, and populated canvases, and reports browser failures with input context.
-Source bitmaps and canvas backing buffers can still lack detail; enlarging them does not
-restore it. The renderer reports that limitation rather than recreating their content.
-The PDF export settings are separate and may downsample DOCX images.
+Captures use Chromium PDF output and Poppler to preserve text as glyph outlines, borders,
+and other vector content in SVG. Embedded raster images remain raster. The same capture
+path handles tables, MathML, and JavaScript canvases, using their full question context.
+SVG is embedded directly into DOCX for LibreOffice; no PNG companion or YAML field is needed.
+Tables retain their shared physical scale, and standalone visuals use their existing fit boxes.
+
+Canvas-only drawings (including RDKit) use the existing PNG capture path at at least
+600 effective DPI for their DOCX placement. Tables and MathML prefer SVG, and mixed tables
+retain vector text and borders alongside their raster canvas content. SVG export errors
+also fall back to PNG per element. Source-resolution warnings identify insufficient raster
+detail at the intended print size, including after PNG scripts rerun at higher device scale.
+A 600-DPI screenshot does not restore detail absent from a fixed-resolution canvas.
+The renderer waits for fonts, images, and populated canvases.
+The PDF export settings are separate and may downsample raster content.
 
 ## Build a quiz or exam from a bptools task CSV
 
@@ -207,7 +214,7 @@ attempts, so edit their flags in the CSV.
 Outputs: `<stem>.yml`, `<stem>-key.txt` (one line per question block, e.g.
 `1. B   c555_9c1d   chargaff_dna_percent.py` or
 `Q5-8. 5=C 6=A 7=D 8=B   ce62_1dbe   yaml_match_to_bbq.py (genetic_disorders)`),
-and `<stem>_files/*.png` for rendered tables. The CSV `topic` column becomes
+and `<stem>_files/*.svg` (or PNG on capture failure) for rendered tables. The CSV `topic` column becomes
 the chapter heading whenever it changes.
 
 Oklahoma export to YAML:

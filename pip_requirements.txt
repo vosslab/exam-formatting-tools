@@ -1,5 +1,5 @@
 lxml  # Fast XML and HTML parsing with XPath support
 pillow  # Image I/O and processing for aspect ratio detection
-playwright  # Headless Chromium used to rasterize bptools drawing tables to PNG
+playwright  # Chromium HTML-to-PDF capture with PNG recovery; SVG export uses system Poppler
 python-docx  # Read and write Microsoft Word .docx files
 pyyaml  # YAML parsing and serialization

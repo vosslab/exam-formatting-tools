@@ -20,6 +20,7 @@ import ef_tools.html_renderer
 import ef_tools.exam_yaml_writer
 import ef_tools.statement_content
 import ef_tools.style_loader
+import ef_tools.svg_media
 import ef_tools.text_utils
 
 
@@ -380,22 +381,23 @@ def _capture_question_media(html_path: str, question_div: object,
 		html_context = lxml.html.tostring(question_div, encoding='unicode', method='html')
 	elif not isinstance(html_context, str):
 		html_context = lxml.html.tostring(html_context, encoding='unicode', method='html')
-	pngs = renderer.render(
+	captures = renderer.render(
 		html_context, targets, base_url=Path(html_path).resolve().as_uri(), label=label)
-	if set(pngs) != set(targets):
-		missing = sorted(set(targets) - set(pngs))
-		extra = sorted(set(pngs) - set(targets))
+	if set(captures) != set(targets):
+		missing = sorted(set(targets) - set(captures))
+		extra = sorted(set(captures) - set(targets))
 		raise ValueError(
 			f'{label}: renderer returned unexpected capture targets; '
 			f'missing={missing}, extra={extra}')
 	os.makedirs(out_dir, exist_ok=True)
 	media = {}
-	for selector, png_bytes in pngs.items():
+	for selector, image_bytes in captures.items():
 		capture_id = selector_ids[selector]
 		metadata = target_metadata[capture_id]
-		path = os.path.join(out_dir, f'rendered_{capture_id}.png')
+		extension = 'svg' if ef_tools.svg_media.is_svg(image_bytes) else 'png'
+		path = os.path.join(out_dir, f'rendered_{capture_id}.{extension}')
 		with open(path, 'wb') as handle:
-			handle.write(png_bytes)
+			handle.write(image_bytes)
 		block = {'image': path}
 		if metadata['is_table']:
 			block['html_table'] = metadata['table_html']

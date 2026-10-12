@@ -1,7 +1,7 @@
 """Convert simple HTML tables into native python-docx tables.
 
 This is the optional backup path for bptools drawing tables. The normal
-pipeline still keeps the rasterized PNG fallback; this module handles the
+pipeline keeps captured SVG or PNG images; this module handles the
 controlled table vocabulary emitted by the biology problem generators and
 rejects nested or malformed layouts rather than guessing.
 """

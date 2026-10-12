@@ -6,7 +6,7 @@ chi-square critical values, test-cross counts). The DOCX builder understands
 only the inline tags in ef_tools.text_utils (sub, sup, b, strong, i, em,
 code, tt), so
 this module reduces the HTML to that vocabulary and pulls drawing tables out
-for the rasterized fallback; the original table HTML remains available for
+for image capture; the original table HTML remains available for
 the optional native DOCX table backend.
 """
 
@@ -20,6 +20,7 @@ import lxml.html
 
 # local repo modules
 import ef_tools.html_parse
+import ef_tools.svg_media
 import ef_tools.text_utils
 import ef_tools.statement_content
 
@@ -60,7 +61,7 @@ def _parse(html: str) -> lxml.html.HtmlElement:
 
 #============================================
 def is_rendered_image_ref(source: str) -> bool:
-	"""Return whether source is an opaque reference to a generated PNG."""
+	"""Return whether source is an opaque reference to a generated image."""
 	result = source.startswith(RENDERED_IMAGE_PREFIX)
 	return result
 
@@ -348,12 +349,12 @@ def clean_statement_content(html: str) -> list:
 
 
 #============================================
-def write_table_pngs(table_htmls: list, renderer: object, media_dir: str, stem: str,
+def write_table_images(table_htmls: list, renderer: object, media_dir: str, stem: str,
 			rendered_images: dict = None) -> list:
 	"""Save table captures, returning paths relative to the YAML directory.
 
 	Question-context captures are supplied by the parser. Standalone table
-	callers use the same renderer directly. PNG density metadata is preserved.
+	callers use the same renderer directly. SVG and fallback PNG bytes are preserved.
 	"""
 	os.makedirs(media_dir, exist_ok=True)
 	yaml_dir = os.path.dirname(os.path.abspath(media_dir))
@@ -363,11 +364,12 @@ def write_table_pngs(table_htmls: list, renderer: object, media_dir: str, stem: 
 		table = root.xpath('.//table')[0]
 		key = table.get('data-ef-image')
 		if key is not None:
-			png_bytes = rendered_images[key]
+			image_bytes = rendered_images[key]
 		else:
-			png_bytes = renderer.render(table_html, {'table': None})['table']
-		png_path = os.path.join(media_dir, f"{stem}_table_{index}.png")
-		with open(png_path, 'wb') as handle:
-			handle.write(png_bytes)
-		paths.append(os.path.relpath(png_path, yaml_dir))
+			image_bytes = renderer.render(table_html, {'table': None})['table']
+		extension = 'svg' if ef_tools.svg_media.is_svg(image_bytes) else 'png'
+		image_path = os.path.join(media_dir, f"{stem}_table_{index}.{extension}")
+		with open(image_path, 'wb') as handle:
+			handle.write(image_bytes)
+		paths.append(os.path.relpath(image_path, yaml_dir))
 	return paths

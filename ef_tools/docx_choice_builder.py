@@ -31,7 +31,7 @@ def add_choice_content(para: object, choice: object, sizer: object = None,
 			para.add_run().add_break()
 		run = para.add_run()
 		if sizer is None:
-			run.add_picture(image_path)
+			ef_tools.docx_images.add_picture(run, image_path)
 			return
 		kwargs = sizer.kwargs(image_path)
 		ef_tools.docx_images.place_inline_picture(run, image_path, kwargs)

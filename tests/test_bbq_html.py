@@ -152,10 +152,10 @@ def test_clean_inline_html_headings_and_hr() -> None:
 
 
 #============================================
-def test_write_table_pngs_uses_renderer_and_preserves_density(tmp_path: object) -> None:
+def test_write_table_images_uses_renderer_and_preserves_density(tmp_path: object) -> None:
 	media_dir = tmp_path / 'quiz_files'
 	renderer = FakeRenderer()
-	paths = ef_tools.bbq_html.write_table_pngs(
+	paths = ef_tools.bbq_html.write_table_images(
 		[DRAWING_TABLE, DRAWING_TABLE], renderer, str(media_dir), 'ab12_cd34')
 	assert len(paths) == 2
 	with PIL.Image.open(tmp_path / paths[0]) as image:

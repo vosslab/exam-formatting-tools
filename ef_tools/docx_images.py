@@ -6,7 +6,7 @@ rather than two branches of one function.
 `DrawingSizer` handles renderer-produced drawings. Their printed width is a
 pure function of their pixel width,
 
-	inches = source_pixels / png_resolution * scale
+	inches = source_pixels / resolution * scale
 
 with no bounding box and no clamp. This is what makes two drawings that are the
 same size in the source HTML the same size in the DOCX. Fitting them to a box
@@ -22,8 +22,8 @@ demands. That is correct for pictures whose intrinsic size means nothing.
 Both expose the same four operations, so the layout code never asks which kind
 it holds: `kwargs`, `width_inches`, `narrowed`, `row_height` and `fits_columns`.
 
-Drawing resolution is read from the PNG itself. The renderer writes its true
-value into every file it produces (the browser's actual device scale times 96 in the pHYs
+SVG captures use CSS pixels (96 per inch). Raster drawing resolution is read from the PNG itself.
+The renderer writes its true value (the browser's actual device scale times 96 in the pHYs
 chunk), so there is no configured resolution to drift out of sync with it -- a
 drawing that does not declare its resolution is an error, not a default.
 """
@@ -37,6 +37,7 @@ import PIL.Image
 
 # Local Repo Modules
 import ef_tools.layout
+import ef_tools.svg_media
 
 
 # Per-column visible width budgets for a tabbed image-choice row, in inches.
@@ -71,6 +72,8 @@ BASELINE_CENTER_RATIO = 0.30
 #============================================
 def image_pixel_size(image_path: str) -> tuple:
 	"""Return the (width, height) of an image in pixels."""
+	if str(image_path).lower().endswith('.svg'):
+		return ef_tools.svg_media.pixel_size(image_path)
 	with PIL.Image.open(image_path) as img:
 		size = img.size
 	return size
@@ -78,9 +81,9 @@ def image_pixel_size(image_path: str) -> tuple:
 
 #============================================
 def drawing_resolution(image_path: str) -> float:
-	"""Return a rendered drawing's own resolution in pixels per inch.
+	"""Return 96 CSS px/in for SVG or the recorded density of a PNG drawing.
 
-	The value comes from the PNG's pHYs chunk, which the renderer writes. There
+	For PNG the value comes from its pHYs chunk, which the renderer writes. There
 	is deliberately no configured fallback: a fallback is what let the DOCX side
 	believe 96 px/in while the renderer produced 192, which reported every
 	drawing at twice its size and left each one clamped to a different scale.
@@ -95,6 +98,8 @@ def drawing_resolution(image_path: str) -> float:
 	Raises:
 		ValueError: The file declares no usable resolution.
 	"""
+	if str(image_path).lower().endswith('.svg'):
+		return 96.0
 	with PIL.Image.open(image_path) as img:
 		recorded = img.info.get('dpi')
 	# PIL reports dpi as an (x, y) pair; the renderer writes them equal.
@@ -328,6 +333,14 @@ def set_run_baseline_center(run: object, height_inches: float,
 
 
 #============================================
+def add_picture(run: object, image_path: str, **kwargs: object) -> object:
+	"""Insert generated SVG or a conventional raster picture."""
+	if str(image_path).lower().endswith('.svg'):
+		return ef_tools.svg_media.add_picture(run, image_path, **kwargs)
+	return run.add_picture(image_path, **kwargs)
+
+
+#============================================
 def place_inline_picture(run: object, image_path: str, kwargs: dict) -> None:
 	"""Insert one picture into a run with the shared inline treatment.
 
@@ -335,7 +348,7 @@ def place_inline_picture(run: object, image_path: str, kwargs: dict) -> None:
 	zeroed edge distances so it hugs its run, and a signed baseline offset so it
 	centers on its text line.
 	"""
-	run.add_picture(image_path, **kwargs)
+	add_picture(run, image_path, **kwargs)
 	zero_inline_image_margins(run)
 	set_run_baseline_center(run, rendered_height_inches(image_path, kwargs))
 

@@ -4,6 +4,7 @@ import io
 import os
 
 import PIL.Image
+import pytest
 
 import ef_tools.bbq_parse
 
@@ -28,13 +29,14 @@ def _png() -> bytes:
 class FakeRenderer:
 	"""Capture requests without starting Chromium in parser tests."""
 
-	def __init__(self) -> None:
+	def __init__(self, data: bytes | None = None) -> None:
 		self.calls = []
+		self.data = _png() if data is None else data
 
 	def render(self, html: str, targets: dict, base_url: str = '',
 			label: str = 'HTML') -> dict:
 		self.calls.append((html, targets, base_url, label))
-		return {selector: _png() for selector in targets}
+		return {selector: self.data for selector in targets}
 
 
 #============================================
@@ -61,20 +63,24 @@ def test_matching_and_ordering_keys_survive_choice_shuffle() -> None:
 
 
 #============================================
-def test_tables_in_statement_choice_and_prompt_become_images(tmp_path: object) -> None:
+@pytest.mark.parametrize('extension', ['png', 'svg'])
+def test_tables_in_statement_choice_and_prompt_become_images(
+		tmp_path: object, extension: str) -> None:
 	line = (f"MAT\t<p>ab12_cd34</p><p>Before.</p>{GEL_TABLE}<p>After.</p>"
 		f"\t{GEL_TABLE}\tplain match\tB\t{GEL_TABLE}")
 	record = ef_tools.bbq_parse.parse_bbq_line(line)
 	assert record['question']['statement'][1]['html_table'].startswith('<table')
-	renderer = FakeRenderer()
+	data = _png() if extension == 'png' else (
+		b'<svg xmlns="http://www.w3.org/2000/svg" width="192px" height="96px"/>')
+	renderer = FakeRenderer(data)
 	ef_tools.bbq_parse.render_record_tables(record, renderer, str(tmp_path / 'q_files'), 'ab12')
 	question = record['question']
-	assert question['statement'][1]['image'] == 'q_files/ab12_table_1.png'
-	assert question['prompts_list'][0]['image'] == 'q_files/ab12_prompt0_table_1.png'
+	assert question['statement'][1]['image'] == f'q_files/ab12_table_1.{extension}'
+	assert question['prompts_list'][0]['image'] == f'q_files/ab12_prompt0_table_1.{extension}'
 	letter = record['answer']['letters'][1]
-	assert question['choices_list'][LETTERS.index(letter)]['image'] == 'q_files/ab12_choice1_table_1.png'
-	with PIL.Image.open(tmp_path / question['statement'][1]['image']) as image:
-		assert abs(image.info['dpi'][0] - 600) < 0.1
+	expected_choice = f'q_files/ab12_choice1_table_1.{extension}'
+	assert question['choices_list'][LETTERS.index(letter)]['image'] == expected_choice
+	assert (tmp_path / question['statement'][1]['image']).read_bytes() == data
 
 
 #============================================

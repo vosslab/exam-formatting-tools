@@ -385,8 +385,8 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 					paragraph = doc.add_paragraph()
 					paragraph.style = doc.styles['Normal']
 					statement_sizer = drawing_sizer if table_html else statement_fit
-					paragraph.add_run().add_picture(
-						resolved_image_path,
+					ef_tools.docx_images.add_picture(
+						paragraph.add_run(), resolved_image_path,
 						**statement_sizer.kwargs(resolved_image_path))
 					prev_element = 'image'
 			# matching layout matches reference artifacts in ARTIFACTS/:

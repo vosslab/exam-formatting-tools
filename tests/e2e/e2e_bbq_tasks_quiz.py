@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """E2E: task CSV -> bbq_tasks_to_exam_yaml.py -> yaml_to_exam_docx.py.
 
-Uses the real sibling repos (biology-problems generators, qti-package-maker
-renderer with headless Chromium). Run with:
+Uses the real biology-problems generators and EF Tools' Chromium renderer.
+Run with:
 
 	source source_me.sh && python3 tests/e2e/e2e_bbq_tasks_quiz.py
 
@@ -106,7 +106,7 @@ def check_quiz(exam: dict) -> None:
 				continue
 			path = block['image']
 			full = os.path.join(OUT_DIR, path)
-			check(os.path.isfile(full) and os.path.getsize(full) > 0, f"png exists: {path}")
+			check(os.path.isfile(full) and os.path.getsize(full) > 0, f"image exists: {path}")
 	with open(os.path.join(OUT_DIR, 'quiz-key.txt')) as handle:
 		key_lines = [line for line in handle if line.strip()]
 	check(len(key_lines) == len(questions), "one key line per question block")

@@ -70,7 +70,7 @@ def parse_bbq_file(input_path: str, math_renderer: object = None) -> list:
 #============================================
 def render_record_tables(records: list, output_file: str,
 			renderer: object = None) -> None:
-	"""Rasterize drawing tables for every record and attach image paths.
+	"""Capture drawing tables for every record and attach image paths.
 
 	Uses one Chromium for drawing tables and does not open one for image-only
 	records whose equations were already rendered during parsing.

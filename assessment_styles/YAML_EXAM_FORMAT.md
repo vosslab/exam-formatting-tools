@@ -73,7 +73,7 @@ statement:
 Supported statement blocks are `{text: ...}`, `{image: ...}`, and
 `{table: {columns: [...], rows: [...]}}`. An image block may also include `html_table`, which preserves a
 source drawing table for the optional `--native-tables` DOCX path while the
-`image` remains its faithful raster fallback. Structured data tables use a
+`image` remains its faithful SVG or PNG representation. Structured data tables use a
 `table` block and render at their position in the statement.
 
 HTML entities are supported for special characters: `&Delta;`, `&alpha;`, `&beta;`, `&deg;`, `&prime;`, `&rarr;`, `&micro;`.
@@ -136,10 +136,10 @@ choices:
 ```
 
 The BBQ converters may also add `html_table` to a structured choice or
-prompt object. This preserves the source drawing table beside its PNG
-fallback. `yaml_to_exam_docx.py --native-tables` renders a set of table-based
+prompt object. This preserves the source drawing table beside its captured
+image. `yaml_to_exam_docx.py --native-tables` renders a set of table-based
 choices as labeled native Word tables; nested, malformed, browser-positioned,
-or `colgroup` layout tables continue to use their PNGs.
+or `colgroup` layout tables continue to use their captured images.
 
 Ordinary image-choice widths are fitted to per-column limits owned by
 `ef_tools.docx_images.IMAGE_CHOICE_MAX_WIDTH_BY_COLS`. Renderer-produced
@@ -174,7 +174,7 @@ rendered as inline runs in paragraphs positioned with paragraph tab stops, one
 column per choice. Wide strip choices use one inline image per paragraph to
 remain readable. With `--native-tables`, a choice set whose entries all carry
 `html_table` is instead rendered as one labeled native Word table per choice;
-unsupported tables retain the PNG fallback. Browser-positioned drawing tables
+unsupported tables retain the captured image. Browser-positioned drawing tables
 and `colgroup`-based layout tables are intentionally unsupported because their
 meaning depends on rendered geometry rather than a logical cell grid.
 Structured data tables use a `{table: ...}` statement block and render as real
@@ -274,15 +274,15 @@ Override with an explicit `layout` value when needed:
 
 Images are embedded in the DOCX with their original aspect ratio preserved. A relative statement image path is resolved against the directory of the YAML file, so a YAML and its `<stem>_files/` folder move together. Absolute paths pass through unchanged. Statement images remain between their surrounding text blocks.
 
-PNG table drawings rendered by the BBQ converters use the resolution recorded
-in each PNG, multiplied by the single `table_image_scale` value in
+SVG table drawings use their recorded CSS dimensions (96 pixels per inch).
+PNG fallback drawings use the resolution recorded in each PNG. Both apply the single `table_image_scale` value in
 `assessment_styles/exam_styles.yaml`. They are not clamped to page-role width or height
 limits; unusually wide drawings can extend beyond the text column. Fixed-scale
 image-choice rows that exceed their per-column fit budget are stacked rather
 than shrunk. Ordinary images use their configured fit boxes and strip-height
 limits instead.
 
-bptools drawing tables (gels, chi-square critical values, test-cross counts, metabolic pathways, genotype grids) are rendered to PNG by [bbq_to_exam_yaml.py](../converters/bbq_to_exam_yaml.py) and [bbq_tasks_to_exam_yaml.py](../converters/bbq_tasks_to_exam_yaml.py) through the native Playwright renderer. Each drawing occupies an image block at its authored position; its source HTML is kept on that block for the optional native-table path.
+bptools drawing tables (gels, chi-square critical values, test-cross counts, metabolic pathways, genotype grids) are rendered to SVG by [bbq_to_exam_yaml.py](../converters/bbq_to_exam_yaml.py) and [bbq_tasks_to_exam_yaml.py](../converters/bbq_tasks_to_exam_yaml.py) through Chromium PDF capture and Poppler conversion. If SVG export fails, that element uses a 600-DPI PNG instead. Each drawing occupies an image block at its authored position; its source HTML is kept on that block for the optional native-table path. The existing `image` field names the selected file; no companion image or additional YAML field is required.
 
 For cleaned Blackboard HTML exports, use [html_to_exam_yaml.py](../converters/html_to_exam_yaml.py) to create YAML first; it preserves the DOM order of statement text and images and keeps image-based answer choices as structured choice objects.
 

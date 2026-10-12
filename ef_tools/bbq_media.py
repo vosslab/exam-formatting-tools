@@ -60,7 +60,9 @@ def prepare_fields(parts: list, renderer: object, image_store: dict,
 				raise ValueError(f'{label}: image has no source')
 			base = base_url or pathlib.Path.cwd().as_uri() + '/'
 			url = urllib.parse.urljoin(base, source)
-			with urllib.request.urlopen(url, timeout=30) as response:
+			# Trusted authored exam HTML intentionally loads local files and data URLs
+			# as well as web images. This local importer is not a remote-input service.
+			with urllib.request.urlopen(url, timeout=30) as response:  # nosec B310
 				data = response.read()
 			key = str(len(image_store) + 1)
 			image_store[key] = data

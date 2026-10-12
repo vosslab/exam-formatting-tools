@@ -4,6 +4,40 @@
 
 ### Additions and New Features
 
+- Audit the BBQ image loader's Bandit B310 finding: local-file access is intentional
+  for trusted authored exam HTML in this closed pipeline. Document that boundary and
+  suppress only this call-site finding; retain the repository security test.
+
+- Restore the existing high-density PNG capture for canvas-only drawings, including RDKit.
+  Keep SVG for tables and MathML; select format in the existing renderer without YAML or
+  DOCX sizing changes. Recheck source resolution on the PNG capture page so a fixed-size
+  canvas is not mistaken for newly recovered detail.
+- Compare BP acetate and Henderson-Hasselbalch output against the previous PNG capture
+  through DOCX and the existing LibreOffice export script at 600 DPI. RDKit PNG bytes
+  are identical to the previous capture, preserving bond appearance and dimensions;
+  table and equation output retain vectors. The 256-pixel source canvas remains a source
+  detail limitation, explicitly reported rather than claimed as 600-DPI molecular detail.
+  Real-generator quiz/exam checks and LibreOffice PDF review passed. Final pytest: 1,739
+  passed, with the same unchanged Bandit B310 failure in ef_tools/bbq_media.py. Comparison
+  artifacts: output_vector_quality/. Byte equality was an observation, not an acceptance gate.
+
+- Prefer SVG for all HTML capture targets through Chromium PDF output and Poppler.
+  Preserve glyph outlines, borders, and embedded raster content. If an SVG export fails,
+  capture that element as a 600-DPI PNG and report the reason.
+- Embed generated SVG directly in DOCX for LibreOffice, preserving the existing image
+  field and sizing rules without PNG companions or additional YAML fields. Keep SVG
+  extensions when extracting these images back out of DOCX.
+- Verify one-table cropping and the DOCX-to-LibreOffice PDF round trip, then BP
+  Henderson-Hasselbalch MathML, RDKit canvas output, mixed table/canvas content, both
+  import routes, selective PNG recovery, and the real-generator quiz/exam workflow.
+  Bound the print viewport to prevent hidden surrounding content from shrinking narrow captures.
+  The final comparison PDF retains vector text/borders and only rasterizes the source canvases.
+  One warm table capture measured 19,689-byte SVG in 0.105 s versus 19,222-byte PNG
+  in 0.220 s; this is a single local observation, not a benchmark guarantee.
+  Full pytest: 1,697 passed, one unchanged Bandit B310 finding in image URL loading;
+  the same finding was reproduced from HEAD. The SVG implementation passed its
+  focused tests and a direct medium/high Bandit scan.
+
 - Add native Playwright HTML capture using complete question context for tables, MathML,
   and JavaScript canvases. Calculate capture resolution for at least 600 effective DPI
   at the existing DOCX image sizes, preserving physical scale and PNG density metadata.

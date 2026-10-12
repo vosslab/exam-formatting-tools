@@ -88,7 +88,9 @@ def extract_images(doc: docx.Document, image_dir: str) -> dict:
 				# determine file extension from content type
 				content_type = image_part.content_type
 				ext = '.png'
-				if 'jpeg' in content_type or 'jpg' in content_type:
+				if content_type == 'image/svg+xml':
+					ext = '.svg'
+				elif 'jpeg' in content_type or 'jpg' in content_type:
 					ext = '.jpg'
 				elif 'gif' in content_type:
 					ext = '.gif'

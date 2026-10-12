@@ -8,6 +8,8 @@ Installation makes the local Python dependencies available and enables the launc
 - Bash is required for [../source_me.sh](../source_me.sh), which loads the repository environment and sets `PYTHONPATH`.
 - Runtime packages come from [../pip_requirements.txt](../pip_requirements.txt); development tools come from [../pip_requirements-dev.txt](../pip_requirements-dev.txt).
 - Playwright Chromium is needed to capture HTML tables, MathML, and JavaScript canvases.
+- Poppler's `pdftocairo` enables SVG capture (`brew install poppler` on macOS,
+  or `apt install poppler-utils` on Debian). Without it, captures use PNG and report a warning.
 
 ## Install steps
 
