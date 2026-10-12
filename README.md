@@ -84,7 +84,7 @@ Each resolved task contributes one question when a usable candidate is generated
 
 ## Status and limitations
 
-DOCX is the supported printable output. The supported HTML workflow is the two-step `html_to_exam_yaml.py` followed by `yaml_to_exam_docx.py`; the legacy direct HTML-to-DOCX and ODT paths are not part of the current pipeline. BBQ table rendering and task-CSV generation require the sibling `qti-package-maker` and `biology-problems` checkouts described in [docs/INSTALL.md](docs/INSTALL.md).
+DOCX is the supported printable output. The supported HTML workflow is the two-step `html_to_exam_yaml.py` followed by `yaml_to_exam_docx.py`; the legacy direct HTML-to-DOCX and ODT paths are not part of the current pipeline. Browser visuals use local Playwright/Chromium. Task-CSV question generation still uses the sibling checkouts described in [docs/INSTALL.md](docs/INSTALL.md).
 
 ## License
 

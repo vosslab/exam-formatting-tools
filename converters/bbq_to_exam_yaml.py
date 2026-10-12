@@ -10,6 +10,7 @@ MathML equations become PNG assets beside the YAML.
 
 # Standard Library
 import os
+import pathlib
 import argparse
 import datetime
 
@@ -19,7 +20,7 @@ import ef_tools.bbq_parse
 import ef_tools.cli_checks
 import ef_tools.question_utils
 import ef_tools.exam_yaml_writer
-import qti_package_maker.html_to_image.render_table
+import ef_tools.html_renderer
 
 
 #============================================
@@ -59,7 +60,8 @@ def parse_bbq_file(input_path: str, math_renderer: object = None) -> list:
 	with open(input_path, 'r') as handle:
 		for line in handle:
 			record = ef_tools.bbq_parse.parse_bbq_line(
-				line, math_renderer=math_renderer)
+				line, math_renderer=math_renderer,
+				base_url=pathlib.Path(input_path).resolve().as_uri())
 			if record is not None:
 				records.append(record)
 	return records
@@ -80,7 +82,7 @@ def render_record_tables(records: list, output_file: str,
 	stem = os.path.splitext(os.path.basename(output_file))[0]
 	media_dir = os.path.join(os.path.dirname(os.path.abspath(output_file)), f"{stem}_files")
 	if renderer is None and needs_tables:
-		with qti_package_maker.html_to_image.render_table.TableRenderer() as active_renderer:
+		with ef_tools.html_renderer.HtmlRenderer() as active_renderer:
 			_render_record_media(records, active_renderer, media_dir)
 	else:
 		_render_record_media(records, renderer, media_dir)
@@ -138,15 +140,9 @@ def main() -> None:
 		output_file = ef_tools.cli_checks.default_output_path(args.input_file, '.yml')
 	ef_tools.cli_checks.require_extensions(output_file, ('.yml', '.yaml'), 'output')
 
-	with open(args.input_file, 'r') as handle:
-		contains_mathml = '<math' in handle.read().lower()
-	if contains_mathml:
-		with qti_package_maker.html_to_image.render_table.TableRenderer() as renderer:
-			records = parse_bbq_file(args.input_file, math_renderer=renderer)
-			render_record_tables(records, output_file, renderer)
-	else:
-		records = parse_bbq_file(args.input_file)
-		render_record_tables(records, output_file)
+	with ef_tools.html_renderer.HtmlRenderer() as renderer:
+		records = parse_bbq_file(args.input_file, math_renderer=renderer)
+		render_record_tables(records, output_file, renderer)
 	exam_dict = build_exam_dict(records, args.exam_title)
 	write_outputs(exam_dict, records, output_file, os.path.basename(args.input_file))
 

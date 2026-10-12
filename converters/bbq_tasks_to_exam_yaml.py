@@ -28,7 +28,7 @@ import ef_tools.zip_grade
 import ef_tools.cli_checks
 import ef_tools.question_utils
 import ef_tools.exam_yaml_writer
-import qti_package_maker.html_to_image.render_table
+import ef_tools.html_renderer
 
 # repo-root bbq_settings.yml mirrors the website's aliases
 DEFAULT_SETTINGS_FILE = os.path.join(
@@ -113,7 +113,7 @@ def collect_questions(tasks: list, pythonpath: str, reject_fn: object, media_dir
 	sources = []
 	skipped = []
 	current_topic = None
-	with qti_package_maker.html_to_image.render_table.TableRenderer() as renderer:
+	with ef_tools.html_renderer.HtmlRenderer() as renderer:
 		for index, task in enumerate(tasks, start=1):
 			print(f"[{index}/{len(tasks)}] {task['label']}", file=sys.stderr)
 			record, reason = ef_tools.bbq_tasks.generate_question(

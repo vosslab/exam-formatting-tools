@@ -23,7 +23,7 @@ Both expose the same four operations, so the layout code never asks which kind
 it holds: `kwargs`, `width_inches`, `narrowed`, `row_height` and `fits_columns`.
 
 Drawing resolution is read from the PNG itself. The renderer writes its true
-value into every file it produces (`ef_tools.bbq_html.RENDER_DPI` in the pHYs
+value into every file it produces (the browser's actual device scale times 96 in the pHYs
 chunk), so there is no configured resolution to drift out of sync with it -- a
 drawing that does not declare its resolution is an error, not a default.
 """
@@ -101,7 +101,7 @@ def drawing_resolution(image_path: str) -> float:
 	if recorded is None or not recorded[0]:
 		raise ValueError(
 			f"rendered drawing declares no resolution: {image_path}. "
-			"Regenerate it with ef_tools.bbq_html.write_table_pngs.")
+			"Regenerate it with the HTML-to-image converter.")
 	resolution = float(recorded[0])
 	if resolution <= 0:
 		raise ValueError(f"drawing resolution must be positive: {image_path}")

@@ -282,11 +282,11 @@ image-choice rows that exceed their per-column fit budget are stacked rather
 than shrunk. Ordinary images use their configured fit boxes and strip-height
 limits instead.
 
-bptools drawing tables (gels, chi-square critical values, test-cross counts, metabolic pathways, genotype grids) are rendered to PNG by [bbq_to_exam_yaml.py](../converters/bbq_to_exam_yaml.py) and [bbq_tasks_to_exam_yaml.py](../converters/bbq_tasks_to_exam_yaml.py) through `qti_package_maker.html_to_image`. Each drawing occupies an image block at its authored position; its source HTML is kept on that block for the optional native-table path.
+bptools drawing tables (gels, chi-square critical values, test-cross counts, metabolic pathways, genotype grids) are rendered to PNG by [bbq_to_exam_yaml.py](../converters/bbq_to_exam_yaml.py) and [bbq_tasks_to_exam_yaml.py](../converters/bbq_tasks_to_exam_yaml.py) through the native Playwright renderer. Each drawing occupies an image block at its authored position; its source HTML is kept on that block for the optional native-table path.
 
 For cleaned Blackboard HTML exports, use [html_to_exam_yaml.py](../converters/html_to_exam_yaml.py) to create YAML first; it preserves the DOM order of statement text and images and keeps image-based answer choices as structured choice objects.
 
-RDKit HTML5 canvas widgets are also handled: when a `<canvas class="cleaned-statement-media">` is paired with an inline `initRDKitModule()` script, [ef_tools/rdkit_render.py](../ef_tools/rdkit_render.py) extracts the SMILES literal and renders a PNG into the existing `*_files/` directory. The PNG is emitted as an image block in statement order (or as a structured choice `image` field for canvas-based answer choices).
+HTML5 canvases and MathML use the same Chromium capture path. Authored scripts and their resources must render the canvas themselves; EF Tools does not reconstruct molecular drawings. Captures are saved into the existing `*_files/` directory and emitted as statement or choice images. Tables marked `role="img"` are captured as drawings in the HTML importer; ordinary layout tables retain their text flow.
 
 ### Tables
 

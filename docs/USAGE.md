@@ -131,7 +131,11 @@ source source_me.sh && python3 converters/html_to_exam_yaml.py -i Cleaned_Final_
 
 Matching questions are emitted as `prompts_list` plus `choices_list`; see [YAML_EXAM_FORMAT.md](../assessment_styles/YAML_EXAM_FORMAT.md) for the schema.
 
-RDKit HTML5 canvas widgets in the cleaned HTML are auto-rendered to PNG (named `rdkit_<canvas_id>.png`) inside the existing Blackboard `*_files/` directory and emitted as ordered `statement` image blocks; nothing extra to configure on the command line.
+HTML drawing tables, MathML, and JavaScript-populated canvases are captured by the shared
+Playwright renderer and saved beside the assessment. Existing images are embedded directly.
+The browser runs authored scripts with their question context and source-relative resources;
+required external scripts must be available. EF Tools does not reconstruct molecular drawings
+or repair invalid HTML. No additional command-line options are needed.
 
 bptools bbq text (`bbq-*-questions.txt`) to YAML plus an answer key:
 
@@ -143,8 +147,16 @@ MC and MA keep their choices; MAT becomes `prompts_list` plus a shuffled
 `choices_list`; ORD becomes position blanks (`Position 1`, `Position 2`, ...)
 plus shuffled items. NUM, FIB, and FIB_PLUS have no print form and are
 skipped. Drawing tables (gels, chi-square tables) are rendered to
-`<stem>_files/*.png` through the sibling `qti-package-maker` checkout (see
+`<stem>_files/*.png` through EF Tools' native Chromium renderer (see
 [INSTALL.md](INSTALL.md)). The answer key lands in `<stem>-key.txt`.
+
+Captures supply at least 600 effective DPI for their DOCX placement: tables retain their
+shared physical scale, while standalone visuals have enough pixels for the largest existing
+image fit box. Increasing capture density does not enlarge the printed drawing. The renderer
+waits for fonts, images, and populated canvases, and reports browser failures with input context.
+Source bitmaps and canvas backing buffers can still lack detail; enlarging them does not
+restore it. The renderer reports that limitation rather than recreating their content.
+The PDF export settings are separate and may downsample DOCX images.
 
 ## Build a quiz or exam from a bptools task CSV
 

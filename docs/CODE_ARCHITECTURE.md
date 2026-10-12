@@ -43,7 +43,7 @@ The `ef_tools/` package contains reusable parsing, validation, rendering, and la
 
 - [../ef_tools/bbq_tasks.py](../ef_tools/bbq_tasks.py) resolves task-CSV aliases and retries one generator candidate per task.
 - [../ef_tools/bbq_parse.py](../ef_tools/bbq_parse.py) parses MC, MA, MAT, and ORD BBQ records, creates answer keys, and owns shared table-image attachment.
-- [../ef_tools/bbq_html.py](../ef_tools/bbq_html.py) cleans inline HTML and retains source table HTML while rasterizing the PNG fallback through `qti_package_maker`.
+- [../ef_tools/bbq_html.py](../ef_tools/bbq_html.py) cleans inline HTML, retains source table HTML, and saves captured PNG assets.
 - [../ef_tools/html_parse.py](../ef_tools/html_parse.py) owns Blackboard HTML selectors, inline-tag handling, and choice-prefix parsing.
 - [../ef_tools/docx_builder.py](../ef_tools/docx_builder.py) creates document styles, shared rich-text runs, question paragraphs, tables, and page headers.
 - [../ef_tools/docx_choice_builder.py](../ef_tools/docx_choice_builder.py) renders text and image choices plus matching prompts; it uses shared rich-text and image helpers from the other render modules.
@@ -51,7 +51,8 @@ The `ef_tools/` package contains reusable parsing, validation, rendering, and la
 - [../ef_tools/docx_table_builder.py](../ef_tools/docx_table_builder.py) converts supported preserved HTML tables into native Word tables for the opt-in `--native-tables` path.
 - [../ef_tools/layout.py](../ef_tools/layout.py) scores visible choice width and selects the `Choices 2` through `Choices 5` paragraph style.
 - [../ef_tools/question_utils.py](../ef_tools/question_utils.py) owns question-block spans, numbering totals, and question-style selection.
-- [../ef_tools/rdkit_render.py](../ef_tools/rdkit_render.py) turns supported RDKit HTML canvas widgets into PNG files.
+- [../ef_tools/html_renderer.py](../ef_tools/html_renderer.py) captures browser-renderable HTML with Playwright at the resolution required for its DOCX size. It owns font setup, resource loading, capture, table cropping, and PNG density metadata.
+- [../ef_tools/bbq_media.py](../ef_tools/bbq_media.py) keeps statement and choice scripts in one question context, associates captures with their original positions, and embeds existing images without rasterizing them.
 - [../ef_tools/statement_content.py](../ef_tools/statement_content.py) validates and reads ordered statement blocks.
 - [../ef_tools/exam_yaml_writer.py](../ef_tools/exam_yaml_writer.py) owns canonical exam YAML serialization.
 - [../ef_tools/style_loader.py](../ef_tools/style_loader.py) and [../ef_tools/exam_defaults.py](../ef_tools/exam_defaults.py) load layout configuration and document defaults.

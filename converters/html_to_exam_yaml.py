@@ -8,6 +8,7 @@ import datetime
 import html
 import os
 import re
+from pathlib import Path
 
 # Pip Modules
 import lxml.html
@@ -15,9 +16,10 @@ import lxml.html
 # Local Repo Modules
 import ef_tools.cli_checks
 import ef_tools.html_parse
+import ef_tools.html_renderer
 import ef_tools.exam_yaml_writer
-import ef_tools.rdkit_render
 import ef_tools.statement_content
+import ef_tools.style_loader
 import ef_tools.text_utils
 
 
@@ -27,13 +29,7 @@ INLINE_TAGS = ef_tools.html_parse.INLINE_TAGS
 CHOICE_ITEM_XPATH = (
 	".//div[contains(concat(' ', normalize-space(@class), ' '), ' cleaned-choice-item ')]"
 )
-# Canvases that pair with an inline RDKit script. Both statement-media and
-# choice-media classes are handled so future exams can place RDKit widgets
-# inside answer choices.
-RDKIT_CANVAS_XPATH = (
-	".//canvas[contains(concat(' ', normalize-space(@class), ' '), ' cleaned-statement-media ') "
-	"or contains(concat(' ', normalize-space(@class), ' '), ' cleaned-choice-media ')]"
-)
+CAPTURE_ATTRIBUTE = 'data-ef-capture'
 # Lettered options (A./B./C./D.) live in spans with white-space:nowrap.
 # In bptools MATCH terminology these are the choices_list.
 MATCHING_CHOICE_XPATH = ".//span[contains(@style, 'white-space:nowrap')]"
@@ -154,18 +150,9 @@ def _flush_statement_text(statement: list, parts: list, before_media: bool = Fal
 
 
 #============================================
-def element_to_statement_content(
-	html_path: str, element: object, script_scope: object = None,
-	rdkit_out_dir: str | None = None,
-) -> list:
+def element_to_statement_content(html_path: str, element: object,
+		captured_media: dict[str, dict] | None = None) -> list:
 	"""Convert a statement DOM subtree to ordered text and image blocks."""
-	canvas_paths = {}
-	if script_scope is not None and rdkit_out_dir is not None:
-		canvases = element.xpath(RDKIT_CANVAS_XPATH)
-		canvas_paths = dict(zip(
-			canvases,
-			resolve_rdkit_canvases(
-				html_path, element, script_scope, rdkit_out_dir)))
 	statement = []
 	parts = []
 
@@ -173,10 +160,10 @@ def element_to_statement_content(
 		if text:
 			parts.append(escape_text(text))
 
-	def append_media(image_path: str, wrappers: tuple) -> None:
+	def append_media(media: dict, wrappers: tuple) -> None:
 		parts.extend(pair[1] for pair in reversed(wrappers))
 		_flush_statement_text(statement, parts, before_media=True)
-		statement.append({"image": image_path})
+		statement.append(media)
 		parts.extend(pair[0] for pair in wrappers)
 
 	def visit(node: object, wrappers: tuple = ()) -> None:
@@ -184,16 +171,15 @@ def element_to_statement_content(
 		if tag in ("input", "script", "style", "h5"):
 			return
 		classes = set(node.get("class", "").split())
+		capture_id = node.get(CAPTURE_ATTRIBUTE)
+		if captured_media and capture_id in captured_media:
+			append_media(captured_media[capture_id], wrappers)
+			return
 		if tag == "img" and "cleaned-statement-media" in classes:
 			src = node.get("src", "")
 			if src:
 				append_media(
-					ef_tools.html_parse.resolve_image_path(html_path, src), wrappers)
-			return
-		if tag == "canvas" and "cleaned-statement-media" in classes:
-			image_path = canvas_paths.get(node)
-			if image_path:
-				append_media(image_path, wrappers)
+					{'image': ef_tools.html_parse.resolve_image_path(html_path, src)}, wrappers)
 			return
 		if tag == "br":
 			append_text("\n")
@@ -298,21 +284,11 @@ def parse_matching_block(element: object) -> tuple[list[str], list[str]]:
 
 
 #============================================
-def compute_rdkit_out_dir(html_path: str, doc_root: object) -> str:
-	"""Pick the directory where RDKit-rendered PNGs should be saved.
+def compute_rendered_out_dir(html_path: str, doc_root: object) -> str:
+	"""Pick the directory where browser-rendered PNGs should be saved.
 
-	Prefers the directory of an existing cleaned image (so RDKit PNGs sit
-	beside Blackboard's exported `*_files/` content). Falls back to a
-	`<stem>_files` directory derived from the HTML filename, with any
-	leading `Cleaned_` prefix stripped to match Blackboard's convention.
-
-	Args:
-		html_path: Path to the source HTML file.
-		doc_root: Parsed lxml document root for the same HTML.
-
-	Returns:
-		Absolute or repo-relative directory path; not guaranteed to exist
-		(`render_smiles_to_png` creates it on first write).
+	Prefer an existing cleaned image directory. Otherwise use the matching
+	Blackboard ``<stem>_files`` directory.
 	"""
 	for image in doc_root.xpath(IMAGE_CLASS_XPATH):
 		src = image.get("src", "")
@@ -330,86 +306,10 @@ def compute_rdkit_out_dir(html_path: str, doc_root: object) -> str:
 
 
 #============================================
-def find_rdkit_script_for_canvas(scripts: list, canvas_id: str) -> object:
-	"""Return the RDKit script element that draws the given canvas id.
-
-	Args:
-		scripts: list of lxml `<script>` elements drawn from the question
-			subtree (typically `question_div.xpath(".//script")`).
-		canvas_id: id attribute of the target `<canvas>` element.
-
-	Returns:
-		The first script element whose source contains both the canvas id
-		and the `initRDKitModule` token, or None when canvas_id is falsy
-		or no script in the list matches.
-	"""
-	if not canvas_id:
-		return None
-	for script in scripts:
-		text = script.text or ""
-		if canvas_id in text and "initRDKitModule" in text:
-			return script
-	return None
-
-
-#============================================
-def resolve_rdkit_canvases(
-	html_path: str, element: object, script_scope: object, out_dir: str
-) -> list[str]:
-	"""Render RDKit canvas widgets in element to PNGs and return paths.
-
-	Canvas elements are searched within `element` only, but the matching
-	scripts are searched within `script_scope` because Blackboard cleaned
-	exports often place the inline RDKit script in a different `<td>` of
-	the same question. Each canvas without a matching script raises
-	ValueError to surface conversion gaps loudly.
-
-	Args:
-		html_path: Source HTML path (used for error messages only).
-		element: lxml subtree to scan for `<canvas>` widgets.
-		script_scope: lxml subtree to scan for matching `<script>` blocks.
-		out_dir: Destination directory for the generated PNGs.
-
-	Returns:
-		Absolute paths of the rendered PNG files in canvas document order.
-	"""
-	canvases = element.xpath(RDKIT_CANVAS_XPATH)
-	if not canvases:
-		return []
-	scripts = script_scope.xpath(".//script")
-	paths = [
-		resolve_rdkit_canvas(canvas, html_path, scripts, out_dir)
-		for canvas in canvases]
-	return paths
-
-
-#============================================
-def resolve_rdkit_canvas(canvas: object, html_path: str,
-		scripts: list, out_dir: str) -> str:
-	"""Render one RDKit canvas using its matching inline script."""
-	canvas_id = canvas.get("id")
-	script = find_rdkit_script_for_canvas(scripts, canvas_id)
-	if script is None:
-		raise ValueError(
-			f"RDKit canvas {canvas_id!r} in {html_path} has no matching script"
-		)
-	smiles = ef_tools.rdkit_render.extract_smiles_from_rdkit_script(script)
-	basename = f"rdkit_{canvas_id}"
-	png_path = ef_tools.rdkit_render.render_smiles_to_png(
-		smiles, out_dir, basename=basename)
-	return png_path
-
-
-#============================================
-def resolve_images(
-	html_path: str, element: object, script_scope: object = None, rdkit_out_dir: str | None = None
-) -> list[str]:
-	"""Resolve relevant images contained in an element.
-
-	Image sources are returned in DOM order, including RDKit canvases.
-	"""
+def resolve_images(html_path: str, element: object,
+		captured_media: dict[str, dict] | None = None) -> list[dict]:
+	"""Resolve direct images and browser captures in DOM order."""
 	images = []
-	scripts = script_scope.xpath(".//script") if script_scope is not None else []
 	for node in element.iter():
 		tag = node.tag.lower() if isinstance(node.tag, str) else ""
 		classes = set(node.get("class", "").split())
@@ -417,19 +317,95 @@ def resolve_images(
 			"cleaned-statement-media", "cleaned-choice-media"}:
 			src = node.get("src", "")
 			if src:
-				images.append(ef_tools.html_parse.resolve_image_path(html_path, src))
-		elif tag == "canvas" and classes & {
-			"cleaned-statement-media", "cleaned-choice-media"}:
-			if rdkit_out_dir is None or script_scope is None:
-				continue
-			images.append(resolve_rdkit_canvas(node, html_path, scripts, rdkit_out_dir))
+				images.append({'image': ef_tools.html_parse.resolve_image_path(html_path, src)})
+		capture_id = node.get(CAPTURE_ATTRIBUTE)
+		if captured_media and capture_id in captured_media:
+			images.append(captured_media[capture_id])
 	return images
 
 
 #============================================
-def parse_choices(
-	html_path: str, element: object, script_scope: object = None, rdkit_out_dir: str | None = None
-) -> list:
+def _is_capture_table(table: object) -> bool:
+	"""Return whether a table needs browser capture rather than text parsing."""
+	return table.get('role') == 'img'
+
+
+#============================================
+def _captured_table_html(table: object) -> str:
+	"""Serialize table source for the optional native-DOCX table path."""
+	table_copy = copy.deepcopy(table)
+	table_copy.attrib.pop(CAPTURE_ATTRIBUTE, None)
+	return lxml.html.tostring(table_copy, encoding='unicode', method='html')
+
+
+#============================================
+def _capture_question_media(html_path: str, question_div: object,
+		renderer: object, html_context: object | None, label: str,
+		out_dir: str) -> dict[str, dict]:
+	"""Capture unsupported browser content and return YAML media mappings.
+
+	The complete document is supplied when available. This lets a loader script
+	in one part of a Blackboard question populate a canvas elsewhere in it.
+	"""
+	targets = {}
+	target_metadata = {}
+	selector_ids = {}
+	capture_nodes = []
+	for table in question_div.xpath('.//table'):
+		if not _is_capture_table(table):
+			continue
+		if any(ancestor in capture_nodes for ancestor in table.iterancestors()):
+			continue
+		capture_nodes.append(table)
+	for node in question_div.xpath('.//canvas | .//*[local-name() = "math"]'):
+		if any(ancestor in capture_nodes for ancestor in node.iterancestors()):
+			continue
+		capture_nodes.append(node)
+	styles = ef_tools.style_loader.load_styles()
+	standalone_width = styles['page']['image_max_width']
+	for index, node in enumerate(capture_nodes, start=1):
+		capture_id = f'{label}-{index}'
+		node.set(CAPTURE_ATTRIBUTE, capture_id)
+		selector = f'[{CAPTURE_ATTRIBUTE}="{capture_id}"]'
+		is_table = node.tag.lower() == 'table'
+		targets[selector] = None if is_table else standalone_width
+		selector_ids[selector] = capture_id
+		target_metadata[capture_id] = {
+			'is_table': is_table,
+			'table_html': _captured_table_html(node) if is_table else None,
+		}
+	if not targets:
+		return {}
+	if html_context is None:
+		html_context = lxml.html.tostring(question_div, encoding='unicode', method='html')
+	elif not isinstance(html_context, str):
+		html_context = lxml.html.tostring(html_context, encoding='unicode', method='html')
+	pngs = renderer.render(
+		html_context, targets, base_url=Path(html_path).resolve().as_uri(), label=label)
+	if set(pngs) != set(targets):
+		missing = sorted(set(targets) - set(pngs))
+		extra = sorted(set(pngs) - set(targets))
+		raise ValueError(
+			f'{label}: renderer returned unexpected capture targets; '
+			f'missing={missing}, extra={extra}')
+	os.makedirs(out_dir, exist_ok=True)
+	media = {}
+	for selector, png_bytes in pngs.items():
+		capture_id = selector_ids[selector]
+		metadata = target_metadata[capture_id]
+		path = os.path.join(out_dir, f'rendered_{capture_id}.png')
+		with open(path, 'wb') as handle:
+			handle.write(png_bytes)
+		block = {'image': path}
+		if metadata['is_table']:
+			block['html_table'] = metadata['table_html']
+		media[capture_id] = block
+	return media
+
+
+#============================================
+def parse_choices(html_path: str, element: object,
+		captured_media: dict[str, dict] | None = None) -> list:
 	"""Parse multiple-choice labels from an HTML element."""
 	choices = []
 	labels = element.xpath(".//label[.//input]")
@@ -441,9 +417,9 @@ def parse_choices(
 		text = clean_choice_html(element_to_inline_html(choice_element))
 		if text:
 			choice["text"] = text
-		images = resolve_images(html_path, choice_element, script_scope, rdkit_out_dir)
+		images = resolve_images(html_path, choice_element, captured_media)
 		if images:
-			choice["image"] = images[0]
+			choice.update(images[0])
 		if set(choice.keys()) == {"text"}:
 			choices.append(choice["text"])
 		else:
@@ -471,6 +447,8 @@ def remove_statement_noise(element: object) -> None:
 		tag = child.tag.lower() if isinstance(child.tag, str) else ""
 		if tag in ("script", "style", "input", "h5"):
 			remove_node(child)
+			continue
+		if child.get(CAPTURE_ATTRIBUTE) or child.xpath(f'.//*[@{CAPTURE_ATTRIBUTE}]'):
 			continue
 		text = ef_tools.html_parse.text_from_element(child)
 		if ef_tools.html_parse.is_question_code(text):
@@ -505,9 +483,9 @@ def remove_matching_blocks(element: object) -> None:
 
 
 #============================================
-def parse_question(
-	html_path: str, question_div: object, rdkit_out_dir: str | None = None
-) -> dict:
+def parse_question(html_path: str, question_div: object,
+		renderer: object = None, html_context: object | None = None,
+		rendered_out_dir: str | None = None, label: str = 'question') -> dict:
 	"""Parse one cleaned Blackboard question div into YAML data.
 
 	Statement extraction is subtractive: the question body is deep-copied,
@@ -522,14 +500,23 @@ def parse_question(
 		body = li_elements[0]
 	else:
 		body = question_div
+	if renderer is None:
+		with ef_tools.html_renderer.HtmlRenderer() as active_renderer:
+			return parse_question(
+				html_path, question_div, active_renderer, html_context,
+				rendered_out_dir, label)
+	if rendered_out_dir is None:
+		rendered_out_dir = compute_rendered_out_dir(html_path, question_div)
+	captured_media = _capture_question_media(
+		html_path, question_div, renderer, html_context, label, rendered_out_dir)
 	# Choices and matching are extracted from the original (un-pruned) body
-	# so that image/RDKit canvas resolution scope is unchanged.
+	# so browser captures retain their original question context.
 	choices = []
 	prompts_list = []
 	choices_list = []
 	for child in body:
 		if ef_tools.html_parse.has_choice_labels(child) or child.xpath(CHOICE_ITEM_XPATH):
-			choices = parse_choices(html_path, child, question_div, rdkit_out_dir)
+			choices = parse_choices(html_path, child, captured_media)
 			continue
 		if is_matching_block(child):
 			block_prompts, block_choices = parse_matching_block(child)
@@ -545,7 +532,7 @@ def parse_question(
 	# Resolve text and media together against the pruned body so their source
 	# order is preserved and choice images cannot leak into the statement.
 	statement = element_to_statement_content(
-		html_path, statement_body, question_div, rdkit_out_dir)
+		html_path, statement_body, captured_media)
 	question = {
 		"statement": statement,
 	}
@@ -564,10 +551,13 @@ def parse_html_file(path: str) -> dict:
 	with open(path, "r", encoding="utf-8") as handle:
 		html_text = handle.read()
 	html_doc = lxml.html.fromstring(html_text)
-	rdkit_out_dir = compute_rdkit_out_dir(path, html_doc)
+	rendered_out_dir = compute_rendered_out_dir(path, html_doc)
 	questions = []
-	for question_div in html_doc.xpath(TAKE_QUESTION_XPATH):
-		questions.append(parse_question(path, question_div, rdkit_out_dir))
+	with ef_tools.html_renderer.HtmlRenderer() as renderer:
+		for index, question_div in enumerate(html_doc.xpath(TAKE_QUESTION_XPATH), start=1):
+			questions.append(parse_question(
+				path, question_div, renderer, html_doc, rendered_out_dir,
+				label=f'question-{index}'))
 	section = {
 		"heading": ef_tools.html_parse.extract_document_title(path),
 		"questions": questions,

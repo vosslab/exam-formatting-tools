@@ -22,12 +22,6 @@ _converters_dir = os.path.join(_repo_root, "converters")
 if _converters_dir not in sys.path:
 	sys.path.insert(1, _converters_dir)
 
-# the bbq converters import qti_package_maker from the sibling checkout;
-# mirror source_me.sh so `pytest tests/` works without sourcing it
-_QTI_PACKAGE_MAKER_DIR = os.path.expanduser("~/nsh/PROBLEMS/qti-package-maker")
-if os.path.isdir(_QTI_PACKAGE_MAKER_DIR) and _QTI_PACKAGE_MAKER_DIR not in sys.path:
-	sys.path.insert(1, _QTI_PACKAGE_MAKER_DIR)
-
 # REPO_HYGIENE_FILTERS is the repo-local hygiene-exclusion registry (Layer 2).
 # file_utils.discover_files reads it from this conftest, which is the right
 # home because propagation only merges the collect_ignore block above into this

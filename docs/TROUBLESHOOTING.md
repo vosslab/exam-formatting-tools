@@ -4,10 +4,10 @@ Use this guide for failures reported by the converters or by the repository's do
 
 ## Missing sibling dependency
 
-- Symptom: `source_me.sh` warns that `qti-package-maker` is not found, or a BBQ converter raises an import error for `qti_package_maker`.
-- Cause: BBQ table rendering and task generation use the sibling checkout at `~/nsh/PROBLEMS/qti-package-maker`.
-- Fix: obtain that checkout at the configured path, or update the `qti_package_maker` path in [../bbq_settings.yml](../bbq_settings.yml) and rerun the bootstrap.
-- Scope: HTML-to-YAML, Oklahoma-to-YAML, DOCX-to-YAML, and YAML-to-DOCX do not need the biology generator tree.
+- Symptom: a task-CSV generator subprocess cannot import `bptools` or `qti_package_maker`.
+- Cause: question generation uses sibling checkouts configured in [../bbq_settings.yml](../bbq_settings.yml).
+- Fix: obtain those checkouts or correct their configured paths.
+- Scope: formatting existing BBQ, HTML, or YAML does not require those checkouts.
 
 ## Chromium is unavailable
 

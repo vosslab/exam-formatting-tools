@@ -110,6 +110,9 @@ def build_pythonpath(settings: dict) -> str:
 	if os.path.basename(bp_root) == 'problems':
 		bp_root = os.path.dirname(bp_root)
 	parts = [os.path.abspath(bp_root)]
+	# QPM is a generator dependency, never a formatter import requirement.
+	if 'qti_package_maker' in paths:
+		parts.append(paths['qti_package_maker'])
 	existing = os.environ.get('PYTHONPATH', '')
 	for part in existing.split(os.pathsep):
 		if part and part not in parts:
@@ -251,7 +254,7 @@ def generate_question(task: dict, pythonpath: str, reject_fn: object,
 		reject_fn: Callable(question_dict) -> '' when the question is usable,
 			otherwise a short reason (the quiz/exam rule).
 		candidate_fn: Callable(task, pythonpath) -> bbq line (test seam).
-		math_renderer: Optional renderer for supported MathML equations.
+		math_renderer: Shared renderer for browser-authored question visuals.
 
 	Returns:
 		(record, '') on success, or (None, reason) after MAX_ATTEMPTS

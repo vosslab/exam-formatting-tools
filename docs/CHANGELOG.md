@@ -4,6 +4,15 @@
 
 ### Additions and New Features
 
+- Add native Playwright HTML capture using complete question context for tables, MathML,
+  and JavaScript canvases. Calculate capture resolution for at least 600 effective DPI
+  at the existing DOCX image sizes, preserving physical scale and PNG density metadata.
+  Multiline HTML/scripts are supported; only BBQ input retains its one-record-per-line format.
+  Temporary Chromium checks verified HTML and BBQ through DOCX, source-order preservation,
+  target-only canvas readiness, and missing-resource diagnostics. Captured DOCX images met
+  600 effective DPI at their measured placement sizes. These one-time fixtures were removed;
+  permanent tests retain content, answer-mapping, and media-density contracts.
+
 - Add `assessment_styles/README.md` to define the folder's broader scope: documentation for
   creating, styling, planning, and making decisions about assessments, plus shared formatting YAML.
 - Add the Genetics Exam 1 coverage selection and build recipe for Chapters 1-7, combining
@@ -16,6 +25,13 @@
   Genetics Exam 1 document focused on selection, coverage, and outstanding source banks.
 
 ### Behavior or Interface Changes
+
+- Remove direct QPM rendering requirements and molecular reconstruction from formatting.
+  BP generator subprocesses retain their configured QPM path. Existing builders, question
+  selection, ZipGrade rules, pagination, and PDF export settings are unchanged.
+- Execute authored browser scripts for visual capture; required resources must be available.
+  Report missing resources and insufficient source bitmap/canvas resolution without repairing
+  source HTML or scientific content.
 
 - Rename local selections to `genetics_quiz1.csv`, `genetics_quiz2.csv`,
   `genetics_exam1.csv`, and `biostats_quiz1.csv`. The two former Genetics Exam 1
@@ -74,6 +90,9 @@
 
 ### Developer Tests and Notes
 
+- Native-renderer cleanup: 397 focused converter, DOCX, import, typing, lint, and
+  documentation checks passed; the final HTML-media regression check passed all 20
+  HTML-importer tests. Browser/DOCX acceptance checks were temporary, not added to CI.
 - Pass 256 focused converter, import-boundary, and documentation checks after splitting
   entry points. All seven Python converter CLIs load with `--help`; shell syntax passes.
   The existing checker permits converter-to-`ef_tools` imports and rejects the same import
