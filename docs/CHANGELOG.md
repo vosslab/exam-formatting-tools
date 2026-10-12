@@ -1,5 +1,114 @@
 # Changelog
 
+## 2026-10-12
+
+### Additions and New Features
+
+- Add `assessment_styles/README.md` to define the folder's broader scope: documentation for
+  creating, styling, planning, and making decisions about assessments, plus shared formatting YAML.
+- Add the Genetics Exam 1 coverage selection and build recipe for Chapters 1-7, combining
+  Quiz 1, Quiz 2, and the website genetics Tasks 1 scope. Prefer MATCH, medium difficulty,
+  and full-pattern pedigrees; document overlapping variants in `docs/GENETICS_EXAM1.md`.
+- Generate a provisional YAML, key, DOCX, and PDF in `output_genetics_exam1/` with
+  ZipGrade A-E validation. Add an exam-specific DOCX formatter to keep each question's
+  stem, images, and answer bank on one page when they fit.
+- Add subject-independent `docs/EXAM_STYLE.md` and `docs/QUIZ_STYLE.md`. Keep the
+  Genetics Exam 1 document focused on selection, coverage, and outstanding source banks.
+
+### Behavior or Interface Changes
+
+- Rename local selections to `genetics_quiz1.csv`, `genetics_quiz2.csv`,
+  `genetics_exam1.csv`, and `biostats_quiz1.csv`. The two former Genetics Exam 1
+  filenames held different selections: Quiz 1 (20 tasks) and Exam 1 (54 tasks).
+- Retain the previously curated biochemistry selection as `biochem_exam1.csv`,
+  following the instructor's clarification, and update its builder. Reference BPW directly
+  for full source catalogs; retain local selections for individual assessments.
+- Move the canonical YAML format reference to `assessment_styles/YAML_EXAM_FORMAT.md`
+  and update documentation links and converter references.
+- Follow concurrent CSV renames to `biochem_tasks-exam1.csv` and `genetics_tasks-exam1.csv`
+  in the existing study-guide and Quiz 1 callers. Keep the separate 54-block Genetics Exam 1
+  selection at `genetics_tasks_exam1.csv`.
+- Place `GENETICS_EXAM1.md` in `assessment_styles/`, following the instructor's clarified
+  destination. Keep its assessment-specific selection and coverage scope separate from the
+  reusable exam and quiz conventions in the same folder.
+- Separate dedicated assessment shell recipes into `builders/` and general converters,
+  validators, and PDF export into `converters/`. Update build commands, test and maintainer
+  import paths, bootstrap comments, and documentation. Preserve `ef_tools/` as shared
+  implementation and the standalone `tools/` boundary without editing vendored checks.
+- Consolidate reusable assessment styling in `assessment_styles/`: move the formatting YAML
+  and exam/quiz guides there, and merge the DOCX reference into `EXAM_STYLE.md`. Update the
+  loader, links, code references, and YAML ignore exception. Remove the empty `styles/`
+  directory; keep `docs/GENETICS_EXAM1.md` for assessment-specific selection decisions.
+- Move all five assessment task CSVs into `task_files/` using Git moves. Update dedicated
+  shell recipes, usage examples, selection links, and the repository map. Keep general-purpose
+  Python CLIs in `launchers/` and shared implementation in `ef_tools/`.
+- Move course build scripts from the root into `launchers/` with descriptive
+  `build_genetics_quiz1.sh`, `build_genetics_quiz2.sh`, `build_biostats_quiz1.sh`, and
+  `build_biochem_exam1_study_guide.sh` names. Rename the biostatistics layout helper to
+  `format_biostats_quiz1.py` and update its callers. Resolve the repository root through Git
+  so the relocated shell commands can run from other directories.
+- Replace recursive quiz/study-guide directory deletion with removal of only the generated
+  DOCX after YAML generation succeeds. Preserve the existing quiz output locations.
+- Record the instructor's Exam 1 overlap, MATCH, and five-choice requirements in human guidance.
+- Simplify the five course build recipes to flat 12-17-line shell scripts run from the
+  repository root. Consolidate LibreOffice export settings in `launchers/docx_to_pdf.sh`.
+  This supersedes the root-discovery wrappers and assessment-specific formatters above.
+- Remove both per-assessment Python formatters. The common DOCX builder now supports
+  optional question grouping and section page breaks, applied at rendering boundaries.
+  The existing task importer accepts `--points` and a CSV `layout` column, preserving
+  the biostatistics quiz's score and one-choice-per-line statement questions.
+
+### Decisions and Failures
+
+- The provisional build produces 51 of 54 blocks, 91 numbered rows, and 21 PDF pages.
+  Exam mode skips the linear fragment digest, six-choice Punnett-square selection, and
+  six-choice chi-square calculation/decision selection. Source-side five-choice support
+  is pending an instructor decision. The strand and circular digest banks also need that
+  support for repeatable builds; their accepted candidates fit A-E in this run.
+- Use four choices for the DNA statement banks after a five-choice nucleotide-components
+  run produced no candidates. The four-gene unique-gamete bank already has five options
+  and does not accept `--num-choices`.
+- Keep configuration tied to demonstrated callers. Pagination uses two common CLI options;
+  do not add parallel YAML settings. Extend the existing importer contract test for point
+  totals and choice layout; keep the rendering-boundary check temporary.
+
+### Developer Tests and Notes
+
+- Pass 256 focused converter, import-boundary, and documentation checks after splitting
+  entry points. All seven Python converter CLIs load with `--help`; shell syntax passes.
+  The existing checker permits converter-to-`ef_tools` imports and rejects the same import
+  from `tools/`, without vendored modifications or exclusions.
+- Complete isolated Genetics Exam 1 and biostatistics Quiz 1 builds through PDF export.
+  Re-render saved questions through the relocated converter and confirm equivalent exam
+  and quiz DOCX content. The fresh random exam build has 88 rows and six rejected tasks;
+  the quiz has 17 rows with no skipped tasks. These are workflow checks, not full exam
+  coverage approval. Retain evidence in `output_reorganization/` and remove temporary scripts.
+- Pass 67 existing style-loader, DOCX formatting, matching, and Markdown-link checks after
+  consolidating `assessment_styles/`. Formatting values are unchanged; no new tests or
+  configuration switches were added.
+- Validate the task-file relocation: all 146 tasks across the five CSVs resolve their
+  generators and YAML inputs. Pass 63 focused importer, pipeline, Markdown-link, and shell
+  checks plus Bash syntax checks. No new tests or regenerated assessment outputs are needed
+  for the path-only change.
+- Pass 247 focused task-pipeline, ZipGrade, matching-rendering, script-budget, Markdown-link,
+  and executable-file checks. Shell syntax and formatter pyflakes checks pass; the relocated
+  biostatistics formatter runs on copies of both current quiz artifacts.
+- Inspect all 21 rendered draft pages after the pagination adjustment. This verifies draft
+  rendering and A-E compatibility, not complete coverage or a fresh full pytest suite.
+- Pass 293 final executable-file, Markdown-link, guidance-format, and function-typing checks.
+  Verify all 91 key numbers are consecutive and all key letters are A-E. Remove the temporary
+  candidate inventory and contact-sheet scripts after retaining their output as draft evidence.
+- Verify the shared-tool refactor with 56 focused task-import, ZipGrade, matching, and DOCX
+  tests plus a temporary pagination check. Shell syntax, lint, documentation links, and
+  repository checks pass. Remove temporary verification scripts after retaining their results.
+- The earlier generated draft directories were absent when refactor verification started.
+  Compare old and new formatting using the same fresh exam and quiz inputs in
+  `output_style_review/`; preserve all existing reference DOCX/PDF files by checksum.
+  Review the 21-page exam and two-page quiz: DOCX content and extracted PDF text match.
+  The quiz pages also match exactly; two exam pages show font/rendering differences, and
+  a repeated export of the unchanged baseline also varies. Treat equality as diagnostic
+  evidence, not an acceptance requirement. No fresh full pytest suite was run.
+
 ## 2026-10-07
 
 ### Additions and New Features
@@ -523,7 +632,7 @@
 
 ### Created YAML format specification
 
-- Created [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md) with complete specification for the new simplified YAML exam format. Documents conventions for `title`, `date`, `total_points`, `sections[].chapter`, `sections[].questions[]` with `statement`, `number` (optional), `choices` (plain text, no letter prefixes), `layout` (optional, auto-determined), `image`, and `table` fields.
+- Created [YAML_EXAM_FORMAT.md](../assessment_styles/YAML_EXAM_FORMAT.md) with complete specification for the new simplified YAML exam format. Documents conventions for `title`, `date`, `total_points`, `sections[].chapter`, `sections[].questions[]` with `statement`, `number` (optional), `choices` (plain text, no letter prefixes), `layout` (optional, auto-determined), `image`, and `table` fields.
 - Auto-layout algorithm: 5 short choices -> Choices5, 5 long choices -> Choices4 (2 rows), 3 choices -> Choices3, 2 or 4 choices -> Choices4 (with tabs). User can override with explicit `layout` field.
 - Documented that `number` field is optional and serves as override only; questions are auto-numbered by order. Choice items are plain text without letter prefixes (builder generates bold `(A)` format).
 

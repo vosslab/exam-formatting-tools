@@ -8,6 +8,9 @@ manual font override for text choices on one task:
 	genetics,dna_structure,{bp_root}/molecular_biology-problems/chargaff_dna_percent.py,,,,IBM Plex Sans Condensed
 	genetics,mendelian,YMATCH,,{bp_match}/inheritance/genetics_terminology.yml,,
 
+An optional ``layout`` column carries the exam YAML choice-column setting (1-5).
+Leave it blank for automatic layout; use 1 to put each choice on its own line.
+
 Path aliases ({bp_root}, {bp_match}, ...) and script aliases come from
 bbq_settings.yml. A script alias may expand to several scripts; each becomes
 its own task. The local quiz settings split YMATCH (matching) from YWHICH
@@ -151,7 +154,7 @@ def load_tasks(csv_path: str, settings: dict) -> list:
 
 	Returns:
 		List of task dicts, one per resolved script. A non-empty optional
-		``choice_font`` value is carried through to the generated question.
+		``choice_font`` value and optional ``layout`` are carried into the question.
 
 	Raises:
 		FileNotFoundError: a resolved script path does not exist.
@@ -176,6 +179,9 @@ def load_tasks(csv_path: str, settings: dict) -> list:
 			# separator row
 			if not script and not flags:
 				continue
+			layout = (row.get('layout') or '').strip()
+			if layout and layout not in ('1', '2', '3', '4', '5'):
+				raise ValueError(f"{csv_path}:{reader.line_num}: layout must be an integer from 1 to 5")
 			resolved = resolve_script_alias(script, script_aliases)
 			script_values = resolved if isinstance(resolved, list) else [resolved]
 			base_args = shlex.split(apply_aliases(flags, aliases))
@@ -197,6 +203,8 @@ def load_tasks(csv_path: str, settings: dict) -> list:
 				}
 				if choice_font:
 					task['choice_font'] = choice_font
+				if layout:
+					task['layout'] = int(layout)
 				tasks.append(task)
 	return tasks
 

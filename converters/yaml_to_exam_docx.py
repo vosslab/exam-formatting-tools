@@ -3,7 +3,7 @@
 
 Uses python-docx to create a Word document with exam styles, auto-numbering,
 bold choice prefixes, images, tables, and page headers. Reads the YAML exam
-format (see docs/YAML_EXAM_FORMAT.md) and styles from styles/exam_styles.yaml.
+format (see assessment_styles/YAML_EXAM_FORMAT.md) and styles from assessment_styles/exam_styles.yaml.
 """
 
 # Standard Library
@@ -57,6 +57,14 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument(
 		'--native-tables', dest='native_tables', action='store_true',
 		help="Render preserved HTML tables as native Word tables when supported."
+	)
+	parser.add_argument(
+		'-k', '--keep-questions-together', dest='keep_questions_together', action='store_true',
+		help="Keep each question's stem, figures, and answers together when they fit on a page."
+	)
+	parser.add_argument(
+		'-b', '--page-break-sections', dest='page_break_sections', action='store_true',
+		help="Start each section after the first on a new page."
 	)
 	args = parser.parse_args()
 	return args
@@ -187,7 +195,8 @@ def resolve_choice_images(choices: list, base_dir: str) -> list:
 
 #============================================
 def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
-		native_tables: bool = False) -> int:
+		native_tables: bool = False, keep_questions_together: bool = False,
+		page_break_sections: bool = False) -> int:
 	"""Build a complete DOCX exam document from YAML data.
 
 	Creates all styles, page layout, headers, and body content.
@@ -200,6 +209,8 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 		resolved against (the input YAML's directory).
 		native_tables: Render preserved simple HTML tables as native Word tables
 		instead of their rasterized fallback when possible.
+		keep_questions_together: Keep question blocks on one page when they fit.
+		page_break_sections: Start later sections on a new page.
 	"""
 	# enforce .docx extension
 	if not output_path.endswith('.docx'):
@@ -270,7 +281,8 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 	question_counter = 1
 	question_total = 0
 	prev_element = 'chapter'
-	for section_data in sections:
+	for section_index, section_data in enumerate(sections):
+		first_section_paragraph = len(doc.paragraphs)
 		# major section heading (Heading 2 level)
 		heading = section_data.get('heading', '')
 		if heading:
@@ -306,8 +318,10 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 				raise ValueError(
 					"Question contains legacy 'matching_terms' key; "
 					"replace with 'prompts_list' and 'choices_list' "
-					"(see docs/YAML_EXAM_FORMAT.md)."
+					"(see assessment_styles/YAML_EXAM_FORMAT.md)."
 				)
+			# New body blocks are inserted immediately before the final sectPr.
+			first_question_block = len(doc.element.body) - 1
 			# get explicit number if provided, otherwise use counter
 			if 'number' in question:
 				question_counter = question['number']
@@ -412,9 +426,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 				choice_sizer = pick_sizer(choices, drawing_sizer, choice_fit)
 				if try_add_native_table_choices(doc, choices, native_tables):
 					prev_element = 'choices'
-					question_counter += question_span
-					continue
-				if has_image_choice(choices):
+				elif has_image_choice(choices):
 					ef_tools.docx_choice_builder.add_image_choices_tabbed(
 						doc, choices, choice_sizer,
 						wide_sizer=pick_sizer(
@@ -422,16 +434,20 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 						wide_image_min_aspect=choice_strip_min_aspect,
 					)
 					prev_element = 'choices'
-					question_counter += question_span
-					continue
-				tab_style, items_per_row = resolve_choice_layout(
-					question, choices, layout_limits)
-				ef_tools.docx_choice_builder.add_choices_paragraph(
-					doc, choices, tab_style, items_per_row,
-					sizer=choice_sizer, font_family=choice_font)
-				prev_element = 'choices'
+				else:
+					tab_style, items_per_row = resolve_choice_layout(
+						question, choices, layout_limits)
+					ef_tools.docx_choice_builder.add_choices_paragraph(
+						doc, choices, tab_style, items_per_row,
+						sizer=choice_sizer, font_family=choice_font)
+					prev_element = 'choices'
+			if keep_questions_together:
+				ef_tools.docx_builder.keep_question_together(doc, first_question_block)
 			# increment question counter
 			question_counter += question_span
+		if (section_index > 0 and page_break_sections
+				and len(doc.paragraphs) > first_section_paragraph):
+			doc.paragraphs[first_section_paragraph].paragraph_format.page_break_before = True
 
 	# save document
 	ef_tools.docx_builder.remove_temporary_code_style(doc)
@@ -462,7 +478,9 @@ def main() -> None:
 	# build document; relative image paths resolve against the YAML's folder
 	base_dir = os.path.dirname(os.path.abspath(args.input_file))
 	question_count = build_document(
-		exam_data, output_file, base_dir, native_tables=args.native_tables)
+		exam_data, output_file, base_dir, native_tables=args.native_tables,
+		keep_questions_together=args.keep_questions_together,
+		page_break_sections=args.page_break_sections)
 	print(f"Exam DOCX written to {output_file} ({question_count} questions)")
 
 

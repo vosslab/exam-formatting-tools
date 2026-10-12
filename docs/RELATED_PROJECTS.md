@@ -9,14 +9,14 @@ Visitors use this repository to turn biology question-bank sources into printabl
 - Relationship: companion/interoperability tool
 - Link: https://github.com/vosslab/qti-package-maker
 - Why visitors may care: It produces the BBQ text and shared assessment formats consumed by this repository, and it supplies the table-image renderer used by the BBQ converters.
-- Evidence: The local [INSTALL.md](INSTALL.md), [bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py), and [../pip_extras.txt](../pip_extras.txt) identify the sibling import; the project's official README describes BBQ, QTI, HTML, and exam-YAML outputs.
+- Evidence: The local [INSTALL.md](INSTALL.md), [bbq_to_exam_yaml.py](../converters/bbq_to_exam_yaml.py), and [../pip_extras.txt](../pip_extras.txt) identify the sibling import; the project's official README describes BBQ, QTI, HTML, and exam-YAML outputs.
 
 ### biology-problems
 
 - Relationship: upstream content source
 - Link: https://github.com/vosslab/biology-problems
 - Why visitors may care: It provides the biology generator scripts that task-CSV workflows run to produce one question per task for a quiz or exam.
-- Evidence: The local [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) resolves generator paths from [../bbq_settings.yml](../bbq_settings.yml); the official project documents standalone biochemistry, genetics, molecular biology, and related question generators.
+- Evidence: The local [bbq_tasks_to_exam_yaml.py](../converters/bbq_tasks_to_exam_yaml.py) resolves generator paths from [../bbq_settings.yml](../bbq_settings.yml); the official project documents standalone biochemistry, genetics, molecular biology, and related question generators.
 
 ### biology-problems-website
 

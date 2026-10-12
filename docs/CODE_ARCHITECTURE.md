@@ -11,19 +11,31 @@ Exam-formatting-tools converts question-bank exports into a shared exam YAML for
 
 ## Major components
 
-### CLI launchers
+### Converters and assessment builders
 
-The single-purpose entry points live in `launchers/`. They validate input and output extensions with [../ef_tools/cli_checks.py](../ef_tools/cli_checks.py), and optional output paths default to the input stem in the current directory.
+The single-purpose entry points live in `converters/`. They validate input and output extensions with [../ef_tools/cli_checks.py](../ef_tools/cli_checks.py), and optional output paths default to the input stem in the current directory.
 
 | Script | Primary direction | Main output |
 | --- | --- | --- |
-| [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) | Website task CSV -> generated questions | YAML, answer key, media directory |
-| [bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py) | bptools BBQ text -> exam data | YAML, answer key, media directory |
-| [docx_to_exam_yaml.py](../launchers/docx_to_exam_yaml.py) | DOCX -> exam data | YAML |
-| [html_to_exam_yaml.py](../launchers/html_to_exam_yaml.py) | Cleaned Blackboard HTML -> exam data | YAML and referenced media |
-| [okla_to_exam_yaml.py](../launchers/okla_to_exam_yaml.py) | Oklahoma export -> exam data | YAML |
-| [validate_zip_grade_yaml.py](../launchers/validate_zip_grade_yaml.py) | Exam YAML validation/filtering | Report or filtered YAML |
-| [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py) | Exam YAML -> printable document | DOCX |
+| [bbq_tasks_to_exam_yaml.py](../converters/bbq_tasks_to_exam_yaml.py) | Website task CSV -> generated questions | YAML, answer key, media directory |
+| [bbq_to_exam_yaml.py](../converters/bbq_to_exam_yaml.py) | bptools BBQ text -> exam data | YAML, answer key, media directory |
+| [docx_to_exam_yaml.py](../converters/docx_to_exam_yaml.py) | DOCX -> exam data | YAML |
+| [html_to_exam_yaml.py](../converters/html_to_exam_yaml.py) | Cleaned Blackboard HTML -> exam data | YAML and referenced media |
+| [okla_to_exam_yaml.py](../converters/okla_to_exam_yaml.py) | Oklahoma export -> exam data | YAML |
+| [validate_zip_grade_yaml.py](../converters/validate_zip_grade_yaml.py) | Exam YAML validation/filtering | Report or filtered YAML |
+| [yaml_to_exam_docx.py](../converters/yaml_to_exam_docx.py) | Exam YAML -> printable document | DOCX |
+| [docx_to_pdf.sh](../converters/docx_to_pdf.sh) | DOCX -> LibreOffice PDF export | PDF |
+
+Course-specific `builders/build_*.sh` scripts are flat command sequences run from the repository root.
+The task CSV in `task_files/` selects questions and optional choice layout; the common importer can write an
+explicit point total. DOCX pagination is handled during rendering by the common builder.
+Shared presentation conventions live in [EXAM_STYLE.md](../assessment_styles/EXAM_STYLE.md) and
+[QUIZ_STYLE.md](../assessment_styles/QUIZ_STYLE.md); assessment selection notes have a separate scope.
+
+`converters/` is the application-facing CLI directory and may import `ef_tools/`.
+Reusable code belongs in `ef_tools/`; it does not import converter entry points.
+`tools/` remains independent of repository-local packages. The existing support-directory
+check already enforces that tools boundary; no vendored changes or exclusions are needed.
 
 ### Shared library
 
@@ -49,7 +61,7 @@ The `ef_tools/` package contains reusable parsing, validation, rendering, and la
 
 ### Style configuration
 
-[../styles/exam_styles.yaml](../styles/exam_styles.yaml) is the data source for page margins, fonts, spacing, colors, tab stops, image dimensions, and choice-layout limits. The DOCX builder reads this configuration instead of duplicating layout constants.
+[../assessment_styles/exam_styles.yaml](../assessment_styles/exam_styles.yaml) is the data source for page margins, fonts, spacing, colors, tab stops, image dimensions, and choice-layout limits. The DOCX builder reads this configuration instead of duplicating layout constants.
 
 ## Data flow
 
@@ -70,7 +82,7 @@ Filtered or original YAML
     | ef_tools.docx_builder + ef_tools.docx_choice_builder
     | ef_tools.docx_images
     | optional ef_tools.docx_table_builder
-    | styles/exam_styles.yaml
+    | assessment_styles/exam_styles.yaml
     v
 Printable DOCX
 ```
@@ -103,9 +115,9 @@ Matching blocks use one number per prompt. `question_span()` is the shared owner
 
 ## Extension points
 
-- Add a converter under `launchers/` and emit the schema in [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md).
+- Add a converter under `converters/` and emit the schema in [YAML_EXAM_FORMAT.md](../assessment_styles/YAML_EXAM_FORMAT.md).
 - Add reusable parsing or rendering behavior under `ef_tools/` with focused tests under `tests/`.
-- Add DOCX layout values to [../styles/exam_styles.yaml](../styles/exam_styles.yaml), then wire document-wide behavior through [../ef_tools/docx_builder.py](../ef_tools/docx_builder.py) and choice or matching behavior through [../ef_tools/docx_choice_builder.py](../ef_tools/docx_choice_builder.py).
+- Add DOCX layout values to [../assessment_styles/exam_styles.yaml](../assessment_styles/exam_styles.yaml), then wire document-wide behavior through [../ef_tools/docx_builder.py](../ef_tools/docx_builder.py) and choice or matching behavior through [../ef_tools/docx_choice_builder.py](../ef_tools/docx_choice_builder.py).
 - Add a compatibility validator beside [../ef_tools/zip_grade.py](../ef_tools/zip_grade.py) and expose it through a launcher.
 
 ## Pipeline verification

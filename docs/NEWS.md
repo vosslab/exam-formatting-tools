@@ -11,5 +11,6 @@
 
 ### Upgrade notes
 
-- Launcher scripts now live under `launchers/`; update commands from `python3 <script>.py` to `python3 launchers/<script>.py`.
+- Converter scripts moved under `launchers/` in this release. Current commands use
+  `python3 converters/<script>.py`; dedicated assessment recipes are in `builders/`.
 - Task-CSV conversion uses the repository [../bbq_settings.yml](../bbq_settings.yml) by default; pass `-s` only when using another settings file.

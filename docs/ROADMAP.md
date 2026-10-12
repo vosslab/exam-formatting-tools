@@ -4,9 +4,11 @@ This roadmap records evidence-backed follow-up work for the source-to-YAML-to-DO
 
 ## Current state
 
-- Seven launchers cover BBQ task CSV, BBQ text, DOCX, Blackboard HTML, Oklahoma, ZipGrade validation, and YAML-to-DOCX conversion.
+- General-purpose commands in `converters/` cover BBQ task CSV, BBQ text, DOCX, Blackboard HTML,
+  Oklahoma, ZipGrade validation, YAML-to-DOCX conversion, and PDF export. Dedicated assessment
+  recipes live in `builders/`.
 - Matching prompts and choices can carry images, including rendered table drawings, pedigrees, and sequence strips.
-- The DOCX builder reads layout values from [../styles/exam_styles.yaml](../styles/exam_styles.yaml).
+- The DOCX builder reads layout values from [../assessment_styles/exam_styles.yaml](../assessment_styles/exam_styles.yaml).
 - The 2026-09-23 changelog records the ordered-statement contract, task-CSV workflow, and automated HTML/task-CSV-to-DOCX checks.
 - The fast pytest lane covers synthetic HTML-to-YAML-to-DOCX and task-CSV-to-YAML-to-DOCX transitions, including color, media paths, authored order, alias selection, and answer-key output.
 

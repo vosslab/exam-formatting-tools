@@ -120,7 +120,7 @@ def add_matching_prompts(doc: object, prompts: list, start_number: int,
 
 # Wide table drawings such as DNA sequence strips are readable when stacked
 # at page width, but become illegible when forced into the ordinary 4/5-column
-# image-choice row. The threshold is supplied by styles/exam_styles.yaml.
+# image-choice row. The threshold is supplied by assessment_styles/exam_styles.yaml.
 # It is deliberately an aspect-ratio rule rather than a filename rule so the
 # same layout works for any generator's strip drawing. The per-column width
 # budgets live in ef_tools.docx_images.
@@ -285,7 +285,7 @@ def add_image_choices_tabbed(doc: docx.Document, choices: list,
 	# Letter and image render side-by-side at each tab stop. Inherits
 	# left_indent from the Choices N style so image-choice rows align
 	# vertically with text-only Choices rows above/below them. Tab stops
-	# in styles/exam_styles.yaml -> layout_tab_stops are pre-offset by
+	# in assessment_styles/exam_styles.yaml -> layout_tab_stops are pre-offset by
 	# choice_indent so all inter-column gaps render evenly.
 	combined_para = doc.add_paragraph()
 	combined_para.style = doc.styles[style_name]

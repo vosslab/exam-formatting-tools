@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Use this guide for failures reported by the launchers or by the repository's documented conversion paths. It records current behavior from the scripts and tests rather than speculative fixes.
+Use this guide for failures reported by the converters or by the repository's documented conversion paths. It records current behavior from the scripts and tests rather than speculative fixes.
 
 ## Missing sibling dependency
 

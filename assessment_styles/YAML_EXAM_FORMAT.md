@@ -2,13 +2,13 @@
 
 Version 2.0 -- exam-formatting-tools
 
-This document specifies the YAML exam format used by [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py). It serves as the canonical reference for both human authors and machine readers/writers, including qti-package-maker engines.
+This document specifies the YAML exam format used by [yaml_to_exam_docx.py](../converters/yaml_to_exam_docx.py). It serves as the canonical reference for both human authors and machine readers/writers, including qti-package-maker engines.
 
 ## Overview
 
 The format describes a printable exam document with sections, questions, choices, images, and tables. It uses sensible defaults (auto-numbering, auto-layout) so minimal YAML produces a complete exam.
 
-To check whether an exam will fit a ZipGrade A-E bubble form, run [validate_zip_grade_yaml.py](../launchers/validate_zip_grade_yaml.py); to build a DOCX containing only ZipGrade-compatible questions, pass `--zip-grade` to [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py). The optional `--native-tables` flag uses preserved simple HTML tables as Word tables and falls back to the normal rasterized drawings for unsupported layouts. See [USAGE.md](USAGE.md) for both commands.
+To check whether an exam will fit a ZipGrade A-E bubble form, run [validate_zip_grade_yaml.py](../converters/validate_zip_grade_yaml.py); to build a DOCX containing only ZipGrade-compatible questions, pass `--zip-grade` to [yaml_to_exam_docx.py](../converters/yaml_to_exam_docx.py). The optional `--native-tables` flag uses preserved simple HTML tables as Word tables and falls back to the normal rasterized drawings for unsupported layouts. See [USAGE.md](../docs/USAGE.md) for both commands.
 
 ## Top-level fields
 
@@ -16,7 +16,7 @@ To check whether an exam will fit a ZipGrade A-E bubble form, run [validate_zip_
 | --- | --- | --- | --- | --- |
 | `title` | string | yes | -- | Exam title rendered on the first page |
 | `date` | string | yes | -- | ISO 8601 `YYYY-MM-DD`; rendered as "Mon DD, YYYY" in page headers |
-| `total_points` | integer | no | question count | Total exam points for the score line |
+| `total_points` | number | no | question count | Total exam points for the score line; fractional totals are supported |
 | `student_line` | string | no | "Full Name: \_\_\_\_\_\_\_" | Name line on the first page |
 | `scoring_sections` | integer | no | 4 | Number of \_\_\_\_ blanks in the score line |
 | `sections` | list | yes | -- | One or more section objects |
@@ -160,7 +160,7 @@ tool after changing any of `IMAGE_CHOICE_MAX_WIDTH_BY_COLS`,
 
 For ordinary images, the per-column cap can be tighter than
 `choice_image_max_width` or `choice_image_max_height` in
-`styles/exam_styles.yaml`. Images in an ordinary-image row share the height
+`assessment_styles/exam_styles.yaml`. Images in an ordinary-image row share the height
 implied by its most constrained image. Inline-image edge margins
 (`distT`/`distB`/`distL`/`distR`) are zeroed so images pack tight.
 
@@ -212,7 +212,7 @@ options in `choices_list` so the builder formats them consistently.
 
 Prompt and choice entries may be `{text, image}` objects. A prompt image
 renders inline after `______ N.`; its height is capped by
-`prompt_image_max_height` in `styles/exam_styles.yaml`, and wide one-row
+`prompt_image_max_height` in `assessment_styles/exam_styles.yaml`, and wide one-row
 strips (aspect at least `prompt_strip_min_aspect`) by `prompt_strip_max_height`
 so short and long DNA strips share one cell size.
 
@@ -241,7 +241,7 @@ rendered glyphs, not their serialized YAML length.
 Width scores use approximate character weights and do not measure the
 installed DOCX font directly. The thresholds are configured in
 `layout_limits`. Tab-stop positions in `layout_tab_stops`
-(`styles/exam_styles.yaml`) are pre-offset by `choice_indent` (0.13in)
+(`assessment_styles/exam_styles.yaml`) are pre-offset by `choice_indent` (0.13in)
 because OOXML measures tab stops from the page left margin, not from
 the paragraph indent -- without the offset the first column gap would
 be shorter than the rest. When the longest choice's visible-width
@@ -276,15 +276,15 @@ Images are embedded in the DOCX with their original aspect ratio preserved. A re
 
 PNG table drawings rendered by the BBQ converters use the resolution recorded
 in each PNG, multiplied by the single `table_image_scale` value in
-`styles/exam_styles.yaml`. They are not clamped to page-role width or height
+`assessment_styles/exam_styles.yaml`. They are not clamped to page-role width or height
 limits; unusually wide drawings can extend beyond the text column. Fixed-scale
 image-choice rows that exceed their per-column fit budget are stacked rather
 than shrunk. Ordinary images use their configured fit boxes and strip-height
 limits instead.
 
-bptools drawing tables (gels, chi-square critical values, test-cross counts, metabolic pathways, genotype grids) are rendered to PNG by [bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py) and [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) through `qti_package_maker.html_to_image`. Each drawing occupies an image block at its authored position; its source HTML is kept on that block for the optional native-table path.
+bptools drawing tables (gels, chi-square critical values, test-cross counts, metabolic pathways, genotype grids) are rendered to PNG by [bbq_to_exam_yaml.py](../converters/bbq_to_exam_yaml.py) and [bbq_tasks_to_exam_yaml.py](../converters/bbq_tasks_to_exam_yaml.py) through `qti_package_maker.html_to_image`. Each drawing occupies an image block at its authored position; its source HTML is kept on that block for the optional native-table path.
 
-For cleaned Blackboard HTML exports, use [html_to_exam_yaml.py](../launchers/html_to_exam_yaml.py) to create YAML first; it preserves the DOM order of statement text and images and keeps image-based answer choices as structured choice objects.
+For cleaned Blackboard HTML exports, use [html_to_exam_yaml.py](../converters/html_to_exam_yaml.py) to create YAML first; it preserves the DOM order of statement text and images and keeps image-based answer choices as structured choice objects.
 
 RDKit HTML5 canvas widgets are also handled: when a `<canvas class="cleaned-statement-media">` is paired with an inline `initRDKitModule()` script, [ef_tools/rdkit_render.py](../ef_tools/rdkit_render.py) extracts the SMILES literal and renders a PNG into the existing `*_files/` directory. The PNG is emitted as an image block in statement order (or as a structured choice `image` field for canvas-based answer choices).
 
@@ -460,4 +460,4 @@ These qti item fields have no equivalent in exam YAML:
 
 Exam YAML is a **print-document format**, not an assessment interchange format. Round-tripping through exam YAML loses answer keys, item metadata, and section structure. Use exam YAML as a one-way export target for generating printable exams, not as a lossless storage format.
 
-The recommended pipeline for LMS delivery is: source format -> qti-package-maker -> QTI/Blackboard. The recommended pipeline for print exams is: source format -> qti-package-maker -> bbq_text -> [bbq_to_exam_yaml.py](../launchers/bbq_to_exam_yaml.py) -> exam YAML -> [yaml_to_exam_docx.py](../launchers/yaml_to_exam_docx.py) -> DOCX. For one question per bptools generator, [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py) runs the generators from a website task CSV and writes the exam YAML directly (see [USAGE.md](USAGE.md)). Both bbq converters write a sibling `<stem>-key.txt` answer key, since exam YAML itself carries no answers.
+The recommended pipeline for LMS delivery is: source format -> qti-package-maker -> QTI/Blackboard. The recommended pipeline for print exams is: source format -> qti-package-maker -> bbq_text -> [bbq_to_exam_yaml.py](../converters/bbq_to_exam_yaml.py) -> exam YAML -> [yaml_to_exam_docx.py](../converters/yaml_to_exam_docx.py) -> DOCX. For one question per bptools generator, [bbq_tasks_to_exam_yaml.py](../converters/bbq_tasks_to_exam_yaml.py) runs the generators from a website task CSV and writes the exam YAML directly (see [USAGE.md](../docs/USAGE.md)). Both bbq converters write a sibling `<stem>-key.txt` answer key, since exam YAML itself carries no answers.

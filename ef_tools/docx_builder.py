@@ -1,7 +1,7 @@
 """Build shared DOCX styles, rich text, tables, and page headers.
 
 Formatting values come from the styles dict loaded from
-styles/exam_styles.yaml rather than being hardcoded.
+assessment_styles/exam_styles.yaml rather than being hardcoded.
 """
 
 # Standard Library
@@ -14,10 +14,27 @@ import docx.enum.text
 import docx.enum.style
 import docx.oxml.ns
 import docx.oxml
+import docx.text.paragraph
 
 # Local Repo Modules
 import ef_tools.layout
 import ef_tools.text_utils
+
+
+#============================================
+def keep_question_together(doc: object, first_block: int) -> None:
+	"""Keep newly rendered question blocks together, including table paragraphs.
+
+	The caller records the insertion position before rendering the question.
+	Word may still split a question that is taller than a complete page.
+	"""
+	paragraphs = []
+	for block in list(doc.element.body)[first_block:]:
+		for element in block.iter(docx.oxml.ns.qn('w:p')):
+			paragraphs.append(docx.text.paragraph.Paragraph(element, doc))
+	for index, paragraph in enumerate(paragraphs):
+		paragraph.paragraph_format.keep_with_next = index < len(paragraphs) - 1
+		paragraph.paragraph_format.keep_together = True
 
 
 #============================================
@@ -108,7 +125,7 @@ def setup_styles(doc: docx.Document, styles: dict) -> None:
 	"""Create all named exam styles in the document.
 
 	Reads font, size, color, spacing, border, and style_flags values from
-	the styles dict (loaded from styles/exam_styles.yaml).
+	the styles dict (loaded from assessment_styles/exam_styles.yaml).
 
 	Args:
 		doc: The Document to add styles to.

@@ -36,7 +36,7 @@ Check the runtime imports and launcher help:
 
 ```bash
 source source_me.sh && python3 -c "import lxml, PIL, docx, yaml, rdkit, playwright"
-source source_me.sh && python3 launchers/yaml_to_exam_docx.py --help
+source source_me.sh && python3 converters/yaml_to_exam_docx.py --help
 ```
 
 For the repository test lane, use the commands in [DEVELOPMENT.md](DEVELOPMENT.md).

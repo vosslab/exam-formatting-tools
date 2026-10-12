@@ -58,6 +58,10 @@ def parse_args() -> argparse.Namespace:
 		'-t', '--title', dest='exam_title', default=None,
 		help="Exam title (default: Quiz or Exam by mode)"
 	)
+	parser.add_argument(
+		'-p', '--points', dest='total_points', type=float, default=None,
+		help="Total points for the score line (default: numbered answer count)"
+	)
 	mode_group = parser.add_mutually_exclusive_group()
 	mode_group.add_argument(
 		'-e', '--exam', dest='mode', action='store_const', const='exam',
@@ -119,6 +123,8 @@ def collect_questions(tasks: list, pythonpath: str, reject_fn: object, media_dir
 				continue
 			if task.get('choice_font'):
 				record['question']['choice_font'] = task['choice_font']
+			if 'layout' in task:
+				record['question']['layout'] = task['layout']
 			ef_tools.bbq_parse.render_record_tables(
 				record, renderer, media_dir, record['answer']['code'])
 			# a new chapter section starts whenever the topic changes
@@ -178,6 +184,8 @@ def main() -> None:
 		'date': datetime.date.today().isoformat(),
 		'sections': sections,
 	}
+	if args.total_points is not None:
+		exam_dict['total_points'] = args.total_points
 	write_outputs(exam_dict, answers, sources, output_file)
 
 	for reason in skipped:

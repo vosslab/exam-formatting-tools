@@ -18,8 +18,10 @@ exam-formatting-tools/
 +- pip_requirements*.txt
 +- Brewfile
 +- ef_tools/
-+- launchers/
-+- styles/
++- builders/
++- converters/
++- task_files/
++- assessment_styles/
 +- tests/
 +- devel/
 +- tools/
@@ -31,18 +33,38 @@ exam-formatting-tools/
 | [../bbq_settings.yml](../bbq_settings.yml) | Default paths and script aliases for website task CSVs |
 | [../source_me.sh](../source_me.sh) | Bash bootstrap and sibling-checkout `PYTHONPATH` setup |
 | [../ef_tools/](../ef_tools/) | Shared parsing, validation, layout, and rendering modules |
-| [../launchers/](../launchers/) | User-facing format converters and validators |
-| [../styles/](../styles/) | YAML-controlled DOCX styles and layout values |
+| [../builders/](../builders/) | Dedicated shell recipes for individual assessments |
+| [../converters/](../converters/) | General-purpose format converters and validators |
+| [../task_files/](../task_files/) | Assessment task CSV selections |
+| [../assessment_styles/](../assessment_styles/) | Assessment creation, styling, planning, and decision documents plus formatting YAML |
 | [../tests/](../tests/) | Fast tests, explicit E2E checks, and repository gates |
 | [../devel/](../devel/) | Maintainer, calibration, changelog, and release scripts |
 | [../tools/](../tools/) | Standalone utilities; keep repo-package imports out of this directory |
-| [docs](.) | User, maintainer, schema, and repository guidance |
+| [docs](.) | User, maintainer, and repository guidance |
 
 ## Key subtrees
 
-### `launchers/`
+### `converters/`
 
-Each launcher has one primary direction and a small argparse surface. Run a launcher through `source source_me.sh && python3 launchers/<script>.py`; see [USAGE.md](USAGE.md) for examples.
+General-purpose Python CLIs provide converters and validators. Run them through
+`source source_me.sh && python3 converters/<script>.py`; see [USAGE.md](USAGE.md) for examples.
+
+These application-facing commands may import `ef_tools/`. The separate `tools/` directory
+remains for standalone utilities independent of repository-local packages.
+
+### `builders/`
+
+Course build recipes use `build_<course>_<assessment>.sh` names. They are flat shell commands
+run from the repository root. They select task CSVs, call shared converters, and export through
+[docx_to_pdf.sh](../converters/docx_to_pdf.sh). Shared formatting lives in `ef_tools/` and is
+selected through common converter options. The root retains `source_me.sh` for environment setup.
+
+### `task_files/`
+
+Task CSVs select the question generators for each course and assessment. Dedicated build scripts
+refer to these files explicitly; `bbq_settings.yml` resolves their source paths and aliases.
+Keep curated assessment selections here; reference full BPW catalogs directly under
+`~/nsh/PROBLEMS/biology-problems-website/task_files/`.
 
 ### `ef_tools/`
 
@@ -71,7 +93,7 @@ The following outputs are ignored by Git and should not be used as committed fix
 - `images/` and `<stem>_files/` directories for extracted or rendered media.
 - `report_*.txt`, `.pytest_cache/`, `__pycache__/`, and LibreOffice lock files.
 
-Tracked configuration is the exception to the broad YAML ignore: [../styles/exam_styles.yaml](../styles/exam_styles.yaml) remains committed.
+Tracked configuration is the exception to the broad YAML ignore: [../assessment_styles/exam_styles.yaml](../assessment_styles/exam_styles.yaml) remains committed.
 
 ## Documentation map
 
@@ -81,8 +103,10 @@ Tracked configuration is the exception to the broad YAML ignore: [../styles/exam
 | [INSTALL.md](INSTALL.md) | Dependencies, sibling repositories, and install verification |
 | [USAGE.md](USAGE.md) | CLI workflows and examples |
 | [FILE_FORMATS.md](FILE_FORMATS.md) | Input and output artifact reference |
-| [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md) | Canonical exam YAML schema |
-| [EXAM_DOCUMENT_STYLES.md](EXAM_DOCUMENT_STYLES.md) | Current DOCX style reference |
+| [YAML_EXAM_FORMAT.md](../assessment_styles/YAML_EXAM_FORMAT.md) | Canonical exam YAML schema |
+| [EXAM_STYLE.md](../assessment_styles/EXAM_STYLE.md) | Exam presentation, ZipGrade rules, and shared DOCX formatting |
+| [QUIZ_STYLE.md](../assessment_styles/QUIZ_STYLE.md) | Subject-independent quiz presentation and scoring conventions |
+| [GENETICS_EXAM1.md](../assessment_styles/GENETICS_EXAM1.md) | Assessment-specific question selection and coverage decisions |
 | [CODE_ARCHITECTURE.md](CODE_ARCHITECTURE.md) | Components and data flow |
 | [WORKFLOW_LOGIC_AUDIT.md](WORKFLOW_LOGIC_AUDIT.md) | Converter ownership, output publication, and follow-up priorities |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Symptoms, causes, and recovery steps |
@@ -102,9 +126,12 @@ Tracked configuration is the exception to the broad YAML ignore: [../styles/exam
 
 | Adding... | Place it in... |
 | --- | --- |
-| Input-format converter | `launchers/<format>_to_exam_yaml.py` |
+| Input-format converter | `converters/<format>_to_exam_yaml.py` |
+| Course build recipe | `builders/build_<course>_<assessment>.sh` |
+| Assessment question selection | `task_files/<selection>.csv` |
+| Assessment selection/coverage notes | `assessment_styles/<ASSESSMENT>.md` |
 | Shared parser or renderer | `ef_tools/<module>.py` |
-| DOCX style value | [../styles/exam_styles.yaml](../styles/exam_styles.yaml) |
+| DOCX style value | [../assessment_styles/exam_styles.yaml](../assessment_styles/exam_styles.yaml) |
 | Focused unit test | `tests/test_<module>.py` |
 | Whole-system test | `tests/e2e/e2e_<name>.{sh,py}` |
 | Maintainer or calibration script | `devel/<script>.py` |

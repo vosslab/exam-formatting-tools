@@ -33,8 +33,8 @@ REPO_ROOT = subprocess.check_output(
 	['git', 'rev-parse', '--show-toplevel'], text=True).strip()
 if REPO_ROOT not in sys.path:
 	sys.path.insert(0, REPO_ROOT)
-# the DOCX builder CLI lives in launchers/
-sys.path.insert(1, os.path.join(REPO_ROOT, 'launchers'))
+# the DOCX builder CLI lives in converters/
+sys.path.insert(1, os.path.join(REPO_ROOT, 'converters'))
 
 # local repo modules
 import yaml_to_exam_docx

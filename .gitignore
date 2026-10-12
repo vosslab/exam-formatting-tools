@@ -28,8 +28,8 @@ ARTIFACTS/
 images/
 *.docx
 *.yaml
-!styles/
-!styles/*.yaml
+!assessment_styles/
+!assessment_styles/*.yaml
 *.odt
 #libreoffice lock files
 .~lock.*

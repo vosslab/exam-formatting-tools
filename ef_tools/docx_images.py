@@ -57,7 +57,7 @@ IMAGE_CHOICE_MAX_WIDTH_BY_COLS = {
 # tray substantially larger than the old five-column 1.13-inch images.
 CAPTIONED_IMAGE_CHOICE_MAX_WIDTH = 2.0
 
-# Body and choice text render at 10pt (styles/exam_styles.yaml sizes.choice).
+# Body and choice text render at 10pt (assessment_styles/exam_styles.yaml sizes.choice).
 # Baseline centering needs a font size to know where the line's visual middle
 # sits; every paragraph that carries an inline drawing uses this size.
 BASELINE_FONT_SIZE_PT = 10.0

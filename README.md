@@ -33,8 +33,8 @@ The latest recorded website-task acceptance run processed 87 tasks into 82 quest
 Install the dependencies in [docs/INSTALL.md](docs/INSTALL.md), then convert a cleaned Blackboard HTML export and render its YAML as a DOCX:
 
 ```bash
-source source_me.sh && python3 launchers/html_to_exam_yaml.py -i Cleaned_Final_Exam_2A.html
-source source_me.sh && python3 launchers/yaml_to_exam_docx.py -i Cleaned_Final_Exam_2A.yml
+source source_me.sh && python3 converters/html_to_exam_yaml.py -i Cleaned_Final_Exam_2A.html
+source source_me.sh && python3 converters/yaml_to_exam_docx.py -i Cleaned_Final_Exam_2A.yml
 ```
 
 The commands write `Cleaned_Final_Exam_2A.yml` and `Cleaned_Final_Exam_2A.docx` in the current directory. Output paths are optional; when omitted, each launcher uses the input stem with the target extension.
@@ -54,10 +54,10 @@ Choose the starting point that matches the content you already maintain:
 For a quiz, the task-CSV converter uses the repository copy of [bbq_settings.yml](bbq_settings.yml) by default:
 
 ```bash
-source source_me.sh && python3 launchers/bbq_tasks_to_exam_yaml.py -q -t "Genetics Quiz 1" \
-    -i ~/nsh/PROBLEMS/biology-problems-website/bbq_control/task_files/genetics_tasks1.csv \
+source source_me.sh && python3 converters/bbq_tasks_to_exam_yaml.py -q -t "Genetics Quiz 1" \
+    -i task_files/genetics_quiz1.csv \
     -o output_quiz/genetics_quiz1.yml
-source source_me.sh && python3 launchers/yaml_to_exam_docx.py -i output_quiz/genetics_quiz1.yml
+source source_me.sh && python3 converters/yaml_to_exam_docx.py -i output_quiz/genetics_quiz1.yml
 ```
 
 Each resolved task contributes one question when a usable candidate is generated. Exam mode keeps only questions that satisfy the ZipGrade A-E rules; skipped tasks are reported on stderr. See [docs/USAGE.md](docs/USAGE.md) for answer keys, alternative input formats, and filtering details.
@@ -67,8 +67,9 @@ Each resolved task contributes one question when a usable candidate is generated
 - [docs/INSTALL.md](docs/INSTALL.md): dependencies, sibling checkouts, and install verification.
 - [docs/USAGE.md](docs/USAGE.md): copyable commands for each conversion workflow.
 - [docs/FILE_FORMATS.md](docs/FILE_FORMATS.md): accepted inputs and generated artifacts.
-- [docs/YAML_EXAM_FORMAT.md](docs/YAML_EXAM_FORMAT.md): fields, matching blocks, images, and layout rules.
-- [docs/EXAM_DOCUMENT_STYLES.md](docs/EXAM_DOCUMENT_STYLES.md): current DOCX styles and layout limits.
+- [assessment_styles/YAML_EXAM_FORMAT.md](assessment_styles/YAML_EXAM_FORMAT.md): fields, matching blocks, images, and layout rules.
+- [assessment_styles/EXAM_STYLE.md](assessment_styles/EXAM_STYLE.md): exam conventions and shared DOCX formatting.
+- [assessment_styles/QUIZ_STYLE.md](assessment_styles/QUIZ_STYLE.md): quiz conventions.
 - [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md): output, browser, media, and ZipGrade failures.
 - [docs/FAQ.md](docs/FAQ.md): short answers about YAML, matching rows, images, and mode filtering.
 - [docs/RELATED_PROJECTS.md](docs/RELATED_PROJECTS.md): the content and QTI projects that feed this pipeline.

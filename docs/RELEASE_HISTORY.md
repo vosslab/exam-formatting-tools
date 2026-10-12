@@ -4,7 +4,7 @@
 
 ### Highlights
 
-- Added [bbq_tasks_to_exam_yaml.py](../launchers/bbq_tasks_to_exam_yaml.py), which reads the biology-problems-website task CSV contract and contributes one generated question per resolved task.
+- Added [bbq_tasks_to_exam_yaml.py](../converters/bbq_tasks_to_exam_yaml.py), which reads the biology-problems-website task CSV contract and contributes one generated question per resolved task.
 - Added shared task resolution, BBQ parsing, answer-key formatting, HTML cleanup, and table-image rendering modules under [../ef_tools/](../ef_tools/).
 - Added image-capable matching prompts and choices. Rendered table drawings can now appear beside matching blanks or in tabbed image-choice layouts.
 - Added `question_span()` as the shared numbering rule for matching blocks, question totals, ZipGrade filtering, DOCX rendering, and answer keys.
@@ -15,11 +15,12 @@
 - Relative image paths are resolved against the YAML file so YAML and its media directory can move together.
 - The bootstrap now adds the sibling `qti-package-maker` checkout to `PYTHONPATH` when it is present.
 - Shared parser, renderer, and style behavior is covered by focused tests instead of duplicated launcher logic.
-- The repository documentation and support files now use the `launchers/` and `devel/` directory layout.
+- The repository documentation and support files adopted the `launchers/` and `devel/` directory layout.
 
 ### Compatibility notes
 
-- The seven converter and validator scripts moved from the repository root into `launchers/`.
+- The seven converter and validator scripts moved from the repository root into `launchers/`
+  in this release. They now live in `converters/`; see [USAGE.md](USAGE.md) for current commands.
 - NUM, FIB, and FIB_PLUS BBQ items are skipped because they have no supported print form; unknown BBQ types raise instead of disappearing silently.
 - Exam mode retries or skips questions that do not fit ZipGrade's A-E rules; it does not trim six-choice questions.
 - Direct ODT output and the legacy direct HTML-to-DOCX path remain out of scope.

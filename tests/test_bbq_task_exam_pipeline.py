@@ -45,9 +45,9 @@ def test_task_csv_aliases_reach_exam_yaml_and_docx(
 
 	task_csv = tmp_path / 'tasks.csv'
 	task_csv.write_text(
-		'subject,topic,script,flags,input,notes,choice_font\n'
-		'genetics,genetic_disorders,YMATCH,,,,\n'
-		'genetics,genetic_disorders,YWHICH,,,,IBM Plex Sans Condensed\n',
+		'subject,topic,script,flags,input,notes,choice_font,layout\n'
+		'genetics,genetic_disorders,YMATCH,,,,,\n'
+		'genetics,genetic_disorders,YWHICH,,,,IBM Plex Sans Condensed,1\n',
 		encoding='utf-8')
 	settings_path = tmp_path / 'settings.yml'
 	settings_path.write_text(yaml.safe_dump({
@@ -86,18 +86,20 @@ def test_task_csv_aliases_reach_exam_yaml_and_docx(
 	monkeypatch.setattr(sys, 'argv', [
 		'bbq_tasks_to_exam_yaml.py', '-i', str(task_csv), '-s',
 		str(settings_path), '-o', str(yaml_path), '--quiz', '--title',
-		'Synthetic task quiz'])
+		'Synthetic task quiz', '--points', '2.5'])
 	bbq_tasks_to_exam_yaml.main()
 
 	exam_data = yaml.safe_load(yaml_path.read_text(encoding='utf-8'))
 	questions = exam_data['sections'][0]['questions']
 	assert exam_data['title'] == 'Synthetic task quiz'
+	assert exam_data['total_points'] == 2.5
 	assert exam_data['sections'][0]['chapter'] == 'Genetic disorders'
 	assert len(questions) == 2
 	assert questions[0]['prompts_list'] == [
 		'First prompt', 'Second prompt']
 	assert questions[1]['choices'] == ['Correct choice', 'Other choice']
 	assert questions[1]['choice_font'] == 'IBM Plex Sans Condensed'
+	assert questions[1]['layout'] == 1
 	answer_key = yaml_path.with_name('quiz-key.txt').read_text(encoding='utf-8')
 	assert 'Q1-2. 1=A 2=B' in answer_key
 	assert '3. A' in answer_key
@@ -111,6 +113,9 @@ def test_task_csv_aliases_reach_exam_yaml_and_docx(
 	assert any('First prompt' in text for text in paragraph_text)
 	assert any('Which statement is correct?' in text for text in paragraph_text)
 	assert any('Correct choice' in text for text in paragraph_text)
+	assert any('2.5 pts' in text for text in paragraph_text)
+	assert '(A) Correct choice' in paragraph_text
+	assert '(B) Other choice' in paragraph_text
 	choice_paragraph = next(
 		paragraph for paragraph in document.paragraphs
 		if 'Correct choice' in paragraph.text)
