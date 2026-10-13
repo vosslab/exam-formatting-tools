@@ -60,6 +60,16 @@
 
 ### Behavior or Interface Changes
 
+- Request five consecutive choices for medium circular digestion in Genetics Exam 1.
+  Retain medium difficulty after enumerating valid maps; document the fixed answer-set
+  limitation of medium linear fragments under the five-choice constraint. Final rebuild:
+  53 blocks, 93 rows, zero skips, 22 pages; ZipGrade passes and the circular page/key are checked.
+
+- Request five choices for both linear digests and Punnett-square selection in Genetics Exam 1.
+  Remove chi-square calculation/decision because it was not covered; update the coverage notes.
+  Rebuild: 53 blocks, 93 rows, zero skips, 22 PDF pages. ZipGrade and 23 focused tests pass;
+  visually review the changed pages and independently verify their keys.
+
 - Remove direct QPM rendering requirements and molecular reconstruction from formatting.
   BP generator subprocesses retain their configured QPM path. Existing builders, question
   selection, ZipGrade rules, pagination, and PDF export settings are unchanged.
@@ -189,6 +199,11 @@
   the finished quiz files. Shell syntax, scoped lint, and six root-script checks pass.
 
 ### Fixes and Maintenance
+
+- Follow the instructor correction for Genetics Exam 1: limited linear-digest banks are
+  consecutive (including shifted ranges), retain all correct bands, and include a distractor.
+  The rebuild passes ZipGrade with both linear digests included; circular digestion independently
+  exceeds five choices on all three attempts. Current output: 52 blocks, 92 rows, 22 pages.
 
 - Address the six-pass audit: archive generated build history outside current quiz output,
   clarify the DOCX layout helper's YAML companion, and update matching-blank examples.

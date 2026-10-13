@@ -8,22 +8,20 @@ Shared formatting, numbering, matching, and ZipGrade rules are in [EXAM_STYLE.md
 
 ## Recorded draft status
 
-The initial October 12 draft contained 51 of the 54 selected blocks: 91 numbered ZipGrade rows
-on 21 PDF pages. The full selection would use 94 numbered rows. The default score line counts
-rows; final grading weights have not been set. The rendered draft and key use A-E only.
+The latest October 12 rebuild includes all 53 selected blocks with zero skips:
+93 numbered rows on 22 PDF pages. ZipGrade validation passed. The circular-digest
+page was visually checked; cuts at 1, 5, and 11 kb give bands 4, 6, and 2 kb,
+matching the key A/C/E in its consecutive 2-6 kb answer bank.
+Linear fragment and strand digests retain medium difficulty and request five choices,
+in a consecutive range containing every correct band and at least one distractor. Punnett-square selection requests five choices and
+omits the most distant parental-genotype distractor (randomly breaking ties).
+Chi-square calculation/decision is excluded because it was not covered for this exam.
 
-Three selected tasks were omitted by exam-mode validation:
-
-- The medium linear **fragment** digest exceeded five choices in all three attempts.
-- Punnett-square selection always emits six choices.
-- Chi-square calculation/decision selection always emits six choices.
-
-The linear **strand** and circular digests happened to produce five-choice candidates in this
-build, but can exceed five on a later run. All three digest tasks and the two fixed-six-choice
-tasks need optional source-side choice-count support for a repeatable complete build.
-That source change is pending the instructor's decision; no biology-problems generator has
-been changed as part of this draft. The numeric chi-square calculation task is represented in
-the selection by the calculation/decision MC task, so that coverage remains pending too.
+Circular digestion now also requests five consecutive choices at medium difficulty.
+Enumeration finds 38 valid medium circular maps, with bands {2,4,6} or {3,4,5}.
+Medium linear fragments fit five choices on 76 maps, but always yield {1,2,4,5};
+retain medium for this exam per instructor preference, with this predictable answer-set
+limitation recorded. The default score line counts rows; final grading weights are unset.
 
 ## Selection rules
 
@@ -46,7 +44,7 @@ the selection by the calculation/decision MC task, so that coverage remains pend
 | Autosomal-only and full pedigrees, both MC directions | Full-pattern pedigree matching |
 | Forward and inverse epistasis test-cross ratios | Forward direction |
 | Original and varied combined autosomal/X-linked crosses | Varied crosses |
-| Numeric chi-square calculation and calculation/decision MC | Calculation/decision MC, suitable for bubbles |
+| Numeric chi-square calculation and calculation/decision MC | Excluded; not covered for this exam |
 
 Fragment, strand, and circular digests remain distinct: the endpoints and wraparound affect
 which lengths are counted. Paternity and forensic profiles remain distinct applications.
@@ -59,4 +57,4 @@ principles, and trait/genotype vocabulary; the cross-outcome bank tests predicte
 Run `bash builders/build_genetics_exam1.sh`. See [USAGE.md](../docs/USAGE.md) for the build outputs
 and instructions for preserving edited questions. The source task CSV is the selection recipe;
 the generated YAML is the editable question content, and `genetics_exam1-key.txt` is its key.
-Compare the produced task blocks with this selection, especially the outstanding banks above.
+Compare the produced task blocks with this selection, and review the build skip report.
