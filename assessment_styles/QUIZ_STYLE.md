@@ -13,8 +13,9 @@ settings are documented in [EXAM_STYLE.md](EXAM_STYLE.md#shared-docx-formatting)
 - Quizzes may use more than five choices. Apply [EXAM_STYLE.md](EXAM_STYLE.md)'s A-E limit when
   a quiz will use ZipGrade; ordinary `--quiz` mode does not enforce it.
 - Number each matching prompt individually, and show the block's question range.
-- Choose and display the point total explicitly. Matching prompts may carry fractional points;
-  numbered answer count is not automatically the grading total.
+- Use the shared scoring rule for all assignments, exams, and quizzes in every class:
+  matching prompts are 0.5 point each (four matches = two points); MC/MA questions are one point each.
+  The automatic score total uses these weights; numbered answer rows remain separate.
 
 ## Presentation
 
@@ -29,7 +30,7 @@ settings are documented in [EXAM_STYLE.md](EXAM_STYLE.md#shared-docx-formatting)
 ## Generation workflow
 
 Use a flat shell script to call the common tools. Select `--quiz` on the task importer and
-use `--points` to set the total. A task CSV `layout` value of `1` prints that question's choices
+use `--points` only when explicitly overriding the shared scoring total. A task CSV `layout` value of `1` prints that question's choices
 one per line; a blank value uses automatic layout.
 
 The common DOCX converter accepts `--page-break-sections` and `--keep-questions-together`

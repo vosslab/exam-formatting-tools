@@ -60,7 +60,7 @@ def parse_args() -> argparse.Namespace:
 	)
 	parser.add_argument(
 		'-p', '--points', dest='total_points', type=float, default=None,
-		help="Total points for the score line (default: numbered answer count)"
+		help="Total points override (default: 0.5 per matching prompt, 1 per MC/MA question)"
 	)
 	mode_group = parser.add_mutually_exclusive_group()
 	mode_group.add_argument(

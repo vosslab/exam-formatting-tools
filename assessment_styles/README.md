@@ -1,9 +1,23 @@
 # Assessment creation and styling
 
 This folder holds documentation and formatting configuration used to create assessments.
-Its scope includes shared exam and quiz conventions, presentation, question-selection decisions,
+Its scope includes shared assignment, exam, and quiz conventions, presentation, question-selection decisions,
 coverage planning, scoring decisions, and outstanding questions for individual assessments.
 Despite the folder name, it covers more than visual styling.
+
+## Scoring for every class
+
+For all assignments, exams, and quizzes, each matching prompt is worth 0.5 point
+(four matches = two points). Each MC or MA question is worth one point.
+Numbered answer rows remain separate from the point total. The shared DOCX converter
+calculates this total automatically unless an explicit `total_points` override is supplied.
+
+For assessments using ZipGrade, also count the numbered answer rows: the form has
+100 rows maximum. Each matching prompt consumes one row, and each MC/MA question
+consumes one row, even when multiple letters are selected. Four matches therefore
+use four rows but earn two points. Report both row count and point total when planning
+an assessment; neither the number of question blocks nor the point total measures
+answer-sheet capacity.
 
 ## Contents
 

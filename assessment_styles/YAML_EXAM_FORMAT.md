@@ -16,7 +16,7 @@ To check whether an exam will fit a ZipGrade A-E bubble form, run [validate_zip_
 | --- | --- | --- | --- | --- |
 | `title` | string | yes | -- | Exam title rendered on the first page |
 | `date` | string | yes | -- | ISO 8601 `YYYY-MM-DD`; rendered as "Mon DD, YYYY" in page headers |
-| `total_points` | number | no | question count | Total exam points for the score line; fractional totals are supported |
+| `total_points` | number | no | weighted question total | Total exam points for the score line; fractional totals are supported |
 | `student_line` | string | no | "Full Name: \_\_\_\_\_\_\_" | Name line on the first page |
 | `scoring_sections` | integer | no | 4 | Number of \_\_\_\_ blanks in the score line |
 | `sections` | list | yes | -- | One or more section objects |
@@ -334,7 +334,9 @@ The `date` field must be ISO 8601 `YYYY-MM-DD`. The builder renders it as "Mon D
 
 ## Total points
 
-If `total_points` is omitted, it defaults to the total number of questions (1 point per question). The score line reads: "Final Score \_\_\_\_ / \_\_\_\_ / \_\_\_\_ / \_\_\_\_ / {total} pts"
+If `total_points` is omitted, matching prompts count as 0.5 point each and MC/MA questions
+count as one point each. This rule applies to all assignments, exams, and quizzes in every
+class. Numbering is unchanged; four matching prompts use four rows and earn two points. The score line reads: "Final Score \_\_\_\_ / \_\_\_\_ / \_\_\_\_ / \_\_\_\_ / {total} pts"
 
 ## Complete example
 

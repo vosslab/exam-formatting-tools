@@ -22,7 +22,8 @@ Circular digestion now also requests five consecutive choices at medium difficul
 Enumeration finds 38 valid medium circular maps, with bands {2,4,6} or {3,4,5}.
 Medium linear fragments fit five choices on 76 maps, but always yield {1,2,4,5};
 retain medium for this exam per instructor preference, with this predictable answer-set
-limitation recorded. The default score line counts rows; final grading weights are unset.
+limitation recorded. The total is 59.5 points: 49 matching prompts at 0.5 point each
+and 35 MC/MA questions at one point each. The answer sheet still uses 84 rows.
 
 ## Selection rules
 

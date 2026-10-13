@@ -22,3 +22,8 @@ origin belongs there too. Rules: [REPO_STYLE.md](REPO_STYLE.md).
   and arbitrary performance thresholds should not constrain useful improvements.
 - Treat permanent tests as liabilities as well as assets. Protect important, stable behavior;
   use ignored `tests/_temp/` checks for one-time proof and remove them when finished.
+
+- For all assignments, exams, and quizzes in all classes, each matching prompt counts as
+  1/2 point (four matches = two points); each MC/MA question counts as one point.
+- Also track the number of questions as rows to fill in on ZipGrade, separately from
+  points. My ZipGrade form has only 100 question bubble rows.

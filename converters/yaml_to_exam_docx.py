@@ -245,7 +245,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 	sections = exam_data.get('sections', [])
 	total_points = exam_data.get('total_points', None)
 	if total_points is None:
-		total_points = ef_tools.question_utils.count_total_questions(sections)
+		total_points = ef_tools.question_utils.count_total_points(sections)
 	num_sections = exam_data.get('scoring_sections', ef_tools.exam_defaults.DEFAULT_SCORING_SECTIONS)
 	score_line = ef_tools.exam_defaults.format_score_line(total_points, num_sections)
 	ef_tools.docx_builder.add_first_page_heading(

@@ -51,6 +51,7 @@ def test_matching_question_renders_prompts_blanks_and_choice_letters(tmp_path: o
 	body_text = "\n".join(p.text for p in doc.paragraphs)
 	# multi-prompt span header
 	assert 'Q1-3.' in body_text
+	assert '/ 1.5 pts' in body_text
 	# numbered blanks: each prompt consumes one slot
 	assert '______ 1.' in body_text
 	assert '______ 2.' in body_text

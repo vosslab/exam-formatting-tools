@@ -41,8 +41,7 @@ def test_count_total_questions_matching_prompts_list() -> None:
 	"""A matching question contributes one slot per prompts_list entry.
 
 	Prevents regression on the matching schema migration: each prompt
-	consumes a question number, so the score-line total must reflect
-	the prompt count instead of treating the matching block as 1.
+	consumes a question number, independently of its point value.
 	"""
 	sections = [
 		{"questions": [
@@ -52,3 +51,14 @@ def test_count_total_questions_matching_prompts_list() -> None:
 	]
 	result = ef_tools.question_utils.count_total_questions(sections)
 	assert result == 4
+
+
+def test_point_total_weights_matching_without_changing_numbering() -> None:
+	"""Four matches earn two points; MC and MA each earn one, regardless of key size."""
+	sections = [{'questions': [
+		{'prompts_list': ['a', 'b', 'c', 'd'], 'choices_list': ['w', 'x', 'y', 'z']},
+		{'choices': {'A': 'one', 'B': 'two'}},
+		{'choices': {'A': 'one', 'B': 'two', 'C': 'three'}},
+	]}]
+	assert ef_tools.question_utils.count_total_points(sections) == 4
+	assert ef_tools.question_utils.count_total_questions(sections) == 6

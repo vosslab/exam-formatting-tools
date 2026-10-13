@@ -9,7 +9,7 @@ DEFAULT_SCORING_SECTIONS = 4
 
 
 #============================================
-def format_score_line(total_points: int, num_sections: int) -> str:
+def format_score_line(total_points: float, num_sections: int) -> str:
 	"""Format the Final Score line with scoring section blanks.
 
 	Args:
@@ -21,5 +21,5 @@ def format_score_line(total_points: int, num_sections: int) -> str:
 	"""
 	# Build the blank sections: "____" separated by " / "
 	blanks = " / ".join(["____"] * num_sections)
-	score_line = f"Final Score {blanks} / {total_points} pts"
+	score_line = f"Final Score {blanks} / {total_points:g} pts"
 	return score_line

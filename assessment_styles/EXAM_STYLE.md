@@ -14,9 +14,13 @@ the machine-readable values.
   Retain separate questions when they assess different reasoning.
 - Number answers continuously across sections. Each matching prompt uses one numbered row;
   a matching block heading shows its range, such as `Q12-15.`.
-- Keep within the configured answer sheet's capacity. The current validator checks 100 rows.
+- Keep within the ZipGrade form's 100-row capacity, independently of the point total.
+  Each matching prompt uses one row; each MC/MA question uses one row, including MA
+  questions with multiple selected letters. Report both rows used and points.
 - State when students must select multiple answers, and list every correct letter in the key.
-- Set the point total deliberately. Numbered answer rows and grading weights are separate counts.
+- Apply the shared scoring rule for all assignments, exams, and quizzes in every class:
+  each matching prompt is 0.5 point (four matches = two points); each MC/MA question is one point.
+  Numbered answer rows and grading totals are separate counts.
 
 ## Presentation
 

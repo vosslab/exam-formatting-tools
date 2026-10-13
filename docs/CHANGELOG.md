@@ -60,6 +60,18 @@
 
 ### Behavior or Interface Changes
 
+- Clarify the separate ZipGrade capacity criterion: at most 100 numbered answer rows,
+  with one row per matching prompt or MC/MA question regardless of point weight.
+  Document reporting both points and rows; the existing validator enforces capacity.
+
+- Apply the instructor's scoring rule to all assignments, exams, and quizzes in all classes:
+  matching prompts earn 0.5 point each; MC/MA questions earn one point each. Automatic DOCX
+  score totals use these weights while numbering and explicit total_points overrides remain
+  independent. Document the shared rule and update CLI help. Genetics Exam 1 totals 59.5
+  points across 84 answer rows (49 matching prompts and 35 MC/MA questions).
+  Full pytest: 1,741 passed. Re-render the saved questions and verify the PDF score line
+  displays 59.5 points.
+
 - Follow the instructor's removal of all Chapter 7 tasks from Genetics Exam 1. Rebuild
   Chapters 1-6: all 47 selected blocks, 84 numbered rows, zero skips, 19 PDF pages.
   Reconcile every task with the build trace, YAML, answer key, and PDF labels; confirm

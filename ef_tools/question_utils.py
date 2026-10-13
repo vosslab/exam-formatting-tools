@@ -81,3 +81,16 @@ assert count_total_questions([]) == 0
 assert count_total_questions([{'questions': [{}, {}, {}]}]) == 3
 assert count_total_questions([{'questions': [{}]}, {'questions': [{}, {}]}]) == 3
 assert count_total_questions([{'questions': [{'prompts_list': [1, 2, 3]}]}]) == 3
+
+
+#============================================
+def count_total_points(sections: list) -> float:
+	"""Score matching prompts at half a point and other questions at one point."""
+	total = 0.0
+	for section in sections:
+		for question in section.get('questions', []):
+			if isinstance(question, dict) and question.get('prompts_list'):
+				total += len(question['prompts_list']) * 0.5
+			else:
+				total += 1
+	return total
