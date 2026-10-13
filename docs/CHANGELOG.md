@@ -72,6 +72,35 @@
 
 ### Behavior or Interface Changes
 
+- Reduce Genetics Exam 1 genetic-disorders matching from four prompts to three at
+  instructor request. The selection now has 54 blocks, 100 ZipGrade rows, and 70 raw
+  points; retain all four shared-cross questions. Verify source counts.
+
+- Use four consecutive unique_counts.py tasks for the same saved cross: each parent's
+  gametes, offspring genotypes, and offspring phenotypes. The genetics builder creates
+  parental scenario JSON once and reuses it on rebuilds. Keep all other selected tasks
+  per instructor direction: the draft now has 54 blocks, 101 rows, and 70.5 raw points,
+  pending the instructor's final cut. ZipGrade validation continues to enforce 100 rows.
+  Verify the four CSV tasks through separate generator subprocesses with the same JSON.
+
+- Set Genetics Exam 1 statement MC banks to five choices, retaining an explicit
+  four-choice exception for nucleotide_components.yml. Five-choice generation yields
+  no questions for that bank; all four other banks produce five-choice output. Verify
+  20 generated items per bank at the selected count. The generator already defaults
+  to five, so no generator change is needed. Exam rows and points are unchanged.
+
+- Revise Genetics Exam 1 to 53 blocks and 100 answer rows (69.5 raw points): include
+  both complementary-sequence forms and both end-type forms, request five blood-type
+  agglutination choices, remove later-course progeny probability, and include two fly
+  questions. Reduce unsplit meiosis matching to four prompts to retain both ABO questions
+  and all 20 terms in the four five-prompt terminology blocks. Validate source counts;
+  leave the instructor-deleted generated output folder absent.
+
+- Use two disjoint five-term halves for each of the two 10-term genetics terminology
+  banks. Use five prompts from the original meiosis_terms.yml without splitting it.
+  Replace only the three affected matching blocks, regenerate their keys, and retain
+  the other 46 questions: 51 blocks / 99 rows. Original homework banks remain intact.
+
 - Opt both exam metabolic epistasis tasks into `--random`, preserving the generator's
   default even batch coverage. Existing generated questions and exam artifacts are unchanged.
 

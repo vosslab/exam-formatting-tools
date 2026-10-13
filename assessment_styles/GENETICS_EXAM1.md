@@ -9,12 +9,16 @@ Shared formatting, numbering, matching, and ZipGrade rules are in [EXAM_STYLE.md
 
 ## Recorded draft status
 
-The October 12 expanded draft includes 49 Chapter 1-6 blocks and 86 numbered rows.
-The original 47 question objects are preserved; two additions add a second random metabolic
-pathway and the inverse epistasis ratio question. One five-pedigree matching block remains.
-Fourteen ZipGrade rows remain available. The two added tasks generated with zero skips.
-The saved DOCX/PDF is regenerated (20 PDF pages); ZipGrade validation and continuous
-answer-key numbering 1-86 pass. The instructor performs the final visual review.
+The October 12 expanded draft includes 54 Chapter 1-6 blocks and 100 numbered rows.
+It adds a second random metabolic pathway and the inverse epistasis ratio question.
+The two 10-term terminology banks each use two disjoint five-term YAML banks. Meiosis
+uses four randomly sampled prompts from the original six-term bank, without a split.
+One five-pedigree matching block remains. Genetic disorders matching uses three prompts, bringing the draft to the 100-row ZipGrade limit.
+Both complementary-sequence forms and both end-type forms are included. Blood-type
+agglutination uses five choices. Both ABO questions remain, and two random fly questions
+are included. Probability of progeny is excluded as later-course content.
+The selection has 40 MC/MA rows and 60 matching prompts, totaling 70 raw points.
+The instructor performs the final visual review before sending the exam to students.
 
 Linear fragment and strand digests retain medium difficulty and request five choices,
 in a consecutive range containing every correct band and at least one distractor. Punnett-square selection requests five choices and
@@ -25,24 +29,31 @@ Circular digestion now also requests five consecutive choices at medium difficul
 Enumeration finds 38 valid medium circular maps, with bands {2,4,6} or {3,4,5}.
 Medium linear fragments fit five choices on 76 maps, but always yield {1,2,4,5};
 retain medium for this exam per instructor preference, with this predictable answer-set
-limitation recorded. The expanded answer sheet uses 86 rows.
+limitation recorded. The selection uses 100 answer rows.
 
 ## Selection rules
 
-- This selection uses four pairs in ordinary term-matching blocks.
+- TRUE/FALSE statement MC banks use five choices. `nucleotide_components.yml` is an
+  explicit four-choice exception: requesting five produces no questions because the
+  bank lacks four compatible distractors. All five selected banks were generation-checked.
+- Genetic disorders matching uses three pairs. Most other matching blocks, including
+  unsplit meiosis terms, use four pairs. The four split
+  terminology banks use five pairs each to retain all 20 terms.
 - Use a single full-pattern pedigree MATCH block, with five patterns, in Chapter 6.
   It replaces the autosomal-only Chapter 5 block and the alternative pedigree MC tasks.
 - Use medium difficulty where available, retaining different reasoning tasks within a family.
-- Keep Unique Gametes, Unique Offspring Genotypes, and Unique Offspring Phenotypes consecutive
-  as three independent questions.
+- Keep four shared-scenario count questions consecutive: each parent's gametes, offspring
+  genotypes, then offspring phenotypes. Each question repeats its own heading and table.
+  The builder creates `output_genetics_exam1/large_cross.json` once and reuses it; remove
+  that JSON explicitly to generate new parents. Both names and genotypes are preserved.
 
 ## Overlap decisions
 
 | Website alternatives | Draft selection and coverage |
 | --- | --- |
 | Matching and WOMC forms | MATCH only |
-| Directionless and 5'/3' DNA complements | 5'/3' includes base pairing and direction |
-| End type and overhang type | Overhang type includes blunt ends and both overhang directions |
+| Directionless and 5'/3' DNA complements | Both distinct forms |
+| End type and overhang type | Both distinct forms |
 | Easy, medium, rigorous, and bonus variants | One difficulty for each selected reasoning task |
 | Two- and three-marker HLA | Three-marker HLA |
 | Autosomal-only and full pedigrees, both MC directions | Full-pattern pedigree matching |
@@ -103,18 +114,20 @@ independent content requirements.
 
 | Chapter | Homework task entries | Exam blocks | Answer rows | Coverage |
 | --- | --- | --- | --- | --- |
-| 1: Genetic disorders | 2 | 2 | 5 | Both families: disorder matching and pathway rescue |
-| 2: DNA structure | 20 | 12 | 15 | Every family; collapse difficulty levels and overlapping end/direction variants |
+| 1: Genetic disorders | 2 | 2 | 4 | Both families: disorder matching and pathway rescue |
+| 2: DNA structure | 20 | 14 | 17 | Every family; include both complement and end-type forms |
 | 3: DNA profiling | 9 | 4 | 4 | All four families; one blood test, HLA, paternity, and forensic profile |
-| 4: Mendelian genetics | 11 | 11 | 26 | Every catalog entry represented |
+| 4: Mendelian genetics | 11 | 14 | 39 | Every catalog entry represented; all 20 terms in the two broad terminology banks |
 | 5: Gene interactions | 15 | 10 | 13 | All non-pedigree families, both epistasis directions, two metabolic pathways; pedigrees covered in Chapter 6 |
-| 6: Chromosomal inheritance | 16 | 10 | 23 | All major families; consolidate pedigree formats and fixed/varied combined-inheritance scenarios |
-| Total | 73 | 49 | 86 | No major homework family omitted |
+| 6: Chromosomal inheritance | 16 | 10 | 23 | Two fly questions; progeny probability excluded as later-course content |
+| Total | 73 | 54 | 100 | Coverage within the instructor-defined exam scope |
 
 Specific consolidation decisions:
 
-- Prime-labeled complementary sequences include direction and base pairing; overhang-type
-  questions include blunt versus sticky ends as well as overhang direction.
+- Include prime-labeled and directionless complementary sequences as distinct questions.
+- Include both end-type and overhang-type questions.
+- Retain both ABO mother and offspring questions; use five agglutination choices.
+- Exclude probability of progeny as later-course content and include two random fly questions.
 - Retain separate linear fragment, linear strand, and circular digest tasks at medium level.
 - Three-marker HLA replaces the two-marker variant; medium profiles replace easy/hard copies.
 - One full-pattern matching block covers five inheritance modes, including the autosomal
@@ -126,13 +139,21 @@ Specific consolidation decisions:
   the CSV. Repeated interaction types remain possible and are reviewed by the instructor.
   The generator's default batch mode cycles through interactions for even coverage.
 
-Coverage depth still varies. Chapter 3 has only four rows. Four-term matching samples do
-not exhaust broad banks: genome/genomics and the test-cross term were absent from the
-saved draft, and synapsis/chiasmata were represented only indirectly in stage clues.
-Additional rows should sample existing homework families or additional terms, not introduce
-Z-linked crosses, pedigree carrier-risk calculations, or other historical-only tasks.
-The single five-pedigree matching block is the instructor's chosen coverage; do not add a
-second block based on the earlier tentative discussion.
+The two broad terminology banks are split into disjoint static YAML files, with no Python
+partitioning logic:
+
+- `genetics_terminology_a.yml` and `genetics_terminology_b.yml`: five terms each.
+- `mendelian_genetics_terms_a.yml` and `mendelian_genetics_terms_b.yml`: five terms each.
+
+All original definition variants and formatting rules are retained; the original full banks
+remain available for homework. Each exam half uses every term, so all 20 terms appear
+without repetition within either bank. The instructor chose not to split the smaller
+meiosis bank: `meiosis_terms.yml --num-choices 4` samples four of its six terms,
+freeing a row for the added application questions.
+
+Coverage depth still varies. Chapter 3 has only four rows, and the test-cross term may
+be absent from the four-term cross-terminology sample. Any further additions must come
+from assigned homework families. Retain the single five-pedigree matching block.
 
 ## Build this selection
 

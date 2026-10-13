@@ -3,6 +3,7 @@
 # unchanged. For quiz output, YMATCH selects matching and YWHICH selects the
 # Which One? MC variant; the website's YMATCH alias can continue to run both.
 paths:
+  exam_root: "~/nsh/PROBLEMS/exam-formatting-tools"
   bp_root: "~/nsh/PROBLEMS/biology-problems/problems"
   qti_package_maker: "~/nsh/PROBLEMS/qti-package-maker"
   bp_match: "{bp_root}/matching_sets"
