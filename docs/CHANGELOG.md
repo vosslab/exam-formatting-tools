@@ -4,18 +4,35 @@
 
 ### Additions and New Features
 
-- Add docs/GENETICS_EXAM_BPQ_AUDIT.md: survey all nine archived genetics exams
+- Recover the distinct 2018 genetics midterm from the original course folder and retain its
+  PDF/ODT in `ARTIFACTS/`, with `past-exams/2018_genetics_midterm.md`. The October 22,
+  2018 PDF contains 89 MC and three SA prompts on ten pages labeled 1-10 of 11.
+  Preserve later native bonus content/changed skip instructions separately; update the index,
+  archive mappings and audit to ten genetics exams/141 PDF pages.
+- Add docs/GENETICS_LECTURE_BPQ_AUDIT.md with evidence from maintained 2025/2026
+  lecture PDFs/ODPs. Revise the exam audit so current instruction governs priorities:
+  carrier inference, phenotype conditioning, Z-linked lethality and unequal gamete weights.
+  Identify selected-offspring BPQ reuse; lower exam-only AR + XLR, combined epistasis/
+  incomplete dominance and Robertsonian dosage proposals pending teaching confirmation.
+- Add four individual searchable biochemistry exam Markdown artifacts in `past-exams/`:
+  the 2019 midterm, final parts A/B, and 2026 exam 1. Preserve extracted wording,
+  numbering, choices and tables across 38 PDF pages; corroborate eight native sources.
+  Link the originals through `past-exams/biochemistry_exams_index.md`.
+- Add docs/GENETICS_EXAM_BPQ_AUDIT.md: survey all ten archived genetics exams
   against 130 configured genetics task rows and relevant BPQ source implementations.
   Separate current-course expansion candidates from intentionally retired lecture topics,
   time-limited inbreeding content, and reduced distance-matrix instruction. Preserve the
   earlier inventory-only audit in docs/archive as the starting reference.
-- Add nine lossy, image-free searchable exam Markdown companions and an index under
-  ARTIFACTS. Preserve original numbering, choices, text tables, and source defects;
+- Add ten lossy, image-free searchable exam Markdown companions and an index under
+  `past-exams/`. Preserve original numbering, choices, text tables, and source defects;
   flag omitted figures and corroborate the six DOCX/ODT companions. Keep original
   PDFs and native documents unchanged.
 
 ### Behavior or Interface Changes
 
+- Follow the instructor's exam-artifact naming: keep the nine genetics companions and
+  their index in tracked `past-exams/` with lower snake_case filenames. Update source
+  links to `ARTIFACTS/` and audit links to the moved Markdown files.
 - Add --paper-size letter|a4 to the DOCX converter, preserving Letter as its default.
   Set the Genetics Exam 1 builder to A4; its optional letter argument switches back.
   Set explicit page dimensions and adapt header, name/score, answer-choice, and matching
@@ -24,9 +41,24 @@
 
 ### Developer Tests and Notes
 
-- Genetics audit verification: 131 PDF pages accounted for; 3,790 non-header extracted
+- Compare the 2018 exam with 2017: shared question families but different structure and all
+  three SA prompts changed. Identify `old_exam1-midterm.pdf` as a legacy 2017 copy. Verify
+  eight ODT copies are byte-identical; inspect PDF pages 1, 9 and 10. New Markdown retains
+  289 nonblank non-header source lines, with ten page locators and explicit source limits.
+  Search/comparison and byte-copy receipts: ignored `output_2018_midterm_search/`.
+- Lecture audit: extract 61 instructional 2025 PDFs (2,417 pages) and inspect 58 paired
+  ODPs; inspect 40 maintained 2026 PDFs/39 ODPs, of which 34 PDFs (1,261 pages) are
+  instructional after announcement/`xlect` exclusion. Check source locators, notes and
+  decisive rendered pages. Keep full text/hash manifests in ignored `output_genetics_audit/`.
+  Treat current source coverage separately from classroom delivery or BPQ runtime acceptance.
+- Biochemistry conversion checks: four files, 38 page locators, one H1 each, balanced
+  fences, ASCII, image-free content, valid source links and full extracted-text retention.
+  Source PDF hashes verified. The book validator's filename convention is superseded by
+  the instructor's requested lower snake_case artifact names. Evidence lives in ignored
+  `output_biochemistry_markdown/`; this documentation-only change does not require pytest.
+- Genetics audit verification: 141 PDF pages accounted for; 4,079 non-header extracted
   lines retained; source PDF hashes, local links, ASCII, headings, fences, and absence
-  of embedded images checked. Inspect 24 rendered source pages. The book-to-markdown
+  of embedded images checked. Inspect 27 rendered source pages. The book-to-markdown
   validator reports only its book-specific filename convention, intentionally superseded
   by this repository's exam Markdown naming. No generator execution or full pytest run;
   this task changes documentation only. Local evidence: output_genetics_audit/.

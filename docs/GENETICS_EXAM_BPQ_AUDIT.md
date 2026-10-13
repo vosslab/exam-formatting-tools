@@ -1,14 +1,21 @@
 # Genetics exam and BPQ audit
 
-Date: 2026-10-13. Purpose: distinguish useful BPQ expansion from historical exam content that
-has intentionally left the course. This is a source-content audit, not a generator release test.
+Date: 2026-10-13. Purpose: align BPQ with current teaching, using historical exams as examples
+of reasoning. Current lecture material and the instructor's scope decisions establish expansion
+relevance. This is a source-content audit, not a generator release test.
 
 ## Findings and course scope
 
-The genetics task lists cover the main current course areas. The most useful remaining work is
-**deeper reasoning within existing areas**, especially pedigree carrier inference, Z-linked bird
-crosses, combined inheritance probabilities, and chromosome dosage after fertilization.
-Existing implementations already cover several apparent gaps in the earlier inventory-only audit.
+The genetics task lists cover the main current course areas. The strongest remaining work is
+**deeper reasoning within existing areas**: pedigree carrier inference, phenotype-conditioned
+genotype probabilities, Z-linked lethal crosses, and unequal successful-gamete probabilities.
+Existing implementations cover much reverse inference and mixed AD + XLR reasoning. A selected-
+offspring probability generator already exists outside these task lists and is a reuse candidate.
+
+The [GENETICS_LECTURE_BPQ_AUDIT.md](GENETICS_LECTURE_BPQ_AUDIT.md) compares the supplied 2025/2026
+lecture material. It supersedes the original exam-led expansion order: AR + XLR multigeneration,
+combined incomplete-dominance/epistasis, and Robertsonian dosage calculations remain documented
+exam gaps, but current lectures do not establish them as leading expansion needs.
 
 The instructor clarified the following during this audit. These decisions override priorities
 in the earlier [GENETICS_EXAM_BPQ_AUDIT.md](archive/GENETICS_EXAM_BPQ_AUDIT.md):
@@ -24,23 +31,31 @@ in the earlier [GENETICS_EXAM_BPQ_AUDIT.md](archive/GENETICS_EXAM_BPQ_AUDIT.md):
 | Distance-matrix interpretation for trees | Scaled back; better tree assessments now available | Preserve existing options; prioritize topology/relationship questions, not expanded reconstruction |
 
 Primer design, transcription, and older laboratory-method questions are recorded below, but their
-historical presence alone does not establish a current teaching need. No course task lists or BPQ
+historical presence alone does not establish a current teaching need. Residual slides containing
+retired material also do not override the instructor's decisions. No course task lists or BPQ
 implementations were changed. Recommendations are candidates, not a newly approved syllabus.
 
 ## Evidence and interpretation
 
-Reviewed all nine exam PDFs (131 pages), the six corresponding native DOCX/ODT files, the archive
+Reviewed all ten exam PDFs (141 pages), the seven corresponding native DOCX/ODT files, the archive
 source manifest, both current genetics task CSVs, and the student-facing question construction in
-relevant BPQ Python/YAML sources. Read every PDF's extracted text and inspected 24 selected rendered
+relevant BPQ Python/YAML sources. Read every PDF's extracted text and inspected 27 selected rendered
 pages covering helices, probe maps, gels, mitosis, pedigrees, tables, translocations, and trees.
 Native formats corroborate question text and expose extraction differences; they are not counted
 as additional exams. The 2019 and 2025 PDFs have later export dates, so filenames identify the exam
 family, not a verified date of classroom administration.
 
+The follow-up lecture survey reviews 61 instructional 2025 PDFs (2,417 pages), 58 paired ODPs,
+and 40 PDFs/39 ODPs from the maintained 2026 first-unit/root lecture-06 sources. The 2026 set has
+34 instructional PDFs (1,261 pages) after announcement/`xlect` exclusion. The lecture audit gives
+source-selection rules, page locators, scope conflicts and coverage decisions. `OLD-*` and `PREVIEW`
+copies do not independently establish current teaching. No maintained 2026 second-unit successor
+is present in the supplied folder; 2025 later-unit exercises are provisional relevance evidence.
+
 The prior audit omitted the 2017 final and did not have local BPQ source access. It is retained as
 historical evidence. This document supersedes its coverage judgments and proposed expansion order.
 
-Use [GENETICS_EXAMS_INDEX.md](../ARTIFACTS/GENETICS_EXAMS_INDEX.md) to open the searchable,
+Use [genetics_exams_index.md](../past-exams/genetics_exams_index.md) to open the searchable,
 image-free Markdown companions and original PDFs. The companions preserve question wording,
 choices, text tables, and numbering; they are intentionally lossy and are not answer keys.
 
@@ -77,16 +92,20 @@ source locators, not claims about what is published on the website or committed 
 - T1 SHA-256: `6cb99f135cfcde057867ccd9e85275587750b445ee72e85cdcb06ec18b106426`.
 - T2 SHA-256: `d6a1053eeb31fa2c24f8627272d8faba58fb32c8446d32deb05e695d6a7329d9`.
 
-The [genetics_exam_sources.tsv](../ARTIFACTS/genetics_exam_sources.tsv) has 79 source rows;
-11 rows map to the six older representative PDFs added in the archive cleanup. Their MD5 values
+The [genetics_exam_sources.tsv](../ARTIFACTS/genetics_exam_sources.tsv) has 80 source rows;
+14 rows map to the seven older representative PDFs retained after the 2018 recovery. Their MD5 values
 match the actual artifacts. The manifest is not a complete provenance record for the pre-existing
-2019 final and 2025 native/PDF sets. Set-aside files and the incomplete 2018 midterm are outside
-this audit. The manifest's set-aside directory is not present in this checkout.
+2019 final and 2025 native/PDF sets. Set-aside variants remain outside this audit. The 2018 midterm
+is retained with its ten-page PDF limitation: all 89 MC and three SA prompts are present; the
+later-edited ODT's bonus section and changed skip instructions are not merged into the PDF text.
+The manifest's set-aside directory is not present in this checkout.
 
-## Current-course coverage matrix
+## Exam-skill coverage matrix
 
 References use M = midterm, F = final, Q = numbered selected-response item, SA = short answer.
 Numbers restart in SA and Fun Points. Page references below are PDF page numbers, starting at one.
+This matrix records technical coverage of exam skills. Expansion priority additionally requires
+current teaching support; an exam-only skill can remain partial without becoming required work.
 
 ### Foundations and DNA analysis
 
@@ -115,13 +134,13 @@ Numbers restart in SA and Fun Points. Page references below are PDF page numbers
 | C16 | ABO possible offspring/parent types and family constraints: 2016 M Q42; 2017 M Q62-63,73; 2025 M Q62-63; F Q54-55 | T1 `I/blood_type_offspring.py` returns possible child phenotypes; `blood_type_mother.py` infers possible mother types from father/child | Covered for possibility sets; partial for exact probabilities after inferring genotypes from several relatives or for reverse father-specific wording |
 | C17 | Lethality and conditioning on survival: 2016 M Q55; 2025 M Q64 | T1 `I/lethal_allele_survival.py` explicitly distinguishes all offspring, surviving offspring, expected counts, and phenotype ratios | Covered for one autosomal lethal locus. The old two-locus surviving subset is a meaningful extension, not a missing lethal-allele topic |
 | C18 | Standard epistasis ratios, metabolic explanations, F2/testcross conversion: 2016 M Q57-58; 2017 M SA3; 2019 M SA4; 2025 M Q47-53; F Q40-46 | T1 `I/epistasis/dihybrid_cross_epistatic_gene_interactions.py`, `dihybrid_cross_epistatic_gene_metabolics.py`, `epistasis_test_cross.py --forward/--inverse` | Covered for identifying interactions and ratios. `hybridcrosslib.py` includes 10:3:3 and 12:4 as well as standard ratios; unusual wording alone is not a gap |
-| C19 | Combine epistasis with incomplete dominance and derive a new ratio: 2025 M SA3, p12 | C18 models complete-dominance phenotype partitions; ratios in `I/hybridcrosslib.py:70-83` omit this model. Unlisted `two_gene_dominance_probability.py` treats independently expressed traits without masking | Partial; real missing interaction, even though both component concepts exist |
+| C19 | Combine epistasis with incomplete dominance and derive a new ratio: 2025 M SA3, p12 | C18 models complete-dominance phenotype partitions; ratios in `I/hybridcrosslib.py:70-83` omit this model. Unlisted `two_gene_dominance_probability.py` treats independently expressed traits without masking | Partial technical coverage; current slides teach the concepts separately. The exam alone does not establish expansion priority |
 | C20 | Identify inheritance from pedigrees or choose a matching pedigree: 2017 M Q60; 2017 F Q50-53; 2019 M Q67-70; 2025 M Q58-61 | T1 `I/pedigrees/write_pedigree_to_pattern.py`, `write_pattern_to_pedigree.py`, `write_pedigree_pattern_matching.py` provide identify/select/matching tasks | Covered. Both autosomal-only and full inheritance-pattern rows are configured |
 | C21 | Infer named individuals' genotypes, obligate carriers and conditional carrier probabilities; draw a pedigree from prose: 2016 M SA1; 2017 M Q61, SA1; 2017-2019 F pedigree SA; 2019 M SA1; 2025 M SA2 and F SA1 | C20 asks for inheritance mode. `pedigree_lib` contains compatibility/genotype machinery, but its configured student tasks do not ask for these individual-level results | Partial/high priority. Probability diagnostics under `pedigree_lib/offspring_probability.py` evaluate fixed crosses; they are not a student carrier-inference generator |
 | C22 | X-linked reciprocal crosses and reverse inference from sex-by-phenotype counts: 2016 M Q64-65; 2017 F Q54-55; 2019 F Q67-68; 2025 M Q81; F Q70 | T1 `I/x_linked_reciprocal_cross.py` predicts F1; `poisson_flies.py:125-178` presents counts and asks parental genotypes | Covered for forward F1 and reverse parent inference. `poisson_flies.py` is not merely a probability-distribution topic; an F2/grandchild follow-up is a further step |
 | C23 | Autosomal-dominant plus X-linked-recessive joint probabilities: 2016 M Q66-75; F Q32-38; 2017 M Q80-84; 2019 M Q87-89 | T1 `I/dominant_and_X-linked_recessive.py` and `_variations.py` construct family stories and sex-conditioned joint events | Covered for their AD + XLR model. Do not generalize that coverage to every pair of inheritance models |
-| C24 | Autosomal-recessive plus XLR carrier/affected union, then transmission to a grandson: 2025 M Q82-84, p8 | C23 is specifically autosomal dominant plus XLR and asks phenotype events. C21 is pattern classification; neither supplies this AR + XLR, carrier-or-affected, multigeneration task | Partial/high priority; retain the reasoning but review and replace the questionable disease story |
-| C25 | Z-linked codominance and lethal-allele crosses: 2016 M SA8; 2019 F extra SA2; 2025 M Q66, SA1; F Q56 | T1 `YM/inheritance/sex_determination.yml` defines ZW; `x_linked_tortoiseshell.py` handles an X-linked heterozygote phenotype; C17 handles autosomal lethality | Not found as Z-linked student crosses; adjacent implementations are not equivalent. Current 2025 evidence makes this a stronger expansion candidate than retired molecular topics |
+| C24 | Autosomal-recessive plus XLR carrier/affected union, then transmission to a grandson: 2025 M Q82-84, p8 | C23 is specifically autosomal dominant plus XLR and asks phenotype events. C21 is pattern classification; neither supplies this AR + XLR, carrier-or-affected, multigeneration task | Partial technical coverage; current lecture examples use already-covered AD + XLR. Keep as an exam-led candidate requiring teaching confirmation and disease-story review |
+| C25 | Z-linked codominance and lethal-allele crosses: 2016 M SA8; 2019 F extra SA2; 2025 M Q66, SA1; F Q56 | T1 `YM/inheritance/sex_determination.yml` defines ZW; `x_linked_tortoiseshell.py` handles an X-linked heterozygote phenotype; C17 handles autosomal lethality | Not found as Z-linked student crosses. The 2025/2026 lecture lethal/survivor model directly supports priority; codominance is a secondary exam-led variant |
 | C26 | Inversion-associated mating rules and joint sex/stripe probabilities: 2017 F Q88-89; 2018-2019 F Q87-88; 2025 F Q62-63 | C12/C14 supply independent segregation reasoning but no sparrow-style constrained mating scenario; rearrangement YAML defines inversion | Partial/contextual extension. Simple 1/2 and 1/4 predictions may reuse cross logic; the 2019 draft's absent-gene model is a separate, unfinished case |
 | C27 | Exactly k boys/girls among n offspring: 2016 F Q47; 2017 M Q92; 2018 F Q41; 2019 M Q91 | T1 `I/probabiliy_of_progeny.py:330-383` explicitly asks this binomial problem | Covered; spelling of the source filename is intentional in this locator |
 
@@ -138,9 +157,9 @@ Numbers restart in SA and Fun Points. Page references below are PDF page numbers
 | C34 | Cytogenetic notation, named aneuploidies, chromosome arms/bands: 2017 F Q84-86; 2018-2019 F Q84-85; 2025 F Q1-6,88 | T2 all five `I/cytogenetic_notation/cytogenetic_notation-*.py` sources | Covered for syndrome/notation interpretation. The molecular cause of light/dark G bands is a separate older concept |
 | C35 | Rearrangement names, chromosome shapes and pericentric-inversion effects: 2016 F Q78,81; 2017-2019 F Q78-83 | T2 `YM/inheritance/chromosome_alterations.yml`, `chromosome_shapes.yml`; C34 rearrangement interpretation | Covered for terminology; partial for deriving a changed centromere position/shape from a specified rearrangement, and auto- vs allopolyploid origin |
 | C36 | Reciprocal translocation products and adjacent-1/adjacent-2/alternate gametes: 2016 F Q71-77; 2019 F Q89, SA2; 2025 F Q89,92-97 | T2 `I/translocation/letter_translocation_problem_color.py`; `translocation_meiosis_table.py:12-134` asks students to select two gametes for a named segregation type | Covered for products/classification (exam and generator reverse the direction of the matching). Partial for constructing all gametes, assigning probabilities and explaining viability |
-| C37 | Robertsonian gamete leading to trisomy after fertilization: 2025 F Q98, p13 | T2 `I/translocation/robertsonian.py:10-16` asks which gamete arose by alternate segregation, not which produces Down syndrome after fertilization | Partial/high-value extension: carry chromosome-arm dosage through fertilization rather than classify segregation alone |
+| C37 | Robertsonian gamete leading to trisomy after fertilization: 2025 F Q98, p13 | T2 `I/translocation/robertsonian.py:10-16` asks which gamete arose by alternate segregation, not which produces Down syndrome after fertilization | Partial technical coverage; lecture defines fusion/association without this dosage calculation. Defer until current instruction supports the task |
 | C38 | Monoploid/haploid/gamete chromosome counts: 2016 F Q82; 2017-2019 F Q77; 2025 F Q90-91 | T2 `I/polyploid/polyploid-monoploid_v_haploid.py`, `polyploid-gametes.py` explicitly ask both | Covered |
-| C39 | X dosage compensation, Barr bodies, species-specific sex determination/fertility: 2016 F Q79-80; 2017 F Q87; 2018-2019 F Q86; 2019 M SA2; 2025 F Q87 | T1 sex-system YAML and tortoiseshell crosses are related; T2 aneuploidy scripts identify human karyotypes. No matching Barr-body or Drosophila X:autosome-ratio problem found | Partial; optional conceptual extension if still taught. Avoid treating XY vs ZW terminology as coverage of dosage mechanisms |
+| C39 | X dosage compensation, Barr bodies, species-specific sex determination/fertility: 2016 F Q79-80; 2017 F Q87; 2018-2019 F Q86; 2019 M SA2; 2025 F Q87 | T1 sex-system YAML and tortoiseshell crosses are related; T2 aneuploidy scripts identify human karyotypes. No matching Barr-body or Drosophila X:autosome-ratio problem found | Partial; 2026 lecture-06E directly supports X:A reasoning. Barr-body content is visible in the later 2025 dosage deck; keep later-unit additions provisional |
 | C40 | Allele/genotype frequencies and consequences of nonrandom mating: 2016 F Q91-93; 2017-2018 F Q90,92-93; 2019 F Q90-92,100 | T2 `I/hardy_weinberg/hardy_weinberg_numeric.py` computes allele frequency from genotype/phenotype data; `hardy_weinberg_mc_type.py` identifies p/q/p^2/2pq/q^2; population-genetics YAML explicitly includes consanguinity and increased homozygosity | Covered for genotype-count allele frequency, variable identification and qualitative inbreeding effects. The configured numeric default is `--1a`; disease-incidence/dominant-phenotype variants `--2a/--2b` exist but are not selected by the current row. Partial for direct numerical carrier/homozygote frequency outputs where numeric templates ask for p or q |
 | C41 | Topology equivalence/difference and closest relationships: 2016 F Q83; 2017-2018 F Q91; 2025 F Q99 | T2 `I/phylogenetic_trees/gene_tree_matches_plus.py --same/--different` directly asks topology equivalence | Covered; aligns with the instructor's preferred direction for tree assessment |
 | C42 | Distance matrix to tree, closest pair, branch length, matrix completion and drawn reconstruction: 2016 F Q84-86; 2017 F Q94-96, SA3; 2018 F Q94-96, SA4; 2019 F Q93-95, SA4; 2025 F Q100 | T2 `I/phylogenetic_trees/gene_tree_choice_plus.py:455-518` actually presents a distance matrix and asks students to select a tree | Covered for matrix-to-tree selection; partial for intermediate arithmetic and free drawing. Deliberately scaled back; no expansion priority |
@@ -167,28 +186,29 @@ backlog. An existing generator elsewhere is a reuse lead only if that material r
 
 ## Expansion priorities
 
-Priorities follow the instructor's scope clarification, recurrence, and distinct reasoning value.
-An additional unlisted reuse lead is `I/two_gene_selected_offspring_bonus.py`: it conditions on a
-selected plant offspring's phenotype before predicting a second cross. That is useful probability
-infrastructure, but it does not supply pedigree carrier inference or the AR + XLR family task.
-A question family can be reused in several formats; adding formats alone is not a content priority.
+Priorities follow the instructor's scope decisions and visible current lecture exercises, then
+distinct reasoning value and existing implementation. The full lecture/source comparison is in
+[GENETICS_LECTURE_BPQ_AUDIT.md](GENETICS_LECTURE_BPQ_AUDIT.md). Repeated historical exam appearances
+do not establish current relevance. A question family can be reused in several formats; adding
+formats alone is not a content priority.
 
 | Rank | Candidate | Smallest useful student task | Existing owner to extend | Completion evidence for future implementation |
 | --- | --- | --- | --- | --- |
-| 1 | Individual-level pedigree inference (C21) | Identify obligate carriers, select possible genotypes for a named person, and calculate carrier probability conditional on being unaffected | Existing pedigree model/solver and question writers | One visible pedigree supports an independently checked answer; distinguish certainty, possibility and conditional probability; include a 2/3 unaffected-sibling case and an obligate-carrier case |
-| 2 | Z-linked crosses (C25) | Predict sons/daughters for a ZZ x ZW cross with codominance; separately condition on survival for a Z-linked lethal | Inheritance cross/scenario layer, reusing display conventions from X-linked tasks | Enumerated gametes agree with each sex-specific outcome; denominator states all offspring vs one sex vs survivors; lethal expression in hemizygous females is explicit |
-| 3 | Joint carrier and multigeneration probability (C24) | Combine AR carrier-or-affected status with XLR carrier status; follow transmission to a grandson | Mixed-inheritance probability source, sharing cross logic rather than copying stories | Independently enumerate both loci, carry the correct conditioning information forward, and avoid impossible or contradictory parental histories |
-| 4 | Combined epistasis/incomplete dominance (C19) | Derive phenotype probabilities from a genotype-to-phenotype rule table; optionally derive F2 and testcross ratios | Existing epistasis/plant probability helpers | All 16 equally weighted F2 cells give the stated ratio. The 2025 model implies dark blue:light blue:white:pink = 3:6:3:4; testcross gives 0:1:1:2. Keep model rules explicit |
-| 5 | Chromosome dosage after fertilization (C37, part of C36) | Given a gamete from a Robertsonian carrier and a normal partner, identify the resulting dosage/outcome | Existing translocation rendering and gamete representation | Trace each chromosome arm through fertilization. Distinguish balanced carrier, normal dosage, trisomy and monosomy; avoid inferring outcome solely from the segregation label |
-| 6 | Small graded intermediate steps (C32, C30) | Label a tetrad PD/NPD/TT for a named gene pair; or select a p-value interval from a supplied chi-square table | Existing mapping/statistics scenario generators | Reuse the same input data across prompts with independent keys; do not expose a solved table that answers the new question |
-| 7 | Focused probability variants (C14-C17) | Specific multilocus outcome, ABO probability after family inference, or dominance probability instead of classifying dominance | Existing cross/ABO sources; inspect unlisted `two_gene_dominance_probability.py` first | Demonstrate the reasoning missing from current tasks; avoid duplicating unique-count or standard monohybrid questions |
+| 1 | Individual genotype/carrier inference and phenotype conditioning (C21) | Identify obligate carriers/possible genotypes, then calculate a conditioned probability; include a simple dominant-phenotype 2/3 case | Existing pedigree model/solver and question writers | Distinguish certainty, possibility and probability; state the parental information and reference group. Current 2026 lectures 05C/05D/05E directly support these steps |
+| 2 | Z-linked lethal crosses (C25) | Predict sons/daughters and living-offspring ratios for a ZZ x ZW cross with an explicit lethal model | Inheritance cross/scenario layer, reusing X-linked display conventions | Enumerate gametes; distinguish all offspring, one sex and survivors; specify hemizygous female expression. Current 2026 lecture 06D contains the full worked task |
+| 3 | Unequal successful-gamete probability | Normalize pollen success weights and calculate genotype probabilities with a weighted Punnett square | Existing cross/probability scenario helpers | Gamete weights sum to one and cell products give independently checked totals. Current 2026 lectures 05D-v2/05G explicitly teach the unequal-pollen problem; no matching writer found |
+| 4 | Selected-offspring descendants, using existing BPQ | Condition on the selected parent's phenotype, then predict its testcross descendants | Review unlisted `I/two_gene_selected_offspring_bonus.py` for course inclusion | Its student-facing prompt and distractors already test conditioning. Check fit to current lecture 05G and simplify if needed; another generator is not automatically required |
+| 5 | Drosophila X:autosome reasoning (C39) | Given X and autosomal sets, identify the modeled sex/viability outcome | Existing sex-system/cross infrastructure | State the autosomal complement; distinguish species-specific models. Current 2026 lecture 06E supports the task |
+| 6 | Small graded tetrad classification (C32) | Label PD/NPD/TT for a named gene pair before deriving distances | Existing mapping scenario generators | Reuse the same data with independent keys. The later 2025 activity directly teaches these steps; confirm continued later-unit scope when 2026 material is maintained |
+| 7 | Focused numerical dominance/ABO variants (C14-C17) | Calculate offspring probability after genotype inference rather than only classify dominance or list possibilities | Existing cross/ABO sources; review unlisted `two_gene_dominance_probability.py` first | Demonstrate the missing answer target; preserve equal-assortment versus unequal-gamete assumptions; avoid duplicating unique-count questions |
 
-Ranks 1-5 are the strongest candidates from the 2025 exams. Rank 6 is useful for diagnosis/scaffolding,
-not evidence that mapping or chi-square is generally absent. Rank 7 is smaller or more historical.
-Double-enzyme digestion, full HLA enumeration, mitosis micrographs, dosage compensation, and
-inversion-based contexts remain secondary candidates whose current lecture relevance should govern
-selection. Inbreeding and expanded distance-matrix reconstruction stay deferred. Retired molecular
-and history topics stay outside the proposed current-course expansion.
+Reciprocal-translocation viability, chi-square table intervals, genome/exome/SNP assay comparison,
+and later-unit dosage/polyploid probability remain secondary candidates with source evidence in
+the lecture audit. AR + XLR multigeneration (C24), combined incomplete-dominance/epistasis (C19),
+and Robertsonian fertilization dosage (C37) require teaching confirmation before expansion.
+The archived C19 model implies dark blue:light blue:white:pink = 3:6:3:4 and testcross = 0:1:1:2;
+that technical gap is retained without recommending its restoration. Inbreeding and expanded
+distance-matrix reconstruction stay deferred. Retired molecular/history topics remain excluded.
 
 ### Preserve constructed reasoning
 
@@ -210,7 +230,7 @@ separate proposed generators. Each exam heading links its searchable companion.
 
 ### 2016 midterm
 
-[2016_GENETICS_MIDTERM.md](../ARTIFACTS/2016_GENETICS_MIDTERM.md), 13 PDF pages.
+[2016_genetics_midterm.md](../past-exams/2016_genetics_midterm.md), 13 PDF pages.
 
 | Location | Content accounted for |
 | --- | --- |
@@ -227,7 +247,7 @@ separate proposed generators. Each exam heading links its searchable companion.
 
 ### 2016 final
 
-[2016_GENETICS_FINAL.md](../ARTIFACTS/2016_GENETICS_FINAL.md), 11 PDF pages.
+[2016_genetics_final.md](../past-exams/2016_genetics_final.md), 11 PDF pages.
 
 | Location | Content accounted for |
 | --- | --- |
@@ -242,7 +262,7 @@ separate proposed generators. Each exam heading links its searchable companion.
 
 ### 2017 midterm
 
-[2017_GENETICS_MIDTERM.md](../ARTIFACTS/2017_GENETICS_MIDTERM.md), 13 PDF pages.
+[2017_genetics_midterm.md](../past-exams/2017_genetics_midterm.md), 13 PDF pages.
 
 | Location | Content accounted for |
 | --- | --- |
@@ -257,7 +277,7 @@ separate proposed generators. Each exam heading links its searchable companion.
 
 ### 2017 final
 
-[2017_GENETICS_FINAL.md](../ARTIFACTS/2017_GENETICS_FINAL.md), 15 PDF pages.
+[2017_genetics_final.md](../past-exams/2017_genetics_final.md), 15 PDF pages.
 This whole exam was absent from the prior audit's inventory.
 
 | Location | Content accounted for |
@@ -272,9 +292,26 @@ This whole exam was absent from the prior audit's inventory.
 | p13-14, SA3-4 | Complete matrix/draw tree; narrative consanguineous pedigree, evidence, carrier risk, inbreeding coefficient; C21,C42-C43 |
 | p15, Fun 1-4 | Star Wars, dwarves, eye riddle, relativity; excluded bonus |
 
+### 2018 midterm
+
+[2018_genetics_midterm.md](../past-exams/2018_genetics_midterm.md), ten physical PDF pages dated
+October 22, 2018, labeled pages 1-10 of 11. All 89 MC and three SA prompts are present. The source
+is distinct from 2017; the 2018 folder's `old_exam1-midterm.pdf` is a 2017 legacy copy.
+
+| Location | Content accounted for |
+| --- | --- |
+| p1, Q1-12 | Genetics/genomics/gene/genotype/genome terminology, mutant-screen inference, complementarity and Chargaff; C02,C04-C05 |
+| p2-3, Q13-30 | PCR primer/amplification and gene-product concepts, SNP terminology, single/double-enzyme linear/circular/long-strand maps, HLA, paternity/forensic gels and palindromes; C07-C09,C11 and historical molecular material |
+| p4-5, Q31-55 | AB-negative agglutination, dominance/F2 inference, ABO probability after family evidence, gamete/genotype/phenotype counts, albinism carrier, epistasis/testcross, inheritance interaction vocabulary and binomial sex count; C10,C12-C18,C27 |
+| p6-7, Q56-79 | Sex-determination systems, pedigree-pattern matching, X-linked statements, combined ABO + XLR genotype inference and sex-conditioned probabilities; C16,C20,C22-C24,C28 |
+| p8, Q80-89 | X-linked reciprocal fly cross and complete chi-square hypothesis/statistic/df/critical-value/p-interval/decision sequence; C22,C30 |
+| p9, SA1-2 | Drosophila sex/fertility from XX/XY/XXY/XO and intersex; explain Mendel's four principles with modern counterexamples; C12,C39 |
+| p10, SA3 | Z-linked lethal pigeon cross, gametes, sex-specific survival and carrier fractions; C25 |
+| ODT only | Fun Points: dwarves, surgeon riddle, peanuts puzzle, Star Wars matching and an omitted image. Later native skip instructions also differ. These are not merged into the dated PDF or treated as recovered PDF page 11 |
+
 ### 2018 final
 
-[2018_GENETICS_FINAL.md](../ARTIFACTS/2018_GENETICS_FINAL.md), 16 PDF pages.
+[2018_genetics_final.md](../past-exams/2018_genetics_final.md), 16 PDF pages.
 
 | Location | Content accounted for |
 | --- | --- |
@@ -290,7 +327,7 @@ This whole exam was absent from the prior audit's inventory.
 
 ### 2019 midterm
 
-[2019_GENETICS_MIDTERM.md](../ARTIFACTS/2019_GENETICS_MIDTERM.md), 14 PDF pages.
+[2019_genetics_midterm.md](../past-exams/2019_genetics_midterm.md), 14 PDF pages.
 
 | Location | Content accounted for |
 | --- | --- |
@@ -305,7 +342,7 @@ This whole exam was absent from the prior audit's inventory.
 
 ### 2019 final
 
-[2019_GENETICS_FINAL.md](../ARTIFACTS/2019_GENETICS_FINAL.md), 18 PDF pages;
+[2019_genetics_final.md](../past-exams/2019_genetics_final.md), 18 PDF pages;
 DOCX and ODT corroborate the additional draft material as well as the main exam.
 
 | Location | Content accounted for |
@@ -323,7 +360,7 @@ DOCX and ODT corroborate the additional draft material as well as the main exam.
 
 ### 2025 midterm
 
-[2025_GENETICS_MIDTERM.md](../ARTIFACTS/2025_GENETICS_MIDTERM.md), 13 PDF pages.
+[2025_genetics_midterm.md](../past-exams/2025_genetics_midterm.md), 13 PDF pages.
 
 | Location | Content accounted for |
 | --- | --- |
@@ -340,7 +377,7 @@ DOCX and ODT corroborate the additional draft material as well as the main exam.
 
 ### 2025 final
 
-[2025_GENETICS_FINAL.md](../ARTIFACTS/2025_GENETICS_FINAL.md), 18 PDF pages.
+[2025_genetics_final.md](../past-exams/2025_genetics_final.md), 18 PDF pages.
 
 | Location | Content accounted for |
 | --- | --- |
@@ -361,6 +398,10 @@ DOCX and ODT corroborate the additional draft material as well as the main exam.
 These observations affect interpretation and adaptation. They do not call for editing the archived
 exams, and the searchable copies preserve the supplied wording.
 
+- **2018 M recovery:** the dated PDF has ten physical pages labeled 1-10 of 11, but retains every
+  numbered MC and SA prompt. The ODT's last-edit timestamp is December 2019; it contains bonus
+  content and changes SA skip instructions. Preserve it as a later native companion, not proof of
+  the exact missing PDF page's wording. Eight native archive copies are byte-identical.
 - **2025 M numbering:** Q84 is followed by Q92 in PDF, DOCX, and ODT text. Do not report an
   extractor loss or manufacture Q85-91 from a stated total of 100.
 - **2025 M chi-square data:** the p9 story says 44 males/56 females while the table uses 39/61.
@@ -392,10 +433,10 @@ exams, and the searchable copies preserve the supplied wording.
 
 ## Verification and limits
 
-- All nine PDF text streams were read; companion conversion includes every non-header text line,
+- All ten PDF text streams were read; companion conversion includes every non-header text line,
   with deliberate character normalization and image-omission notes. PDF tables/formulas and
   images are not guaranteed to be fully reconstructible from Markdown.
-- All six native files were converted for comparison. The PDF is the reference for displayed
+- All seven native files were converted for comparison. The PDF is the reference for displayed
   numbering; native conversion can restart lists and produce verbose HTML tables. Native checks
   corroborate the 2025 skipped numbers/short answers and the 2019 additional draft material.
 - All 130 CSV rows were resolved to existing local source files. Coverage judgments inspect
