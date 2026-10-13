@@ -92,14 +92,17 @@ Matching Prompt is 11pt normal text with a 0.2 inch left indent and a -0.2 inch 
 
 ### Choice styles
 
-Choice paragraphs use a 0.13 inch left indent and 10pt text. The concrete `Choices 2` through `Choices 5` styles inherit the base Choice style and receive their tab stops from `layout_tab_stops` in the YAML configuration:
+Choice paragraphs use 10pt text with a 0.16 inch left indent and a -0.16 inch first-line
+indent. Labels start at the margin; wrapped lines hang beneath the answer text.
+The concrete `Choices 2` through `Choices 5` styles inherit the base Choice style and
+receive these Letter tab stops from `layout_tab_stops` (adapted proportionally for A4):
 
 | Columns | Tab stops in inches |
 | ---: | --- |
-| 2 | 3.78 |
-| 3 | 2.46, 4.80 |
-| 4 | 1.88, 3.63, 5.38 |
-| 5 | 1.53, 2.93, 4.33, 5.73 |
+| 2 | 3.65 |
+| 3 | 2.33, 4.67 |
+| 4 | 1.75, 3.50, 5.25 |
+| 5 | 1.40, 2.80, 4.20, 5.60 |
 
 The layout algorithm scores visible text width and selects a concrete `Choices N` style. Long five-choice sets fall back to one choice per paragraph before text can wrap underneath a neighboring choice. Choice paragraphs have a small configured space before them to separate answer options from the question stem. Text and image choices use paragraph tab stops by default; the optional `--native-tables` mode uses the dedicated table backend for preserved simple HTML tables.
 

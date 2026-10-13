@@ -1,7 +1,7 @@
 # 2018 genetics midterm: searchable exam text
 
-Source: [2018_genetics_midterm.pdf](../ARTIFACTS/2018_genetics_midterm.pdf).
-Native companion: [2018_genetics_midterm.odt](../ARTIFACTS/2018_genetics_midterm.odt).
+Source: `2018_genetics_midterm.pdf`.
+Native companion: `2018_genetics_midterm.odt`.
 Converted 2026-10-13.
 
 Lossy, image-free reference. Original question numbering, wording, choices and text tables

@@ -1,6 +1,6 @@
 # 2025 genetics final: searchable exam text
 
-Source: [2025_genetics_final.pdf](../ARTIFACTS/2025_genetics_final.pdf). Converted 2026-10-13.
+Source: `2025_genetics_final.pdf`. Converted 2026-10-13.
 
 Lossy, image-free reference. Original question numbering, choices and wording are retained.
 Figures, color, blank answer space and graphical table borders are omitted. Text-only

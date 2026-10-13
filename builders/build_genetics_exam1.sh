@@ -8,16 +8,13 @@ case "$paper_size" in
   *) echo "Usage: bash builders/build_genetics_exam1.sh [a4|letter]" >&2; exit 2 ;;
 esac
 
+rm -fr output_genetics_exam1
 mkdir -p output_genetics_exam1
 # Keep the same parents across all four questions and subsequent rebuilds.
-# Remove this JSON explicitly when a new random cross is wanted.
-if [[ ! -f output_genetics_exam1/large_cross.json ]]; then
-  (
-    source ../biology-problems/source_me.sh
-    python3 ../biology-problems/problems/inheritance-problems/large_crosses/unique_counts.py \
-      --num-genes 4 --save-scenario output_genetics_exam1/large_cross.json
-  )
-fi
+source ../biology-problems/source_me.sh
+python3 ../biology-problems/problems/inheritance-problems/large_crosses/unique_counts.py \
+   --num-genes 4 --save-scenario output_genetics_exam1/large_cross.json
+
 python3 converters/bbq_tasks_to_exam_yaml.py \
   --exam --title 'Exam 1: Genetics (2026) - Draft' \
   -i task_files/genetics_exam1.csv -o output_genetics_exam1/genetics_exam1.yaml

@@ -37,8 +37,8 @@ spacing:
   # fo:margin-top="0.1201in" / fo:margin-bottom="0.05in" on Question Heading.
   question_heading_space_before: 0.12
   question_space_after: 0.05
-  choice_indent: 0.13
-  choice_first_line_indent: 0
+  choice_indent: 0.16
+  choice_first_line_indent: -0.16
   choice_space_before_pt: 4
   matching_prompt_indent: 0.2
   matching_prompt_hanging: -0.2
@@ -109,21 +109,19 @@ matching_prompt_tab_stops:
   - 3.5
 
 layout_tab_stops:
-  # Tab stops are pre-offset by choice_indent (0.13") so inter-column gaps
-  # render evenly. OOXML tab stops are measured from page left margin, so
-  # the FIRST gap (from indent to first tab) would be short by `choice_indent`
-  # without this offset.
+  # Labels start at the left margin; wrapped text hangs at 0.16 inches.
+  # Tab stops are measured from the page left margin for evenly spaced columns.
   2:
-    - 3.78
+    - 3.65
   3:
-    - 2.46
-    - 4.80
+    - 2.33
+    - 4.67
   4:
-    - 1.88
-    - 3.63
-    - 5.38
+    - 1.75
+    - 3.50
+    - 5.25
   5:
-    - 1.53
-    - 2.93
-    - 4.33
-    - 5.73
+    - 1.40
+    - 2.80
+    - 4.20
+    - 5.60

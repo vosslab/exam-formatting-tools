@@ -1,6 +1,8 @@
 # 2019 biochemistry midterm: searchable exam text
 
-Sources: [2019_biochemistry_midterm.pdf](../ARTIFACTS/2019_biochemistry_midterm.pdf), [2019_biochemistry_midterm.docx](../ARTIFACTS/2019_biochemistry_midterm.docx), [2019_biochemistry_midterm.odt](../ARTIFACTS/2019_biochemistry_midterm.odt). Converted 2026-10-13.
+Sources: `2019_biochemistry_midterm.pdf`, `2019_biochemistry_midterm.docx`, `2019_biochemistry_midterm.odt`. Converted 2026-10-13.
+
+This companion follows a later native export of the 2019 midterm. It retains the academic questions but changes some answer-option lettering, skip instructions and bonus content. For the historical archive PDF wording, use [2019_biochemistry_midterm_original.md](2019_biochemistry_midterm_original.md).
 
 Lossy, image-free reference. The PDF is the question-numbering authority. Original wording, choices, tables and source page locations are retained as extracted text. Figures, molecular structures, graphs, colors, blank answer space and graphical table borders are omitted; consult the PDF for their exact content. Fixed-width blocks preserve extracted choice and table alignment. ASCII math is normalized, so stacked fractions, superscripts and diagram-dependent prompts can remain ambiguous. Source errors are preserved, not silently corrected.
 

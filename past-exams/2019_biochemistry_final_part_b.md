@@ -1,6 +1,8 @@
 # 2019 biochemistry final part b: searchable exam text
 
-Sources: [2019_biochemistry_final_part_b.pdf](../ARTIFACTS/2019_biochemistry_final_part_b.pdf), [2019_biochemistry_final_part_b.docx](../ARTIFACTS/2019_biochemistry_final_part_b.docx), [2019_biochemistry_final_part_b.odt](../ARTIFACTS/2019_biochemistry_final_part_b.odt). Converted 2026-10-13.
+Sources: `2019_biochemistry_final_part_b.pdf`, `2019_biochemistry_final_part_b.docx`, `2019_biochemistry_final_part_b.odt`. Converted 2026-10-13.
+
+This companion follows a later native revision of the 2019 final, part B. Several prompts and answer choices changed, including arabinose replaced by mannoheptulose in B8-B11. For the historical archive PDF wording, use [2019_biochemistry_final_part_b_original.md](2019_biochemistry_final_part_b_original.md).
 
 Lossy, image-free reference. The PDF is the question-numbering authority. Original wording, choices, tables and source page locations are retained as extracted text. Figures, molecular structures, graphs, colors, blank answer space and graphical table borders are omitted; consult the PDF for their exact content. Fixed-width blocks preserve extracted choice and table alignment. ASCII math is normalized, so stacked fractions, superscripts and diagram-dependent prompts can remain ambiguous. Source errors are preserved, not silently corrected.
 

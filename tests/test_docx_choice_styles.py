@@ -65,6 +65,9 @@ def test_text_choices_use_concrete_choices_n_style() -> None:
 	style_name = doc.paragraphs[-1].style.name
 	assert _CHOICES_N_PATTERN.match(style_name), style_name
 	assert doc.styles['Choice'].paragraph_format.space_before == docx.shared.Pt(4)
+	formatting = doc.styles['Choice'].paragraph_format
+	assert formatting.left_indent.twips == docx.shared.Inches(0.16).twips
+	assert formatting.first_line_indent.twips == docx.shared.Inches(-0.16).twips
 
 
 #============================================

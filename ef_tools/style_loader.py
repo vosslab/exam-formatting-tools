@@ -34,7 +34,8 @@ def for_paper_size(styles: dict, paper_size: str) -> dict:
 	page['header_right_tab'] = usable_width
 	# Keep the name/score block's width by moving its left edge with the right margin.
 	page['heading_block_tab'] += usable_width - base_width
-	indent = adapted['spacing']['choice_indent']
+	indent = (adapted['spacing']['choice_indent']
+		+ adapted['spacing']['choice_first_line_indent'])
 	for columns, stops in adapted['layout_tab_stops'].items():
 		adapted['layout_tab_stops'][columns] = [indent + (stop - indent) * ratio for stop in stops]
 	adapted['matching_prompt_tab_stops'] = [

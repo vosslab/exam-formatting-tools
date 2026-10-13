@@ -3,6 +3,7 @@
 # Standard Library
 import os
 import pathlib
+import types
 
 # PIP3 modules
 import pytest
@@ -120,6 +121,27 @@ def test_build_pythonpath_uses_repo_root_above_problems(task_repo: tuple, monkey
 #============================================
 def _no_reject(question: dict) -> str:
 	return ''
+
+
+#============================================
+@pytest.mark.parametrize('pool_size', [1, 2])
+def test_generate_candidate_samples_pool(monkeypatch: object, pool_size: int) -> None:
+	"""Cycling generators can supply later questions; short pools remain usable."""
+	lines = [f'MC\tQuestion {index}\tyes\tCorrect\tno\tIncorrect\n'
+		for index in range(pool_size)]
+
+	def fake_run(command: list, **kwargs: object) -> object:
+		output = pathlib.Path(kwargs['cwd']) / 'bbq-example-questions.txt'
+		output.write_text('\n' + ''.join(lines))
+		return types.SimpleNamespace(returncode=0)
+
+	def select_last(candidates: list) -> str:
+		return candidates[-1]
+
+	monkeypatch.setattr(ef_tools.bbq_tasks.subprocess, 'run', fake_run)
+	monkeypatch.setattr(ef_tools.bbq_tasks.random, 'choice', select_last)
+	task = {'script': 'example.py', 'args': [], 'label': 'example.py'}
+	assert ef_tools.bbq_tasks.generate_candidate(task, '') == lines[-1]
 
 
 #============================================

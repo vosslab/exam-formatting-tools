@@ -192,7 +192,8 @@ question per resolved task**. The quiz settings define `YMATCH` as the
 Matching generator and `YWHICH` as the "Which One?" multiple-choice
 generator, so each matching task row chooses exactly one of those formats.
 The website can keep its existing dual `YMATCH` alias. List-valued aliases in other settings
-still expand to one task per script. Each generator runs with `-d 1 -x 1`; an
+still expand to one task per script. Each generator runs with `-d 10 -x 10`, and
+the builder randomly selects one emitted question (smaller pools are accepted). An
 unusable candidate (skipped bbq type, or exam-mode rejection) triggers a
 fresh run, up to three attempts, then the task is reported as `SKIPPED` on
 stderr and left out.

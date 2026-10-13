@@ -92,7 +92,7 @@ source locators, not claims about what is published on the website or committed 
 - T1 SHA-256: `6cb99f135cfcde057867ccd9e85275587750b445ee72e85cdcb06ec18b106426`.
 - T2 SHA-256: `d6a1053eeb31fa2c24f8627272d8faba58fb32c8446d32deb05e695d6a7329d9`.
 
-The [genetics_exam_sources.tsv](../ARTIFACTS/genetics_exam_sources.tsv) has 80 source rows;
+The `genetics_exam_sources.tsv` has 80 source rows;
 14 rows map to the seven older representative PDFs retained after the 2018 recovery. Their MD5 values
 match the actual artifacts. The manifest is not a complete provenance record for the pre-existing
 2019 final and 2025 native/PDF sets. Set-aside variants remain outside this audit. The 2018 midterm

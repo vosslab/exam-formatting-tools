@@ -26,10 +26,10 @@ omits the most distant parental-genotype distractor (randomly breaking ties).
 All Chapter 7 chi-square questions are excluded because they are not on this exam.
 
 Circular digestion now also requests five consecutive choices at medium difficulty.
-Enumeration finds 38 valid medium circular maps, with bands {2,4,6} or {3,4,5}.
-Medium linear fragments fit five choices on 76 maps, but always yield {1,2,4,5};
-retain medium for this exam per instructor preference, with this predictable answer-set
-limitation recorded. The selection uses 100 answer rows.
+Medium digestion permits equal-sized fragments to co-migrate into one band.
+Medium linear fragments permit co-migration: 220 maps fit five choices across eight
+answer sets, with two to four correct bands from a 12 kb molecule cut three times.
+The selection uses 100 answer rows.
 
 ## Selection rules
 
@@ -128,13 +128,19 @@ Specific consolidation decisions:
 - Include both end-type and overhang-type questions.
 - Retain both ABO mother and offspring questions; use five agglutination choices.
 - Exclude probability of progeny as later-course content and include two random fly questions.
+  Both fly tasks use --random to sample parental crosses independently of question number.
+  The shared task runner also requests ten candidates per task and randomly selects one,
+  so cycling generators such as blood-type agglutination do not always supply question 1.
 - Retain separate linear fragment, linear strand, and circular digest tasks at medium level.
 - Three-marker HLA replaces the two-marker variant; medium profiles replace easy/hard copies.
 - One full-pattern matching block covers five inheritance modes, including the autosomal
   subset from Chapter 5. The catalog lists matching at easy level and medium pedigree-to-pattern
   MC; the exam's medium matching setting is an intentional difficulty/format combination.
 - The varied combined autosomal/X-linked generator replaces the fixed original scenario.
-- Include both F2-to-test-cross and test-cross-to-possible-F2 epistasis questions.
+- Include both F2-to-test-cross and test-cross-to-possible-F2 epistasis questions,
+  each using `--random` to select its prompt ratio independently of question number.
+- The gene-interaction identification task uses `--random` so independent single-question
+  runs can select any interaction instead of always starting with 9:3:3:1.
 - Both metabolic tasks opt into random pathway selection with `--random`; no interaction or ratio is pinned in
   the CSV. Repeated interaction types remain possible and are reviewed by the instructor.
   The generator's default batch mode cycles through interactions for even coverage.

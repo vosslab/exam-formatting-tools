@@ -1,6 +1,6 @@
 # 2019 genetics midterm: searchable exam text
 
-Source: [2019_genetics_midterm.pdf](../ARTIFACTS/2019_genetics_midterm.pdf). Converted 2026-10-13.
+Source: `2019_genetics_midterm.pdf`. Converted 2026-10-13.
 
 Lossy, image-free reference. Original question numbering, choices and wording are retained.
 Figures, color, blank answer space and graphical table borders are omitted. Text-only

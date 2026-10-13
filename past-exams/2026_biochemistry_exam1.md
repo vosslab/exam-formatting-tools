@@ -1,6 +1,8 @@
 # 2026 biochemistry exam1: searchable exam text
 
-Sources: [2026_biochemistry_exam1.pdf](../ARTIFACTS/2026_biochemistry_exam1.pdf), [2026_biochemistry_exam1.docx](../ARTIFACTS/2026_biochemistry_exam1.docx), [2026_biochemistry_exam1.odt](../ARTIFACTS/2026_biochemistry_exam1.odt). Converted 2026-10-13.
+Sources: `2026_biochemistry_exam1.pdf`, `2026_biochemistry_exam1.docx`, `2026_biochemistry_exam1.odt`. Converted 2026-10-13.
+
+This companion follows the later May 6 PDF revision. The `2026_biochemistry_exam1_original.pdf` and native companions follow the February 19 version. The extractable questions and choices match; the later PDF adds an alpha-helix/beta-sheet drawing hint in short-answer question 3(d). Native text is not merged into this later PDF snapshot.
 
 Lossy, image-free reference. The PDF is the question-numbering authority. Original wording, choices, tables and source page locations are retained as extracted text. Figures, molecular structures, graphs, colors, blank answer space and graphical table borders are omitted; consult the PDF for their exact content. Fixed-width blocks preserve extracted choice and table alignment. ASCII math is normalized, so stacked fractions, superscripts and diagram-dependent prompts can remain ambiguous. Source errors are preserved, not silently corrected.
 

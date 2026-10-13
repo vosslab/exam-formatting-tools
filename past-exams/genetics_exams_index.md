@@ -9,16 +9,16 @@ Each exam has its own lower snake_case Markdown file in tracked `past-exams/`.
 
 | Searchable text | PDF authority | Pages | Native companions |
 | --- | --- | ---: | --- |
-| [2016_genetics_final.md](2016_genetics_final.md) | [2016_genetics_final.pdf](../ARTIFACTS/2016_genetics_final.pdf) | 11 | None supplied |
-| [2016_genetics_midterm.md](2016_genetics_midterm.md) | [2016_genetics_midterm.pdf](../ARTIFACTS/2016_genetics_midterm.pdf) | 13 | None supplied |
-| [2017_genetics_final.md](2017_genetics_final.md) | [2017_genetics_final.pdf](../ARTIFACTS/2017_genetics_final.pdf) | 15 | None supplied |
-| [2017_genetics_midterm.md](2017_genetics_midterm.md) | [2017_genetics_midterm.pdf](../ARTIFACTS/2017_genetics_midterm.pdf) | 13 | None supplied |
-| [2018_genetics_final.md](2018_genetics_final.md) | [2018_genetics_final.pdf](../ARTIFACTS/2018_genetics_final.pdf) | 16 | None supplied |
-| [2018_genetics_midterm.md](2018_genetics_midterm.md) | [2018_genetics_midterm.pdf](../ARTIFACTS/2018_genetics_midterm.pdf) | 10 | [2018_genetics_midterm.odt](../ARTIFACTS/2018_genetics_midterm.odt); later edited; PDF page 11 absent |
-| [2019_genetics_final.md](2019_genetics_final.md) | [2019_genetics_final.pdf](../ARTIFACTS/2019_genetics_final.pdf) | 18 | [2019_genetics_final.docx](../ARTIFACTS/2019_genetics_final.docx), [2019_genetics_final.odt](../ARTIFACTS/2019_genetics_final.odt) |
-| [2019_genetics_midterm.md](2019_genetics_midterm.md) | [2019_genetics_midterm.pdf](../ARTIFACTS/2019_genetics_midterm.pdf) | 14 | None supplied |
-| [2025_genetics_final.md](2025_genetics_final.md) | [2025_genetics_final.pdf](../ARTIFACTS/2025_genetics_final.pdf) | 18 | [2025_genetics_final.docx](../ARTIFACTS/2025_genetics_final.docx), [2025_genetics_final.odt](../ARTIFACTS/2025_genetics_final.odt) |
-| [2025_genetics_midterm.md](2025_genetics_midterm.md) | [2025_genetics_midterm.pdf](../ARTIFACTS/2025_genetics_midterm.pdf) | 13 | [2025_genetics_midterm.docx](../ARTIFACTS/2025_genetics_midterm.docx), [2025_genetics_midterm.odt](../ARTIFACTS/2025_genetics_midterm.odt) |
+| [2016_genetics_final.md](2016_genetics_final.md) | `2016_genetics_final.pdf` | 11 | None supplied |
+| [2016_genetics_midterm.md](2016_genetics_midterm.md) | `2016_genetics_midterm.pdf` | 13 | None supplied |
+| [2017_genetics_final.md](2017_genetics_final.md) | `2017_genetics_final.pdf` | 15 | None supplied |
+| [2017_genetics_midterm.md](2017_genetics_midterm.md) | `2017_genetics_midterm.pdf` | 13 | None supplied |
+| [2018_genetics_final.md](2018_genetics_final.md) | `2018_genetics_final.pdf` | 16 | None supplied |
+| [2018_genetics_midterm.md](2018_genetics_midterm.md) | `2018_genetics_midterm.pdf` | 10 | `2018_genetics_midterm.odt`; later edited; PDF page 11 absent |
+| [2019_genetics_final.md](2019_genetics_final.md) | `2019_genetics_final.pdf` | 18 | `2019_genetics_final.docx`, `2019_genetics_final.odt` |
+| [2019_genetics_midterm.md](2019_genetics_midterm.md) | `2019_genetics_midterm.pdf` | 14 | None supplied |
+| [2025_genetics_final.md](2025_genetics_final.md) | `2025_genetics_final.pdf` | 18 | `2025_genetics_final.docx`, `2025_genetics_final.odt` |
+| [2025_genetics_midterm.md](2025_genetics_midterm.md) | `2025_genetics_midterm.pdf` | 13 | `2025_genetics_midterm.docx`, `2025_genetics_midterm.odt` |
 
 ## Conversion method
 

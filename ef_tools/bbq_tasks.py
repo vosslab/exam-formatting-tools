@@ -24,6 +24,7 @@ import csv
 import sys
 import glob
 import shlex
+import random
 import tempfile
 import subprocess
 
@@ -52,6 +53,8 @@ INPUT_FLAG = '-y'
 # and a fast, clear skip is the right outcome; variable-size generators
 # (matching sets, ORD) fit within one or two attempts.
 MAX_ATTEMPTS = 3
+# Sample from a batch so cycling generators do not always supply question 1.
+CANDIDATE_POOL_SIZE = 10
 # tail of generator stderr kept in error messages
 STDERR_TAIL_CHARS = 2000
 
@@ -214,7 +217,7 @@ def load_tasks(csv_path: str, settings: dict) -> list:
 
 #============================================
 def generate_candidate(task: dict, pythonpath: str) -> str:
-	"""Run the generator once and return its single bbq line.
+	"""Run the generator once and randomly select a line from its candidate pool.
 
 	The generator writes `bbq-*-questions.txt` into its working directory,
 	so each run gets a fresh temporary directory.
@@ -222,7 +225,8 @@ def generate_candidate(task: dict, pythonpath: str) -> str:
 	Raises:
 		RuntimeError: nonzero exit, or the output file is missing/ambiguous.
 	"""
-	command = [sys.executable, task['script'], *task['args'], '-d', '1', '-x', '1']
+	pool_size = str(CANDIDATE_POOL_SIZE)
+	command = [sys.executable, task['script'], *task['args'], '-d', pool_size, '-x', pool_size]
 	env = dict(os.environ)
 	env['PYTHONPATH'] = pythonpath
 	with tempfile.TemporaryDirectory() as workdir:
@@ -239,7 +243,7 @@ def generate_candidate(task: dict, pythonpath: str) -> str:
 			lines = [line for line in handle if line.strip()]
 	if not lines:
 		raise RuntimeError(f"{task['label']}: generator wrote no questions")
-	return lines[0]
+	return random.choice(lines)
 
 
 #============================================

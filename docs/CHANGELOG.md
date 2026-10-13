@@ -4,6 +4,13 @@
 
 ### Additions and New Features
 
+- Expand the searchable biochemistry archive from four to 29 Markdown artifacts,
+  organized as 18 dated exam groups plus three undated native sources. Recover
+  2011-2013, 2017, both 2018 terms, and the remaining 2026 exams from the supplied
+  file listings/checksums. Keep forms, final parts and later revisions distinct within
+  each year's two- or three-exam sequence. Preserve original 2019 PDF companions
+  alongside the previously converted later revisions, and label their differences.
+  Record source mappings in `ARTIFACTS/biochemistry_exam_sources.tsv`; update the index.
 - Recover the distinct 2018 genetics midterm from the original course folder and retain its
   PDF/ODT in `ARTIFACTS/`, with `past-exams/2018_genetics_midterm.md`. The October 22,
   2018 PDF contains 89 MC and three SA prompts on ten pages labeled 1-10 of 11.
@@ -30,6 +37,25 @@
 
 ### Behavior or Interface Changes
 
+- Retain medium linear fragment tasks at 12 kb and three cuts; the generator now
+  permits co-migration in medium mode, allowing eight band sets with five choices.
+- Request ten candidates per task with -d 10 -x 10 and randomly select one emitted
+  question, instead of always taking question 1. Accept smaller nonempty pools and
+  preserve existing rejection/retry handling and shared-scenario inputs. This applies
+  to exams and quizzes through the shared task runner.
+
+- Enable --random for both poisson_flies.py exam entries so single-question runs
+  no longer always select a homozygous wildtype mother and all-red offspring.
+
+- Enable --random for both forward and inverse epistasis_test_cross.py exam tasks;
+  avoid fixed first-ratio prompts in separate single-question generator invocations.
+
+- Use a default 0.16-inch hanging indent for answer choices, with labels at the
+  left margin and wrapped lines indented. Align multicolumn tabs with the label
+  origin and preserve that spacing when adapting to A4.
+- Enable --random on the epistatic gene-interaction exam task so separate generator
+  calls no longer always select the initial 9:3:3:1 case. Row and point counts are unchanged.
+
 - Follow the instructor's exam-artifact naming: keep the nine genetics companions and
   their index in tracked `past-exams/` with lower snake_case filenames. Update source
   links to `ARTIFACTS/` and audit links to the moved Markdown files.
@@ -41,6 +67,36 @@
 
 ### Developer Tests and Notes
 
+- Remove candidate-pool size assertions from permanent tests. Retain only selection
+  beyond the first item and singleton-pool support; changing the configured pool size
+  does not require editing a test. Treat generation counts and digest answer-set
+  enumerations as one-time implementation evidence, not permanent gates.
+
+- Audit scenario selection across all 54 Genetics Exam 1 task rows (30 distinct
+  generator entrypoints, including YAML aliases). Confirm agglutination's fixed first
+  blood type is addressed by shared batch sampling. All 54 real generator runs pass
+  with -d 10 -x 10; 11 focused task-runner tests pass. Digest sampling (160 trials per
+  mode), before allowing medium co-migration, finds one linear-fragment answer set
+  (1, 2, 4, 5 kb), ten linear-strand
+  sets, and two circular sets (2, 4, 6 kb and 3, 4, 5 kb). These are constraint-driven
+  diversity limits; batch selection alone does not remove them. The subsequent medium
+  co-migration change expands linear-fragment answers to eight sets; 400 generated
+  questions cover all eight with valid five-choice banks, and eight digest tests pass.
+  Existing exam outputs are
+  not regenerated.
+
+- Choice styles, image-choice layouts, and paper geometry: 35 passed. Inspect long
+  epistasis choices and five-column numeric choices in rendered A4 and Letter PDFs;
+  confirm hanging continuations and label alignment. Samples: /private/tmp/choice_hanging_review.
+
+- Biochemistry recovery: verify all 354 supplied MD5 rows (219 byte-unique files)
+  and account for 379 listed paths. Check 29 companions, 244 PDF page locators,
+  five native-only sources, source links, ASCII, headings, fences and text retention;
+  verify new binary copies against their originals. Six Blackboard bank inventories
+  repeat across four course folders and retain no question wording; preserve their
+  PDFs without counting them as searchable exams. Record native revisions and
+  missing bonus-page/export limitations. Evidence: ignored
+  `output_biochemistry_archive_search/`; documentation-only changes require no pytest.
 - Compare the 2018 exam with 2017: shared question families but different structure and all
   three SA prompts changed. Identify `old_exam1-midterm.pdf` as a legacy 2017 copy. Verify
   eight ODT copies are byte-identical; inspect PDF pages 1, 9 and 10. New Markdown retains

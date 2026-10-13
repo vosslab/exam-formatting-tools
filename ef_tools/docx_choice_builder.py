@@ -285,8 +285,8 @@ def add_image_choices_tabbed(doc: docx.Document, choices: list,
 	# Letter and image render side-by-side at each tab stop. Inherits
 	# left_indent from the Choices N style so image-choice rows align
 	# vertically with text-only Choices rows above/below them. Tab stops
-	# in assessment_styles/exam_styles.yaml -> layout_tab_stops are pre-offset by
-	# choice_indent so all inter-column gaps render evenly.
+	# in assessment_styles/exam_styles.yaml -> layout_tab_stops are measured
+	# from the first label's origin so inter-column gaps render evenly.
 	combined_para = doc.add_paragraph()
 	combined_para.style = doc.styles[style_name]
 	combined_para.paragraph_format.space_after = docx.shared.Pt(0)
