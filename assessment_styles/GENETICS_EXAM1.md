@@ -1,21 +1,22 @@
 # Genetics Exam 1 selection
 
 The draft selection is [genetics_exam1.csv](../task_files/genetics_exam1.csv).
-It covers the content of the local Quiz 1 and Quiz 2 task files plus the website's
-`task_files/genetics_tasks1.csv`, through Chapter 7: Chi Square Analysis.
+It selects Chapters 1-6 from the local Quiz 1 and Quiz 2 task files and the website's
+`task_files/genetics_tasks1.csv`. Chapter 7 is excluded at the instructor's request.
 This is a coverage draft for editing, with no instructor-specified length or point total yet.
 Shared formatting, numbering, matching, and ZipGrade rules are in [EXAM_STYLE.md](EXAM_STYLE.md).
 
 ## Recorded draft status
 
-The latest October 12 rebuild includes all 53 selected blocks with zero skips:
-93 numbered rows on 22 PDF pages. ZipGrade validation passed. The circular-digest
-page was visually checked; cuts at 1, 5, and 11 kb give bands 4, 6, and 2 kb,
-matching the key A/C/E in its consecutive 2-6 kb answer bank.
+The latest October 12 rebuild includes all 47 selected Chapter 1-6 blocks with zero skips:
+84 numbered rows on 19 PDF pages. Reconcile every task against the build trace, YAML,
+answer-key source label, and PDF question label: all match in order, with continuous
+numbering 1-84 and no Chapter 7. ZipGrade validation passes.
+
 Linear fragment and strand digests retain medium difficulty and request five choices,
 in a consecutive range containing every correct band and at least one distractor. Punnett-square selection requests five choices and
 omits the most distant parental-genotype distractor (randomly breaking ties).
-Chi-square calculation/decision is excluded because it was not covered for this exam.
+All Chapter 7 chi-square questions are excluded because they are not on this exam.
 
 Circular digestion now also requests five consecutive choices at medium difficulty.
 Enumeration finds 38 valid medium circular maps, with bands {2,4,6} or {3,4,5}.
@@ -44,7 +45,7 @@ limitation recorded. The default score line counts rows; final grading weights a
 | Autosomal-only and full pedigrees, both MC directions | Full-pattern pedigree matching |
 | Forward and inverse epistasis test-cross ratios | Forward direction |
 | Original and varied combined autosomal/X-linked crosses | Varied crosses |
-| Numeric chi-square calculation and calculation/decision MC | Excluded; not covered for this exam |
+| All Chapter 7 chi-square tasks | Excluded; not on this exam |
 
 Fragment, strand, and circular digests remain distinct: the endpoints and wraparound affect
 which lengths are counted. Paternity and forensic profiles remain distinct applications.

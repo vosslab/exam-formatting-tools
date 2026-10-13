@@ -60,6 +60,11 @@
 
 ### Behavior or Interface Changes
 
+- Follow the instructor's removal of all Chapter 7 tasks from Genetics Exam 1. Rebuild
+  Chapters 1-6: all 47 selected blocks, 84 numbered rows, zero skips, 19 PDF pages.
+  Reconcile every task with the build trace, YAML, answer key, and PDF labels; confirm
+  continuous numbering and Chapter 7 absence. ZipGrade validation passes.
+
 - Request five consecutive choices for medium circular digestion in Genetics Exam 1.
   Retain medium difficulty after enumerating valid maps; document the fixed answer-set
   limitation of medium linear fragments under the five-choice constraint. Final rebuild:
