@@ -132,7 +132,7 @@ def test_matching_prompt_style_is_registered_and_applied(tmp_path: object) -> No
 
 	Locks the style name (so a typo can't silently fall back to Normal),
 	the parent style, the two-column tab stops at 0.5" and 3.5", and the
-	1.25 line spacing -- the values verified against ARTIFACTS/2019_exam2-final.docx.
+	1.25 line spacing -- the values verified against ARTIFACTS/2019_genetics_final.docx.
 	"""
 	exam_data = _matching_yaml()
 	output_path = tmp_path / "matching_style.docx"

@@ -4,6 +4,18 @@
 
 ### Additions and New Features
 
+- Refine the genetics archive to complete representative exams, grouping alternate forms
+  and revised exports by content. Retain six new representatives (2016 and 2017 midterms
+  and finals, 2018 final, 2019 midterm), alongside the existing 2019 final and 2025 exams.
+  Move 46 imported variants, supporting files, and incomplete exports outside ARTIFACTS
+  to output_genetics_archive_review/set_aside; update source mappings. Exclude the
+  2018 midterm because its export contains only 10 of the stated 11 pages.
+
+- Archive all 52 byte-unique files from the 79 entries in genetics_exam.md5sum under
+  ARTIFACTS for later consideration, including listed supporting materials. Verify source
+  and destination MD5 checksums, preserve existing files, disambiguate filename collisions,
+  and record every source-to-artifact mapping in ARTIFACTS/genetics_exam_sources.tsv.
+
 - Audit the BBQ image loader's Bandit B310 finding: local-file access is intentional
   for trusted authored exam HTML in this closed pipeline. Document that boundary and
   suppress only this call-site finding; retain the repository security test.
@@ -59,6 +71,31 @@
   Genetics Exam 1 document focused on selection, coverage, and outstanding source banks.
 
 ### Behavior or Interface Changes
+
+- Opt both exam metabolic epistasis tasks into `--random`, preserving the generator's
+  default even batch coverage. Existing generated questions and exam artifacts are unchanged.
+
+- Audit all 73 Chapter 1-6 genetics homework catalog entries against exam coverage.
+  Add the inverse epistasis ratio task and a second randomly selected metabolic pathway;
+  retain one five-pedigree matching block. Preserve the original 47 questions and add two
+  questions for 49 blocks / 86 rows. Withdraw historical-only expansion suggestions and
+  document homework as the content boundary in the assessment-specific selection notes.
+  Regenerate DOCX/PDF (20 pages); verify preserved questions, task/key counts, numbering,
+  and ZipGrade compatibility. Generator checks: 404 focused tests pass; 70 single-question
+  samples exercise all seven interaction ratios. Instructor owns final visual review.
+
+- Standardize reference filenames as YEAR_subject_assessment with matching stems across
+  PDF/DOCX/ODT; update references and save a checksum-verified rename manifest. Set aside
+  redundant biochemistry exports with identical extracted content. Keep archive-specific
+  curation guidance in assessment documentation rather than Human Guidance.
+
+- Record the instructor's preference to keep point values out of assessment titles and
+  headings in Human Guidance and shared assignment, exam, and quiz style documentation.
+
+- Compare the generated Genetics Exam 1 with the archived 2025 genetics midterm,
+  including short answers. Record coverage and sampling gaps plus a proposed 16-row
+  expansion in assessment_styles/GENETICS_EXAM1.md. Distinguish the three biochemistry
+  Exam 1 PDFs from the genetics source; leave exam questions and selections unchanged.
 
 - Clarify the separate ZipGrade capacity criterion: at most 100 numbered answer rows,
   with one row per matching prompt or MC/MA question regardless of point weight.
@@ -527,7 +564,7 @@
 - Replaced the image-choice docx table layout with inline images positioned by paragraph tab stops; no docx tables are emitted for answer choices. Renamed `add_image_choices_table` to `add_image_choices_tabbed` in `ef_tools/docx_builder.py`; both YAML and HTML builders pass through the same tab-stop helper.
 - Added `matching_terms` support so matching prompts can span question-number ranges like `Q5-8.` and each matching term consumes its own numbered blank.
 - Reordered matching-question DOCX rendering to put lettered `choices_list` BEFORE the numbered `prompts_list` blanks, matching the reference exam style in `ARTIFACTS/`. Added `test_matching_renders_choices_before_prompts` to lock the order; updated `docs/YAML_EXAM_FORMAT.md` matching example accordingly.
-- Added a `Matching Prompt` paragraph style in `ef_tools/docx_builder.py` modeled on the legacy `Question` style from `ARTIFACTS/2019_exam2-final.docx` (verified via the LibreOffice style dialog): inherits from `Question Heading`, turns off bold and italic, `left_indent=0.2"` with `first_line_indent=-0.2"` (hanging), `space_before=0.07"`, `space_after=0`, `line_spacing=1.25`, `keep_with_next=False`, two left tab stops at `0.5"` and `3.5"` for two-column prompt layout. Switched matching `prompts_list` paragraphs to this style instead of generic `Choice`. `choices_list` continues to render via `add_choices_paragraph` using `Choices 2/3/4/5`.
+- Added a `Matching Prompt` paragraph style in `ef_tools/docx_builder.py` modeled on the legacy `Question` style from `ARTIFACTS/2019_genetics_final.docx` (verified via the LibreOffice style dialog): inherits from `Question Heading`, turns off bold and italic, `left_indent=0.2"` with `first_line_indent=-0.2"` (hanging), `space_before=0.07"`, `space_after=0`, `line_spacing=1.25`, `keep_with_next=False`, two left tab stops at `0.5"` and `3.5"` for two-column prompt layout. Switched matching `prompts_list` paragraphs to this style instead of generic `Choice`. `choices_list` continues to render via `add_choices_paragraph` using `Choices 2/3/4/5`.
 - Replaced `matching_terms` with bptools-style `prompts_list` + `choices_list` for matching questions (mirrors `MATCH(question_text, prompts_list, choices_list)` in `qti_package_maker/assessment_items/item_types.py`). `html_to_exam_yaml.py` now extracts the lettered (A./B./...) options into `choices_list` (with prefixes stripped) and the bond/term items into `prompts_list`; the lead-in prose stays in `statement` instead of carrying an inline `A. ... B. ...` enumeration. `docx_exam_builder.py` renders `choices_list` through the standard MC auto-layout so matching options look identical to MC choices. The legacy `matching_terms` field is no longer read or emitted.
 - Added `styles/exam_styles.yaml`, the style configuration expected by the DOCX builders.
 - Added tests for HTML exam builder and HTML-to-YAML helper functions.

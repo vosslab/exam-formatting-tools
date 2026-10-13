@@ -26,6 +26,7 @@ the machine-readable values.
 
 - Show the assessment title, student name line, and score line on the first page.
 - Group questions under clear chapter or topic headings.
+- Keep point values out of titles and headings; use the score line or instructions.
 - Keep a question's stem, figures, choices, and matching prompts together when they fit on a page.
   A question taller than a page can flow across pages.
 - Use one choice per line when longer choices are difficult to read in columns.

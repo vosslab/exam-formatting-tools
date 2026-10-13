@@ -27,3 +27,5 @@ origin belongs there too. Rules: [REPO_STYLE.md](REPO_STYLE.md).
   1/2 point (four matches = two points); each MC/MA question counts as one point.
 - Also track the number of questions as rows to fill in on ZipGrade, separately from
   points. My ZipGrade form has only 100 question bubble rows.
+- I prefer to keep point values out of headings for assignments, exams, and quizzes.
+- Human Guidance is for durable, reusable preferences, not one-off task instructions.

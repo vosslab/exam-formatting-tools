@@ -20,7 +20,8 @@ settings are documented in [EXAM_STYLE.md](EXAM_STYLE.md#shared-docx-formatting)
 ## Presentation
 
 - Show a clear quiz title, student name line, and score line.
-- Group related questions under topic headings; include scoring information when useful.
+- Group related questions under topic headings. Keep point values out of titles and
+  headings; put scoring information in the score line or instructions.
 - Keep matching choices and prompts easy to compare, with enough space to write each answer.
 - Use one choice per line for long statements rather than crowding neighboring columns.
 - Start a topic on a new page when its matching block or overall layout benefits. This is an

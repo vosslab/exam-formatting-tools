@@ -320,7 +320,7 @@ The builder applies these named paragraph styles automatically:
 | Question Heading | Questions following other questions or choices (normal flow) |
 | Question Follow | Questions following an image, table, or heading (after a visual break) |
 | Choices3 / Choices4 / Choices5 | Multiple choice answer rows |
-| Matching Prompt | Numbered fill-in lines for matching questions (`______ N. text`); two-column tab stops at 0.5" and 3.5", inherits from Question Heading. See `ARTIFACTS/2019_exam2-final.docx` |
+| Matching Prompt | Numbered fill-in lines for matching questions (`______ N. text`); two-column tab stops at 0.5" and 3.5", inherits from Question Heading. See `ARTIFACTS/2019_genetics_final.docx` |
 | Standard | Default body text |
 
 Style selection between "Question Heading" and "Question Follow" is automatic based on the preceding element.
