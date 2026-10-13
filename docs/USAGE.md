@@ -43,6 +43,22 @@ Assessment-specific coverage stays in the task CSV and selection notes, such as
 source source_me.sh && python3 converters/yaml_to_exam_docx.py -i exam_data.yml
 ```
 
+The converter defaults to US Letter. Use `--paper-size a4` for A4 or
+`--paper-size letter` to switch back. Paper size changes page geometry and horizontal
+tab positions; fonts, colors, margins, and drawing scale retain the same style settings.
+Review pagination after switching sizes.
+
+Genetics Exam 1 defaults to A4:
+
+```bash
+bash builders/build_genetics_exam1.sh
+bash builders/build_genetics_exam1.sh letter
+```
+
+These commands run the full exam build. To change only the paper size of an edited
+exam, run the DOCX converter on its existing YAML with `--paper-size` and a new output
+filename, then convert that DOCX to PDF.
+
 Use `--keep-questions-together` to keep each question's stem, figures, and answer bank together
 when they fit on one page. Use `--page-break-sections` to start later sections on new pages.
 The Genetics Exam 1 and biostatistics quiz recipes select these options where needed.

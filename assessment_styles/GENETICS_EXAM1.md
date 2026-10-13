@@ -157,7 +157,9 @@ from assigned homework families. Retain the single five-pedigree matching block.
 
 ## Build this selection
 
-Run `bash builders/build_genetics_exam1.sh`. See [USAGE.md](../docs/USAGE.md) for the build outputs
+Run `bash builders/build_genetics_exam1.sh` for A4, or append `letter` for US Letter.
+The paper choice retains the same fonts, colors, and drawing scale, with adjusted tabs.
+See [USAGE.md](../docs/USAGE.md) for the build outputs
 and instructions for preserving edited questions. The source task CSV is the selection recipe;
 the generated YAML is the editable question content, and `genetics_exam1-key.txt` is its key.
 Compare the produced task blocks with this selection, and review the build skip report.

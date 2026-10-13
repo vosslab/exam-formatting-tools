@@ -66,6 +66,10 @@ def parse_args() -> argparse.Namespace:
 		'-b', '--page-break-sections', dest='page_break_sections', action='store_true',
 		help="Start each section after the first on a new page."
 	)
+	parser.add_argument(
+		'--paper-size', dest='paper_size', choices=('letter', 'a4'), default='letter',
+		help='Paper size; defaults to US Letter. A4 adapts header and choice tab positions.'
+	)
 	args = parser.parse_args()
 	return args
 
@@ -196,7 +200,7 @@ def resolve_choice_images(choices: list, base_dir: str) -> list:
 #============================================
 def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 		native_tables: bool = False, keep_questions_together: bool = False,
-		page_break_sections: bool = False) -> int:
+		page_break_sections: bool = False, paper_size: str = 'letter') -> int:
 	"""Build a complete DOCX exam document from YAML data.
 
 	Creates all styles, page layout, headers, and body content.
@@ -211,6 +215,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 		instead of their rasterized fallback when possible.
 		keep_questions_together: Keep question blocks on one page when they fit.
 		page_break_sections: Start later sections on a new page.
+		paper_size: Use letter (default) or a4 page dimensions and horizontal positions.
 	"""
 	# enforce .docx extension
 	if not output_path.endswith('.docx'):
@@ -223,6 +228,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 
 	# load style definitions from YAML
 	styles = ef_tools.style_loader.load_styles()
+	styles = ef_tools.style_loader.for_paper_size(styles, paper_size)
 
 	# setup styles from YAML definitions
 	ef_tools.docx_builder.setup_styles(doc, styles)
@@ -230,6 +236,8 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 	# page layout: margins from YAML
 	page_margin = styles['page']['margin']
 	section = doc.sections[0]
+	section.page_width = docx.shared.Inches(styles['page']['width'])
+	section.page_height = docx.shared.Inches(styles['page']['height'])
 	section.top_margin = docx.shared.Inches(page_margin)
 	section.bottom_margin = docx.shared.Inches(page_margin)
 	section.left_margin = docx.shared.Inches(page_margin)
@@ -480,7 +488,7 @@ def main() -> None:
 	question_count = build_document(
 		exam_data, output_file, base_dir, native_tables=args.native_tables,
 		keep_questions_together=args.keep_questions_together,
-		page_break_sections=args.page_break_sections)
+		page_break_sections=args.page_break_sections, paper_size=args.paper_size)
 	print(f"Exam DOCX written to {output_file} ({question_count} questions)")
 
 
