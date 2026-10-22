@@ -14,7 +14,6 @@ mkdir -p output_genetics_exam1
 source ../biology-problems/source_me.sh
 python3 ../biology-problems/problems/inheritance-problems/large_crosses/unique_counts.py \
    --num-genes 4 --save-scenario output_genetics_exam1/large_cross.json
-
 python3 converters/bbq_tasks_to_exam_yaml.py \
   --exam --title 'Exam 1: Genetics (2026) - Draft' \
   -i task_files/genetics_exam1.csv -o output_genetics_exam1/genetics_exam1.yaml

@@ -25,12 +25,6 @@ in a consecutive range containing every correct band and at least one distractor
 omits the most distant parental-genotype distractor (randomly breaking ties).
 All Chapter 7 chi-square questions are excluded because they are not on this exam.
 
-Circular digestion now also requests five consecutive choices at medium difficulty.
-Medium digestion permits equal-sized fragments to co-migrate into one band.
-Medium linear fragments permit co-migration: 220 maps fit five choices across eight
-answer sets, with two to four correct bands from a 12 kb molecule cut three times.
-The selection uses 100 answer rows.
-
 ## Selection rules
 
 - TRUE/FALSE statement MC banks use five choices. `nucleotide_components.yml` is an
@@ -128,9 +122,12 @@ Specific consolidation decisions:
 - Include both end-type and overhang-type questions.
 - Retain both ABO mother and offspring questions; use five agglutination choices.
 - Exclude probability of progeny as later-course content and include two random fly questions.
+<<<<<<< HEAD
   Both fly tasks use --random to sample parental crosses independently of question number.
   The shared task runner also requests ten candidates per task and randomly selects one,
   so cycling generators such as blood-type agglutination do not always supply question 1.
+=======
+>>>>>>> d08e63e (Reduce Genetics Exam 1 genetic-disorders matching from four... (+4 more))
 - Retain separate linear fragment, linear strand, and circular digest tasks at medium level.
 - Three-marker HLA replaces the two-marker variant; medium profiles replace easy/hard copies.
 - One full-pattern matching block covers five inheritance modes, including the autosomal
