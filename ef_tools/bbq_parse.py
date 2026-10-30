@@ -27,12 +27,15 @@ import ef_tools.bbq_html
 import ef_tools.bbq_media
 import ef_tools.svg_media
 import ef_tools.question_utils
+import ef_tools.compact
 
 
 # bbq question types with no normal exam/quiz print form in exam YAML
 SKIPPED_TYPES = ('NUM', 'FIB', 'FIB_PLUS')
 # letter labels for choices, in the order the DOCX builder assigns them
 LETTERS = 'ABCDEFGHIJKLMNOP'
+HANDOUT_BLANK = '____________________'
+_BOLD_HEADING_RE = re.compile(r'^<b>(.*?)</b>$', re.IGNORECASE)
 
 
 #============================================
@@ -153,18 +156,18 @@ def _parse_ord(parts: list, rendered_images: dict, question_code: str,
 
 #============================================
 def _parse_handout_blank(parts: list, question_type: str) -> tuple:
-	"""Create a paper answer line and key payload for a non-choice item."""
+	"""Return the key payload for a non-choice handout item."""
 	if question_type == 'NUM':
 		if len(parts) < 3:
 			raise ValueError('NUM question is missing its answer')
 		answer = parts[2]
-		question = {'answer_line': 'Answer: ____________________'}
+		question = {}
 		return question, answer
 	if question_type == 'FIB':
 		answers = [part for part in parts[2:] if part]
 		if not answers:
 			raise ValueError('FIB question is missing its answer')
-		question = {'answer_line': 'Answer: ____________________'}
+		question = {}
 		return question, ' / '.join(answers)
 	groups = []
 	index = 2
@@ -185,6 +188,49 @@ def _parse_handout_blank(parts: list, question_type: str) -> tuple:
 	answer = '; '.join(f"{name}={' / '.join(answers)}" for name, answers in groups)
 	question = {}
 	return question, answer
+
+
+#============================================
+def _heading_text(line: str) -> str:
+	"""Return a normalized standalone bold heading, or an empty string."""
+	match = _BOLD_HEADING_RE.fullmatch(line.strip())
+	if match is None:
+		return ''
+	return re.sub(r'<[^>]+>', '', match.group(1)).strip().rstrip(':').lower()
+
+
+#============================================
+def _append_handout_blank(statement: list) -> None:
+	"""Append one paper blank to the final non-hint prompt line.
+
+	NUM and FIB BBQ records provide answers separately and reserve no prompt
+	placeholder syntax. The exact printed blank is the only recognized existing
+	blank, so authored underscore-like text is never guessed at or rewritten.
+	"""
+	if any(HANDOUT_BLANK in block.get('text', '') for block in statement):
+		return
+	section_heading = ''
+	candidate = None
+	for block in statement:
+		if 'text' not in block:
+			continue
+		for line_index, line in enumerate(block['text'].split('\n')):
+			heading = _heading_text(line)
+			if heading:
+				section_heading = heading
+				if heading not in ef_tools.compact.HINT_HEADINGS:
+					# Some NUM/FIB authors make the final prompt a bold line.
+					# Keeping it as the candidate puts the blank after </b>.
+					candidate = (block, line_index)
+				continue
+			if line.strip() and section_heading not in ef_tools.compact.HINT_HEADINGS:
+				candidate = (block, line_index)
+	if candidate is None:
+		raise ValueError('NUM/FIB handout question has no prose prompt for its answer blank')
+	block, line_index = candidate
+	lines = block['text'].split('\n')
+	lines[line_index] += f' Answer: {HANDOUT_BLANK}'
+	block['text'] = '\n'.join(lines)
 
 
 #============================================
@@ -218,6 +264,8 @@ def parse_bbq_line(line: str, math_renderer: object = None, base_url: str = '',
 		return None
 	code, statement_html = ef_tools.bbq_html.split_question_code(parts[1])
 	question_code = code or "without question code"
+	ef_tools.bbq_html.validate_authored_question_html(
+		parts[1:], f'question {question_code}')
 	rendered_images = {}
 	if math_renderer is not None or '<img' in line:
 		parts = ef_tools.bbq_media.prepare_fields(
@@ -244,7 +292,12 @@ def parse_bbq_line(line: str, math_renderer: object = None, base_url: str = '',
 		for block in statement:
 			if 'text' in block:
 				block['text'] = re.sub(r'\[[^]]+\]', '____________________', block['text'])
-	question = {'statement': statement, **question}
+	elif question_type in ('NUM', 'FIB') and handout:
+		_append_handout_blank(statement)
+	# Keep the original BBQ kind in the printable YAML question. Renderers can
+	# then apply an explicitly type-scoped paper treatment without inferring a
+	# question kind from its prose.
+	question = {'statement': statement, 'question_type': question_type, **question}
 	record = {
 		'question': question,
 		'answer': {'code': code, 'type': question_type, 'letters': letters,

@@ -340,7 +340,8 @@ assert format_date_human('2026-01-01') == 'January 1, 2026'
 
 
 #============================================
-def setup_header(doc: docx.Document, section: object, date_str: str, styles: dict) -> None:
+def setup_header(doc: docx.Document, section: object, date_str: str, styles: dict,
+		document_type: str = 'exam') -> None:
 	"""Configure page header on body pages with page number, date, and name.
 
 	Sets up different first page header (empty) and body page header with
@@ -359,7 +360,8 @@ def setup_header(doc: docx.Document, section: object, date_str: str, styles: dic
 	header_distance = styles['page']['header_distance']
 	section.header_distance = docx.shared.Inches(header_distance)
 
-	# body page header: "Page X of Y [tab] date [tab] First Name:___"
+	# Body page header keeps the usual student name field for graded work.
+	# Handouts retain only page numbering and date.
 	header = section.header
 	header.is_linked_to_previous = False
 	header_para = header.paragraphs[0]
@@ -373,9 +375,10 @@ def setup_header(doc: docx.Document, section: object, date_str: str, styles: dic
 		# convert ISO date (2026-04-02) to human-readable (April 2, 2026)
 		formatted_date = format_date_human(date_str)
 		header_para.add_run(formatted_date)
-	# tab to right, add name line
-	header_para.add_run("\t")
-	header_para.add_run("First Name:_____________________________")
+	if document_type != 'handout':
+		# tab to right, add name line
+		header_para.add_run("\t")
+		header_para.add_run("First Name:_____________________________")
 
 	# first page header is empty (just clear it)
 	first_header = section.first_page_header
@@ -510,12 +513,11 @@ def _add_boilerplate_run(para: object, text: str, font_size_pt: float) -> None:
 
 #============================================
 def add_first_page_heading(doc: docx.Document, title: str, name_line: str,
-		score_line: str, styles: dict) -> None:
+		score_line: str, styles: dict, document_type: str = 'exam') -> None:
 	"""Write the first-page title and the name/score block beside it.
 
-	The title sits flush left and the boilerplate block starts at a single tab
-	stop partway across the page, so the two share a line instead of stacking
-	three centered lines with an empty left column and an empty right half.
+	The title sits flush left. Graded documents add name and score fields in a
+	single tabbed block; handouts deliberately contain only the title.
 
 	Args:
 		doc: The Document to write into.
@@ -531,6 +533,8 @@ def add_first_page_heading(doc: docx.Document, title: str, name_line: str,
 	title_para = doc.add_paragraph()
 	title_para.style = doc.styles['Heading 1']
 	add_rich_text_runs(title_para, title)
+	if document_type == 'handout':
+		return
 	title_para.paragraph_format.tab_stops.add_tab_stop(
 		docx.shared.Inches(block_tab), docx.enum.text.WD_TAB_ALIGNMENT.LEFT)
 	_add_boilerplate_run(title_para, "\t" + name_line, body_size)

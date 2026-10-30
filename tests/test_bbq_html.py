@@ -74,6 +74,14 @@ def test_clean_inline_html_normalizes_bare_bptools_hex_color() -> None:
 
 
 #============================================
+def test_clean_inline_html_preserves_supported_strong_text_color() -> None:
+	"""A colored strong tag becomes canonical bold plus a color span."""
+	cleaned = ef_tools.bbq_html.clean_inline_html(
+		'<p><strong style="color: #0a6b23; font-size: 1px;">LINKED</strong></p>')
+	assert cleaned == '<strong><span style="color: #0a6b23;">LINKED</span></strong>'
+
+
+#============================================
 def test_clean_inline_html_preserves_code_markup() -> None:
 	"""Code and teletype spans survive bptools HTML conversion."""
 	cleaned = ef_tools.bbq_html.clean_inline_html(

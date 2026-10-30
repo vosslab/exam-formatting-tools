@@ -31,6 +31,7 @@ import ef_tools.docx_choice_builder
 import ef_tools.docx_table_builder
 import ef_tools.statement_content
 import ef_tools.compact
+import ef_tools.bbq_parse
 
 
 #============================================
@@ -250,9 +251,10 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 	section.left_margin = docx.shared.Inches(page_margin)
 	section.right_margin = docx.shared.Inches(page_margin)
 
-	# setup page header (empty on first page, name/date on body pages)
+	# setup page header (empty on first page, name/date on graded body pages)
 	date_str = exam_data.get('date', '')
-	ef_tools.docx_builder.setup_header(doc, section, date_str, styles)
+	document_type = exam_data.get('document_type', 'exam')
+	ef_tools.docx_builder.setup_header(doc, section, date_str, styles, document_type)
 
 	# --- first page boilerplate ---
 	title = exam_data.get('title', 'Exam')
@@ -264,7 +266,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 	num_sections = exam_data.get('scoring_sections', ef_tools.exam_defaults.DEFAULT_SCORING_SECTIONS)
 	score_line = ef_tools.exam_defaults.format_score_line(total_points, num_sections)
 	ef_tools.docx_builder.add_first_page_heading(
-		doc, title, name_line, score_line, styles)
+		doc, title, name_line, score_line, styles, document_type)
 
 	# One sizer for every renderer-produced drawing in the document. Sharing a
 	# single scale is what guarantees two drawings of equal HTML size print at
@@ -296,18 +298,19 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 	question_counter = 1
 	question_total = 0
 	prev_element = 'chapter'
+	hide_single_handout_section = document_type == 'handout' and len(sections) == 1
 	for section_index, section_data in enumerate(sections):
 		first_section_paragraph = len(doc.paragraphs)
 		# major section heading (Heading 2 level)
 		heading = section_data.get('heading', '')
-		if heading:
+		if heading and not hide_single_handout_section:
 			para = doc.add_paragraph()
 			para.style = doc.styles['Exam Heading 2']
 			ef_tools.docx_builder.add_rich_text_runs(para, heading)
 			prev_element = 'chapter'
 		# chapter heading (purple, level 3)
 		chapter = section_data.get('chapter', '')
-		if chapter:
+		if chapter and not hide_single_handout_section:
 			para = doc.add_paragraph()
 			para.style = doc.styles['Chapter Heading']
 			ef_tools.docx_builder.add_rich_text_runs(para, chapter)
@@ -356,6 +359,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 			# images, rendered source tables, and structured data tables.
 			statement = ef_tools.compact.statement(question.get('statement', []), compact)
 			ef_tools.statement_content.validate(statement)
+			fib_plus_writing = question.get('question_type') == 'FIB_PLUS'
 			heading_written = False
 			for block in statement:
 				if 'text' in block:
@@ -370,8 +374,13 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 					else:
 						style_name = 'Question Follow'
 						prefix = ''
+					paragraph_start = len(doc.paragraphs)
 					ef_tools.docx_builder.add_rich_text_paragraphs(
 						doc, style_name, text, prefix=prefix, boxed_prefix=bool(prefix))
+					if fib_plus_writing and ef_tools.bbq_parse.HANDOUT_BLANK in text:
+						for paragraph in doc.paragraphs[paragraph_start:]:
+							if ef_tools.bbq_parse.HANDOUT_BLANK in paragraph.text:
+								paragraph.paragraph_format.line_spacing = 2.0
 					prev_element = 'question'
 					continue
 				if not heading_written:
@@ -433,11 +442,6 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 					sizer=pick_sizer(resolved_prompts, drawing_sizer, prompt_fit),
 					native_tables=native_tables)
 				prev_element = 'choices'
-			answer_line = question.get('answer_line', '')
-			if answer_line:
-				ef_tools.docx_builder.add_rich_text_paragraphs(
-					doc, 'Question Follow', answer_line)
-				prev_element = 'question'
 			# choices (image paths resolved against the YAML directory)
 			choices = question.get('choices', None)
 			if choices is not None:

@@ -68,15 +68,39 @@ def test_matching_and_ordering_keys_survive_choice_shuffle() -> None:
 
 
 #============================================
-def test_handout_keeps_numeric_and_multi_blank_questions_with_paper_lines() -> None:
-	"""Handouts print answer blanks while exam/quiz parsing still skips them."""
+def test_handout_keeps_numeric_and_multi_blank_questions_with_prompt_blanks() -> None:
+	"""Handout blanks stay in their authored prompt paragraphs."""
 	assert ef_tools.bbq_parse.parse_bbq_line(NUM_LINE) is None
 	numeric = ef_tools.bbq_parse.parse_bbq_line(NUM_LINE, handout=True)
-	assert numeric['question']['answer_line'].startswith('Answer:')
+	assert numeric['question']['question_type'] == 'NUM'
+	assert numeric['question']['statement'][0]['text'].endswith(
+		'Calculate distance. Answer: ____________________')
+	assert 'answer_line' not in numeric['question']
 	assert numeric['answer']['answer_text'] == '12.00000000'
 	multi = ef_tools.bbq_parse.parse_bbq_line(FIB_PLUS_LINE, handout=True)
+	assert multi['question']['question_type'] == 'FIB_PLUS'
 	assert '____________________' in multi['question']['statement'][0]['text']
 	assert 'order=abc / cba' in multi['answer']['answer_text']
+
+
+#============================================
+def test_handout_blank_precedes_trailing_hints_and_preserves_an_explicit_blank() -> None:
+	"""NUM/FIB blanks target the prompt, without inventing alternate blank syntax."""
+	line = (
+		'FIB\t<p>f123</p><p>Give the gene name.</p><h6>Hints</h6>'
+		'<p>Use the table.</p>\tabc')
+	record = ef_tools.bbq_parse.parse_bbq_line(line, handout=True)
+	text = record['question']['statement'][0]['text']
+	assert 'Give the gene name. Answer: ____________________' in text
+	assert '<b>Hints</b>\nUse the table.' in text
+	explicit = ef_tools.bbq_parse.parse_bbq_line(
+		'FIB\t<p>f456</p><p>Give the gene: ____________________</p>\tabc', handout=True)
+	assert explicit['question']['statement'][0]['text'].count('____________________') == 1
+	bold_prompt = ef_tools.bbq_parse.parse_bbq_line(
+		'NUM\t<p>n789</p><p>Background.</p><h6>Hints</h6><p>Use it.</p>'
+		'<h6>Determine the distance</h6>\t12\t0.1', handout=True)
+	assert '<b>Determine the distance</b> Answer: ____________________' in (
+		bold_prompt['question']['statement'][0]['text'])
 
 
 #============================================
@@ -139,6 +163,28 @@ def test_flex_drawing_panels_are_captured_once_in_authored_order() -> None:
 	assert 'display: flex' in html
 	assert 'html_table' not in str(record['question']['statement'])
 	assert record['question']['statement'][1]['image'] == 'rendered:1'
+
+
+#============================================
+def test_authored_question_classes_explain_the_inline_style_requirement() -> None:
+	"""BBQ content cannot silently depend on stylesheet-only layout classes."""
+	line = 'MC\t<p>class12</p><div class="panels">Question.</div>\tYes\tCorrect'
+	with pytest.raises(ValueError, match='cannot use a class attribute; use an inline style'):
+		ef_tools.bbq_parse.parse_bbq_line(line)
+
+
+#============================================
+def test_non_flex_layout_preserves_individual_table_fallbacks() -> None:
+	"""Only exact inline flex layout groups tables into one browser image."""
+	line = (
+		'MC\t<p>grid12</p><div style="display: grid;">'
+		'<table><tr><td>first</td></tr></table>'
+		'<table><tr><td>second</td></tr></table>'
+		'</div>\tYes\tCorrect')
+	renderer = FakeRenderer()
+	record = ef_tools.bbq_parse.parse_bbq_line(line, math_renderer=renderer)
+	assert len(renderer.calls[0][1]) == 2
+	assert sum('html_table' in block for block in record['question']['statement']) == 2
 
 
 #============================================

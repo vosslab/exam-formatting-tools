@@ -15,6 +15,7 @@ import lxml.html
 
 # Local Repo Modules
 import ef_tools.cli_checks
+import ef_tools.capture_roots
 import ef_tools.html_parse
 import ef_tools.html_renderer
 import ef_tools.exam_yaml_writer
@@ -111,7 +112,13 @@ def element_to_inline_html(element: object) -> str:
 			elif tag == "em":
 				canonical = "i"
 			parts.append(f"<{canonical}>")
+			color = (ef_tools.text_utils.text_color_from_style(child.get("style", ""))
+				if tag == "strong" else None)
+			if color:
+				parts.append(f'<span style="color: {color};">')
 			parts.append(element_to_inline_html(child))
+			if color:
+				parts.append("</span>")
 			parts.append(f"</{canonical}>")
 		else:
 			parts.append(element_to_inline_html(child))
@@ -191,6 +198,12 @@ def element_to_statement_content(html_path: str, element: object,
 			pair = (f"<{canonical}>", f"</{canonical}>")
 			parts.append(pair[0])
 			active_wrappers += (pair,)
+			color = (ef_tools.text_utils.text_color_from_style(node.get("style", ""))
+				if tag == "strong" else None)
+			if color:
+				pair = (f'<span style="color: {color};">', "</span>")
+				parts.append(pair[0])
+				active_wrappers += (pair,)
 		elif tag == "span":
 			color = ef_tools.text_utils.text_color_from_style(node.get("style", ""))
 			if color:
@@ -206,7 +219,7 @@ def element_to_statement_content(html_path: str, element: object,
 		if tag in ("div", "p", "li"):
 			append_text("\n")
 		if active_wrappers != wrappers:
-			parts.append(active_wrappers[-1][1])
+			parts.extend(pair[1] for pair in reversed(active_wrappers[len(wrappers):]))
 
 	if element.text:
 		append_text(element.text)
@@ -340,6 +353,21 @@ def _captured_table_html(table: object) -> str:
 
 
 #============================================
+def _choice_boundaries(question_div: object) -> list:
+	"""Return leaf source boundaries that each become one printed choice."""
+	labels = question_div.xpath('.//label[.//input]')
+	if labels:
+		return labels
+	return question_div.xpath(CHOICE_ITEM_XPATH)
+
+
+#============================================
+def _is_within(element: object, boundary: object) -> bool:
+	"""Return whether element is boundary or one of its descendants."""
+	return element is boundary or any(parent is boundary for parent in element.iterancestors())
+
+
+#============================================
 def _capture_question_media(html_path: str, question_div: object,
 		renderer: object, html_context: object | None, label: str,
 		out_dir: str) -> dict[str, dict]:
@@ -351,17 +379,20 @@ def _capture_question_media(html_path: str, question_div: object,
 	targets = {}
 	target_metadata = {}
 	selector_ids = {}
-	capture_nodes = []
-	for table in question_div.xpath('.//table'):
-		if not _is_capture_table(table):
-			continue
-		if any(ancestor in capture_nodes for ancestor in table.iterancestors()):
-			continue
-		capture_nodes.append(table)
-	for node in question_div.xpath('.//canvas | .//*[local-name() = "math"]'):
-		if any(ancestor in capture_nodes for ancestor in node.iterancestors()):
-			continue
-		capture_nodes.append(node)
+	visual_nodes = [
+		table for table in question_div.xpath('.//table') if _is_capture_table(table)]
+	visual_nodes.extend(question_div.xpath('.//canvas | .//*[local-name() = "math"]'))
+	choice_boundaries = _choice_boundaries(question_div)
+	statement_nodes = [
+		node for node in visual_nodes
+		if not any(_is_within(node, boundary) for boundary in choice_boundaries)]
+	capture_nodes = ef_tools.capture_roots.select_capture_roots(
+		question_div, statement_nodes)
+	for boundary in choice_boundaries:
+		choice_nodes = [
+			node for node in visual_nodes if _is_within(node, boundary)]
+		capture_nodes.extend(ef_tools.capture_roots.select_capture_roots(
+			boundary, choice_nodes))
 	styles = ef_tools.style_loader.load_styles()
 	standalone_width = styles['page']['image_max_width']
 	for index, node in enumerate(capture_nodes, start=1):
@@ -410,10 +441,7 @@ def parse_choices(html_path: str, element: object,
 		captured_media: dict[str, dict] | None = None) -> list:
 	"""Parse multiple-choice labels from an HTML element."""
 	choices = []
-	labels = element.xpath(".//label[.//input]")
-	choice_elements = labels
-	if not choice_elements:
-		choice_elements = element.xpath(CHOICE_ITEM_XPATH)
+	choice_elements = _choice_boundaries(element)
 	for choice_element in choice_elements:
 		choice = {}
 		text = clean_choice_html(element_to_inline_html(choice_element))

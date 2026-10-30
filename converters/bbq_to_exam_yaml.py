@@ -100,7 +100,7 @@ def _render_record_media(records: list, renderer: object, media_dir: str) -> Non
 
 
 #============================================
-def build_exam_dict(records: list, title: str) -> dict:
+def build_exam_dict(records: list, title: str, handout: bool = False) -> dict:
 	"""Assemble the exam YAML structure from parsed records."""
 	questions = [record['question'] for record in records]
 	exam_dict = {
@@ -113,6 +113,8 @@ def build_exam_dict(records: list, title: str) -> dict:
 			}
 		],
 	}
+	if handout:
+		exam_dict['document_type'] = 'handout'
 	return exam_dict
 
 
@@ -145,7 +147,7 @@ def main() -> None:
 	with ef_tools.html_renderer.HtmlRenderer() as renderer:
 		records = parse_bbq_file(args.input_file, math_renderer=renderer, handout=args.handout)
 		render_record_tables(records, output_file, renderer)
-	exam_dict = build_exam_dict(records, args.exam_title)
+	exam_dict = build_exam_dict(records, args.exam_title, handout=args.handout)
 	write_outputs(exam_dict, records, output_file, os.path.basename(args.input_file))
 
 	question_count = ef_tools.question_utils.count_total_questions(exam_dict['sections'])

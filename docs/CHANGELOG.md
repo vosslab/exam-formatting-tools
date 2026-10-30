@@ -11,8 +11,21 @@
 
 - Compact rendering is now the default DOCX behavior; `--no-compact` retains recognized hints
   and regular supporting-prose size.
+- Handout YAML now carries `document_type: handout`; its DOCX omits student name and score fields
+  and hides a lone section heading, without changing quiz or exam documents.
+- Render handout NUM and FIB answer blanks at the end of their prompt paragraph, matching
+  FIB_PLUS rather than emitting a separate answer line.
+- Preserve imported BBQ question types in YAML and give only FIB_PLUS statement paragraphs
+  containing the standard writing blank double line spacing.
+- Preserve supported inline text colors on authored `<strong>` elements through YAML and DOCX
+  rendering; unrelated style declarations remain discarded.
+- Flow consecutive recognized supporting-prose bullets into one compact paragraph while retaining
+  inline gene-label markup and colors; question and answer lists are unchanged.
 - Capture authored flex groups containing multiple drawing tables as one visual, preserving
-  side-by-side panels while standalone tables retain the native-DOCX fallback.
+  side-by-side panels while standalone tables retain the native-DOCX fallback. This shared
+  BBQ/cleaned-HTML behavior recognizes only explicit inline `flex` and `inline-flex` layout.
+- Reject class attributes in authored BBQ question content with an inline-style remediation;
+  cleaned Blackboard importer classes remain structural export wrappers.
 
 ## 2026-10-13
 

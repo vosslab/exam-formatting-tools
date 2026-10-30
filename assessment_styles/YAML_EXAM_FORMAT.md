@@ -45,6 +45,7 @@ Each question object represents a single exam item.
 | Field | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `statement` | list of content blocks | yes | -- | Ordered stem/body text, images, and tables |
+| `question_type` | string | no | -- | Source question kind preserved by BBQ import (for example, `FIB_PLUS`) |
 | `number` | integer | no | auto | Numeric override; does not change the "##." format |
 | `choices` | list of strings or choice objects | no | -- | Answer choices (plain text, no letter prefixes), optionally with image paths |
 | `prompts_list` | list of strings or choice objects | no | -- | Numbered matching prompts; each consumes one question number and renders as `______ N.`; a `{text, image}` object puts a drawing (DNA strip, pedigree) beside the blank |
@@ -94,6 +95,11 @@ Inline HTML tags are supported for formatting within statement and choice text:
 | `<span style="color: #rrggbb;">`, `</span>` | Hex text color | `<span style="color: #ba372a;">FALSE</span>` |
 
 Engines writing exam YAML should preserve these inline HTML tags verbatim in statement text blocks and choice text. HTML entities (e.g., `&deg;`) should also be preserved as-is; the builder decodes them at render time. Color spans preserve only a three- or six-digit hexadecimal `color` declaration in canonical lowercase `#rrggbb` form; importers normalize bptools' bare hex values and discard unrelated span CSS.
+
+For handout imports, `question_type` preserves the original BBQ type. A `FIB_PLUS`
+statement paragraph containing the standard printed answer blank receives double line
+spacing for student writing; NUM, FIB, and other statement paragraphs keep their
+normal style spacing.
 
 ### Question numbering
 

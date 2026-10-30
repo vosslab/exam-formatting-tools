@@ -197,6 +197,8 @@ def main() -> None:
 		'date': datetime.date.today().isoformat(),
 		'sections': sections,
 	}
+	if args.mode == 'handout':
+		exam_dict['document_type'] = 'handout'
 	if args.total_points is not None:
 		exam_dict['total_points'] = args.total_points
 	write_outputs(exam_dict, answers, sources, output_file)

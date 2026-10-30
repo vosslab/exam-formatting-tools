@@ -120,3 +120,53 @@ def test_both_bbq_entry_points_use_native_renderer_for_visual_media(
 	with PIL.Image.open(tmp_path / image_path) as image:
 		assert abs(image.info['dpi'][0] - 600) < 0.1
 	assert len(renderer.calls) == 2
+
+
+#============================================
+def test_saved_bbq_handout_marks_document_type() -> None:
+	"""The saved-BBQ handout flag persists its document rendering intent in YAML."""
+	exam_data = bbq_to_exam_yaml.build_exam_dict([], 'Practice', handout=True)
+	assert exam_data['document_type'] == 'handout'
+
+
+#============================================
+def test_strong_color_survives_bbq_yaml_and_docx(tmp_path: pathlib.Path) -> None:
+	"""A source strong color reaches the printable DOCX as a bold colored run."""
+	record = ef_tools.bbq_parse.parse_bbq_line(
+		'MC\t<p>ab12_cd34</p><p><strong style="color: #0a6b23;">LINKED</strong>'
+		' is correct.</p>\tYes\tCorrect\tNo\tIncorrect')
+	statement = record['question']['statement'][0]['text']
+	assert statement == '<strong><span style="color: #0a6b23;">LINKED</span></strong> is correct.'
+	exam_data = {
+		'title': 'Color test',
+		'sections': [{'questions': [record['question']]}],
+	}
+	output_path = tmp_path / 'color.docx'
+	yaml_to_exam_docx.build_document(exam_data, str(output_path), base_dir=str(tmp_path))
+	doc = docx.Document(str(output_path))
+	assert any(
+		run.text == 'LINKED' and run.bold is True
+		and str(run.font.color.rgb) == '0A6B23'
+		for paragraph in doc.paragraphs for run in paragraph.runs)
+
+
+#============================================
+def test_fib_plus_writing_paragraph_is_double_spaced_only(tmp_path: pathlib.Path) -> None:
+	"""Only the typed FIB_PLUS paragraph carrying a paper blank gains writing room."""
+	fib_plus = ef_tools.bbq_parse.parse_bbq_line(
+		'FIB_PLUS\t<p>f222</p><p>Determine AB = [AB] cM.</p>\tAB\t12\t',
+		handout=True)
+	numeric = ef_tools.bbq_parse.parse_bbq_line(
+		'NUM\t<p>n111</p><p>Determine CD.</p>\t8', handout=True)
+	exam_data = {
+		'title': 'Writing room',
+		'document_type': 'handout',
+		'sections': [{'questions': [fib_plus['question'], numeric['question']]}],
+	}
+	output_path = tmp_path / 'writing_room.docx'
+	yaml_to_exam_docx.build_document(exam_data, str(output_path), base_dir=str(tmp_path))
+	doc = docx.Document(str(output_path))
+	fib_paragraph = next(p for p in doc.paragraphs if 'Determine AB' in p.text)
+	num_paragraph = next(p for p in doc.paragraphs if 'Determine CD' in p.text)
+	assert fib_paragraph.paragraph_format.line_spacing == 2.0
+	assert num_paragraph.paragraph_format.line_spacing is None

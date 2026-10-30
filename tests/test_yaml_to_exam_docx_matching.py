@@ -249,3 +249,66 @@ def test_builder_rejects_scalar_statement_schema(tmp_path: object) -> None:
 	}
 	with pytest.raises(TypeError, match='ordered list'):
 		yaml_to_exam_docx.build_document(exam_data, str(tmp_path / 'invalid.docx'))
+
+
+#============================================
+def _short_document(document_type: str = 'exam', sections: list | None = None) -> dict:
+	"""Return a tiny document whose chrome is easy to inspect."""
+	if sections is None:
+		sections = [{
+			'heading': 'Practice section',
+			'chapter': 'Unordered tetrads',
+			'questions': [{'statement': [{'text': 'Solve this practice problem.'}]}],
+		}]
+	return {
+		'title': 'Unordered Tetrads Handout',
+		'date': '2026-10-30',
+		'document_type': document_type,
+		'sections': sections,
+	}
+
+
+#============================================
+def test_handout_omits_student_score_and_single_section_chrome(tmp_path: object) -> None:
+	"""A one-section handout has its title and questions but no grading boilerplate."""
+	output_path = tmp_path / 'handout.docx'
+	yaml_to_exam_docx.build_document(_short_document('handout'), str(output_path))
+	doc = docx.Document(str(output_path))
+	body_text = '\n'.join(paragraph.text for paragraph in doc.paragraphs)
+	header_text = '\n'.join(paragraph.text for paragraph in doc.sections[0].header.paragraphs)
+	assert 'Unordered Tetrads Handout' in body_text
+	assert 'Solve this practice problem.' in body_text
+	assert 'Full Name:' not in body_text
+	assert 'Final Score' not in body_text
+	assert 'First Name:' not in header_text
+	assert 'Practice section' not in body_text
+	assert 'Unordered tetrads' not in body_text
+
+
+#============================================
+def test_multi_section_handout_keeps_section_labels(tmp_path: object) -> None:
+	"""Handouts suppress only a lone section label, not useful multi-section structure."""
+	sections = [
+		{'heading': 'Part one', 'questions': [{'statement': [{'text': 'First.'}]}]},
+		{'chapter': 'Part two', 'questions': [{'statement': [{'text': 'Second.'}]}]},
+	]
+	output_path = tmp_path / 'multi_handout.docx'
+	yaml_to_exam_docx.build_document(_short_document('handout', sections), str(output_path))
+	body_text = '\n'.join(paragraph.text for paragraph in docx.Document(str(output_path)).paragraphs)
+	assert 'Part one' in body_text
+	assert 'Part two' in body_text
+
+
+#============================================
+def test_exam_document_retains_grading_chrome_and_single_section_label(tmp_path: object) -> None:
+	"""Default exam documents retain their long-standing title and section treatment."""
+	output_path = tmp_path / 'exam.docx'
+	yaml_to_exam_docx.build_document(_short_document(), str(output_path))
+	doc = docx.Document(str(output_path))
+	body_text = '\n'.join(paragraph.text for paragraph in doc.paragraphs)
+	header_text = '\n'.join(paragraph.text for paragraph in doc.sections[0].header.paragraphs)
+	assert 'Full Name:' in body_text
+	assert 'Final Score' in body_text
+	assert 'First Name:' in header_text
+	assert 'Practice section' in body_text
+	assert 'Unordered tetrads' in body_text

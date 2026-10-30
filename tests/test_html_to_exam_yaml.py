@@ -54,6 +54,15 @@ def test_element_to_inline_html_preserves_code_markup() -> None:
 
 
 #============================================
+def test_element_to_inline_html_preserves_strong_text_color() -> None:
+	"""Cleaned Blackboard strong styles use the same canonical color markup."""
+	element = lxml.html.fromstring(
+		'<span><strong style="color: #0a6b23; font-size: 1px;">LINKED</strong></span>')
+	result = html_to_exam_yaml.element_to_inline_html(element)
+	assert result == '<b><span style="color: #0a6b23;">LINKED</span></b>'
+
+
+#============================================
 def test_clean_choice_html_removes_letter_prefix() -> None:
 	"""Test exported choice letter cleanup."""
 	result = html_to_exam_yaml.clean_choice_html("A. <b>metal ion</b>")
@@ -398,6 +407,32 @@ def test_parse_question_captures_canvas_table_from_complete_html(tmp_path: objec
 	assert 'fillRect' in renderer.html
 	# Math labels that resemble hex question codes must remain visible media.
 	assert 'image' in result['statement'][2]
+
+
+#============================================
+def test_parse_question_captures_flex_table_panels_together(tmp_path: object) -> None:
+	"""Cleaned HTML retains authored side-by-side table panels in one image."""
+	html_path = tmp_path / 'Cleaned_flex.html'
+	html_text = (
+		"<html><body><div class='takeQuestionDiv'><li>"
+		"<p>Compare the panels.</p>"
+		"<div style='display: inline-flex; gap: 16px;'>"
+		"<table role='img'><tr><td>first panel</td></tr></table>"
+		"<table role='img'><tr><td>second panel</td></tr></table>"
+		"</div><label><input type='radio'/>Yes</label>"
+		"</li></div></body></html>")
+	html_path.write_text(html_text, encoding='utf-8')
+	html_doc = lxml.html.fromstring(html_text)
+	question_div = html_doc.xpath(html_to_exam_yaml.TAKE_QUESTION_XPATH)[0]
+	renderer = FakeRenderer()
+	result = html_to_exam_yaml.parse_question(
+		str(html_path), question_div, renderer, html_doc,
+		str(tmp_path / 'flex_files'), label='flex')
+	assert len(renderer.targets) == 1
+	assert renderer.html.index('first panel') < renderer.html.index('second panel')
+	assert 'display: inline-flex' in renderer.html
+	assert 'html_table' not in str(result['statement'])
+	assert result['statement'][1]['image'].endswith('rendered_flex-1.png')
 
 
 #============================================

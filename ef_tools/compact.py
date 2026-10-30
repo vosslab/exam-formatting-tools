@@ -10,7 +10,7 @@ HINT_HEADINGS = {
 SMALL_HEADINGS = {
 	'background', 'background information', 'characteristics of recessive phenotypes',
 }
-_HEADING_RE = re.compile(r'^<b>(.*?)</b>$', re.IGNORECASE)
+_HEADING_RE = re.compile(r'^<b>(.*?)</b>(?:\s.*)?$', re.IGNORECASE)
 
 
 #============================================
@@ -29,24 +29,36 @@ def compact_text(text: str) -> str:
 	lines = [line for line in text.split('\n') if line.strip()]
 	result = []
 	mode = ''
+	supporting_content_index = None
 	for line in lines:
 		heading = _heading_text(line)
 		if heading:
 			if heading in HINT_HEADINGS:
 				mode = 'drop'
+				supporting_content_index = None
 				continue
 			mode = 'small' if heading in SMALL_HEADINGS else ''
+			supporting_content_index = None
 			result.append(line)
 			continue
 		if 'in this problem, you will use unordered tetrads' in line.lower():
 			result.append(f'<small>{line}</small>')
+			supporting_content_index = None
 			continue
 		if mode == 'drop':
 			continue
-		if mode == 'small' and '<span style=' not in line.lower():
-			result.append(f'<small>{line}</small>')
+		if mode == 'small':
+			line = re.sub(r'^\s*[-*]\s+', '', line)
+			if '<span style=' not in line.lower():
+				line = f'<small>{line}</small>'
+			if supporting_content_index is None:
+				result.append(line)
+				supporting_content_index = len(result) - 1
+			else:
+				result[supporting_content_index] += f' {line}'
 		else:
 			result.append(line)
+			supporting_content_index = None
 	joined = []
 	for line in result:
 		if joined and _heading_text(joined[-1]) and not _heading_text(line):
