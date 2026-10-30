@@ -6,6 +6,8 @@
 
 - Add compact paper rendering, printable NUM/FIB/FIB_PLUS handout support, and an unordered
   tetrad handout builder that progresses from two-gene linkage to three-gene mapping.
+- Add a fruit-fly testcross handout recipe that progresses from two-gene cis/trans
+  classification through distance calculations to a complete three-gene map.
 
 ### Behavior or Interface Changes
 

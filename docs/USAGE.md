@@ -236,6 +236,13 @@ source source_me.sh && python3 converters/bbq_tasks_to_exam_yaml.py --handout \
     -i task_files/tetrad_handout.csv -o generated/tetrad_handout/tetrad_handout.yaml
 ```
 
+The checked-in fruit-fly testcross recipe follows the same progression from
+two-gene configuration through two- and three-gene distances to a full map:
+
+```bash
+bash builders/build_testcross_handout.sh
+```
+
 Exam (`-e`): only questions that pass the ZipGrade A-E rules are kept;
 generators with fixed six-choice flags (`-c 6`) are skipped after three
 attempts, so edit their flags in the CSV.
