@@ -48,6 +48,10 @@ The converter defaults to US Letter. Use `--paper-size a4` for A4 or
 tab positions; fonts, colors, margins, and drawing scale retain the same style settings.
 Review pagination after switching sizes.
 
+Paper output uses compact formatting by default: recognized hint sections are
+removed, recognized background text is 8pt, and bold lead-ins share a paragraph
+with their prose. Use `--no-compact` to retain the unmodified rendering.
+
 Genetics Exam 1 defaults to A4:
 
 ```bash
@@ -222,6 +226,14 @@ source source_me.sh && python3 converters/bbq_tasks_to_exam_yaml.py -q -t "Genet
     -i task_files/genetics_quiz1.csv \
     -o output_quiz/genetics_quiz1.yml
 source source_me.sh && python3 converters/yaml_to_exam_docx.py -i output_quiz/genetics_quiz1.yml
+```
+
+Handout mode also prints NUM, FIB, and FIB_PLUS items with answer blanks and
+keeps their values in the sibling key:
+
+```bash
+source source_me.sh && python3 converters/bbq_tasks_to_exam_yaml.py --handout \
+    -i task_files/tetrad_handout.csv -o generated/tetrad_handout/tetrad_handout.yaml
 ```
 
 Exam (`-e`): only questions that pass the ZipGrade A-E rules are kept;

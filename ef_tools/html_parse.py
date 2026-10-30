@@ -31,6 +31,7 @@ INLINE_TAGS = {
 	"tt",
 	"sub",
 	"sup",
+	"small",
 }
 
 

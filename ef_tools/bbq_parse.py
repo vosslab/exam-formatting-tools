@@ -17,6 +17,7 @@ are positions ("Position 1", "Position 2", ...).
 import os
 import io
 import random
+import re
 
 # PIP3 modules
 import PIL.Image
@@ -28,7 +29,7 @@ import ef_tools.svg_media
 import ef_tools.question_utils
 
 
-# bbq question types with no print form in exam YAML
+# bbq question types with no normal exam/quiz print form in exam YAML
 SKIPPED_TYPES = ('NUM', 'FIB', 'FIB_PLUS')
 # letter labels for choices, in the order the DOCX builder assigns them
 LETTERS = 'ABCDEFGHIJKLMNOP'
@@ -151,7 +152,44 @@ def _parse_ord(parts: list, rendered_images: dict, question_code: str,
 
 
 #============================================
-def parse_bbq_line(line: str, math_renderer: object = None, base_url: str = '') -> dict | None:
+def _parse_handout_blank(parts: list, question_type: str) -> tuple:
+	"""Create a paper answer line and key payload for a non-choice item."""
+	if question_type == 'NUM':
+		if len(parts) < 3:
+			raise ValueError('NUM question is missing its answer')
+		answer = parts[2]
+		question = {'answer_line': 'Answer: ____________________'}
+		return question, answer
+	if question_type == 'FIB':
+		answers = [part for part in parts[2:] if part]
+		if not answers:
+			raise ValueError('FIB question is missing its answer')
+		question = {'answer_line': 'Answer: ____________________'}
+		return question, ' / '.join(answers)
+	groups = []
+	index = 2
+	while index < len(parts):
+		name = parts[index]
+		index += 1
+		answers = []
+		while index < len(parts) and parts[index] not in ('', '<div></div>'):
+			answers.append(parts[index])
+			index += 1
+		if index < len(parts) and parts[index] in ('', '<div></div>'):
+			index += 1
+		if not name or not answers:
+			raise ValueError('FIB_PLUS has a malformed blank group')
+		groups.append((name, answers))
+	if not groups:
+		raise ValueError('FIB_PLUS question is missing blank groups')
+	answer = '; '.join(f"{name}={' / '.join(answers)}" for name, answers in groups)
+	question = {}
+	return question, answer
+
+
+#============================================
+def parse_bbq_line(line: str, math_renderer: object = None, base_url: str = '',
+		handout: bool = False) -> dict | None:
 	"""Parse one bbq line.
 
 	Args:
@@ -176,7 +214,7 @@ def parse_bbq_line(line: str, math_renderer: object = None, base_url: str = '') 
 		return None
 	parts = [part.strip() for part in line.split('\t')]
 	question_type = parts[0].upper()
-	if question_type in SKIPPED_TYPES:
+	if question_type in SKIPPED_TYPES and not handout:
 		return None
 	code, statement_html = ef_tools.bbq_html.split_question_code(parts[1])
 	question_code = code or "without question code"
@@ -194,13 +232,23 @@ def parse_bbq_line(line: str, math_renderer: object = None, base_url: str = '') 
 	elif question_type == 'ORD':
 		question, letters, choice_tables, prompt_tables = _parse_ord(
 			parts, rendered_images, question_code, math_renderer)
+	elif question_type in SKIPPED_TYPES and handout:
+		question, answer_text = _parse_handout_blank(parts, question_type)
+		letters = []
+		choice_tables = {}
+		prompt_tables = {}
 	else:
 		raise ValueError(f"unknown bbq question type: {question_type!r}")
 	statement = ef_tools.bbq_html.clean_statement_content(statement_html)
+	if question_type == 'FIB_PLUS' and handout:
+		for block in statement:
+			if 'text' in block:
+				block['text'] = re.sub(r'\[[^]]+\]', '____________________', block['text'])
 	question = {'statement': statement, **question}
 	record = {
 		'question': question,
-		'answer': {'code': code, 'type': question_type, 'letters': letters},
+		'answer': {'code': code, 'type': question_type, 'letters': letters,
+			'answer_text': answer_text if question_type in SKIPPED_TYPES else ''},
 		'choice_tables': choice_tables,
 		'prompt_tables': prompt_tables,
 		'rendered_images': rendered_images,
@@ -382,7 +430,9 @@ def format_answer_key(questions: list, answers: list, sources: list) -> str:
 	for question, answer, source in zip(questions, answers, sources):
 		span = ef_tools.question_utils.question_span(question)
 		letters = answer['letters']
-		if span > 1:
+		if answer['type'] in SKIPPED_TYPES:
+			label = f"{number}. {answer['answer_text']}"
+		elif span > 1:
 			pairs = ' '.join(f"{number + i}={letter}" for i, letter in enumerate(letters))
 			label = f"Q{number}-{number + span - 1}. {pairs}"
 		else:

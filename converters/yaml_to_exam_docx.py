@@ -30,6 +30,7 @@ import ef_tools.docx_builder
 import ef_tools.docx_choice_builder
 import ef_tools.docx_table_builder
 import ef_tools.statement_content
+import ef_tools.compact
 
 
 #============================================
@@ -70,6 +71,12 @@ def parse_args() -> argparse.Namespace:
 		'--paper-size', dest='paper_size', choices=('letter', 'a4'), default='letter',
 		help='Paper size; defaults to US Letter. A4 adapts header and choice tab positions.'
 	)
+	compact_group = parser.add_mutually_exclusive_group()
+	compact_group.add_argument('--compact', dest='compact', action='store_true',
+		help='Use compact paper formatting (default).')
+	compact_group.add_argument('--no-compact', dest='compact', action='store_false',
+		help='Keep recognized supporting prose and normal paragraph spacing.')
+	parser.set_defaults(compact=True)
 	args = parser.parse_args()
 	return args
 
@@ -200,7 +207,7 @@ def resolve_choice_images(choices: list, base_dir: str) -> list:
 #============================================
 def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 		native_tables: bool = False, keep_questions_together: bool = False,
-		page_break_sections: bool = False, paper_size: str = 'letter') -> int:
+		page_break_sections: bool = False, paper_size: str = 'letter', compact: bool = True) -> int:
 	"""Build a complete DOCX exam document from YAML data.
 
 	Creates all styles, page layout, headers, and body content.
@@ -347,7 +354,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 				question_prefix = f"{question_number}. "
 			# The statement list is the single ordered source for question prose,
 			# images, rendered source tables, and structured data tables.
-			statement = question.get('statement', [])
+			statement = ef_tools.compact.statement(question.get('statement', []), compact)
 			ef_tools.statement_content.validate(statement)
 			heading_written = False
 			for block in statement:
@@ -426,6 +433,11 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 					sizer=pick_sizer(resolved_prompts, drawing_sizer, prompt_fit),
 					native_tables=native_tables)
 				prev_element = 'choices'
+			answer_line = question.get('answer_line', '')
+			if answer_line:
+				ef_tools.docx_builder.add_rich_text_paragraphs(
+					doc, 'Question Follow', answer_line)
+				prev_element = 'question'
 			# choices (image paths resolved against the YAML directory)
 			choices = question.get('choices', None)
 			if choices is not None:
@@ -488,7 +500,8 @@ def main() -> None:
 	question_count = build_document(
 		exam_data, output_file, base_dir, native_tables=args.native_tables,
 		keep_questions_together=args.keep_questions_together,
-		page_break_sections=args.page_break_sections, paper_size=args.paper_size)
+		page_break_sections=args.page_break_sections, paper_size=args.paper_size,
+		compact=args.compact)
 	print(f"Exam DOCX written to {output_file} ({question_count} questions)")
 
 

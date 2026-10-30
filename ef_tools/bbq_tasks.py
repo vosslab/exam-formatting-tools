@@ -249,7 +249,7 @@ def generate_candidate(task: dict, pythonpath: str) -> str:
 #============================================
 def generate_question(task: dict, pythonpath: str, reject_fn: object,
 		candidate_fn: object = generate_candidate,
-		math_renderer: object = None) -> tuple:
+		math_renderer: object = None, handout: bool = False) -> tuple:
 	"""Generate candidates until one parses and passes the mode rule.
 
 	Args:
@@ -271,7 +271,7 @@ def generate_question(task: dict, pythonpath: str, reject_fn: object,
 		# a reason to try again, the same as a skipped type
 		try:
 			record = ef_tools.bbq_parse.parse_bbq_line(
-				line, math_renderer=math_renderer)
+				line, math_renderer=math_renderer, handout=handout)
 		except ef_tools.bbq_parse.UnprintableQuestion as exc:
 			last_reason = f"unprintable: {exc}"
 			continue

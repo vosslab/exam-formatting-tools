@@ -68,6 +68,10 @@ def parse_args() -> argparse.Namespace:
 		help="Exam mode: keep only ZipGrade A-E compatible questions"
 	)
 	mode_group.add_argument(
+		'--handout', dest='mode', action='store_const', const='handout',
+		help='Handout mode: print NUM/FIB/FIB_PLUS with answer blanks.'
+	)
+	mode_group.add_argument(
 		'-q', '--quiz', dest='mode', action='store_const', const='quiz',
 		help="Quiz mode: any MC/MA/MAT/ORD question (default)"
 	)
@@ -101,7 +105,8 @@ def chapter_label(topic: str) -> str:
 
 
 #============================================
-def collect_questions(tasks: list, pythonpath: str, reject_fn: object, media_dir: str) -> tuple:
+def collect_questions(tasks: list, pythonpath: str, reject_fn: object, media_dir: str,
+		handout: bool = False) -> tuple:
 	"""Generate one question per task.
 
 	Returns:
@@ -116,8 +121,12 @@ def collect_questions(tasks: list, pythonpath: str, reject_fn: object, media_dir
 	with ef_tools.html_renderer.HtmlRenderer() as renderer:
 		for index, task in enumerate(tasks, start=1):
 			print(f"[{index}/{len(tasks)}] {task['label']}", file=sys.stderr)
-			record, reason = ef_tools.bbq_tasks.generate_question(
-				task, pythonpath, reject_fn, math_renderer=renderer)
+			if handout:
+				record, reason = ef_tools.bbq_tasks.generate_question(
+					task, pythonpath, reject_fn, math_renderer=renderer, handout=True)
+			else:
+				record, reason = ef_tools.bbq_tasks.generate_question(
+					task, pythonpath, reject_fn, math_renderer=renderer)
 			if record is None:
 				skipped.append(reason)
 				continue
@@ -165,6 +174,9 @@ def main() -> None:
 	if args.mode == 'exam':
 		reject_fn = reject_exam
 		default_title = 'Exam'
+	elif args.mode == 'handout':
+		reject_fn = reject_quiz
+		default_title = 'Handout'
 	else:
 		reject_fn = reject_quiz
 		default_title = 'Quiz'
@@ -176,7 +188,8 @@ def main() -> None:
 	stem = os.path.splitext(os.path.basename(output_file))[0]
 	media_dir = os.path.join(os.path.dirname(os.path.abspath(output_file)), f"{stem}_files")
 
-	sections, answers, sources, skipped = collect_questions(tasks, pythonpath, reject_fn, media_dir)
+	sections, answers, sources, skipped = collect_questions(
+		tasks, pythonpath, reject_fn, media_dir, handout=args.mode == 'handout')
 	if not answers:
 		raise ValueError(f"no usable questions from {len(tasks)} tasks")
 	exam_dict = {

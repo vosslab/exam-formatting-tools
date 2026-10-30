@@ -14,6 +14,15 @@ import ef_tools.style_loader
 
 
 #============================================
+def _is_flex_visual_group(element: lxml.html.HtmlElement) -> bool:
+	"""Return whether a flex container holds multiple drawing tables."""
+	style = ''.join(element.get('style', '').lower().split())
+	if 'display:flex' not in style and 'display:inline-flex' not in style:
+		return False
+	return len(element.xpath('.//table[not(ancestor::table)]')) > 1
+
+
+#============================================
 def prepare_fields(parts: list, renderer: object, image_store: dict,
 			base_url: str, label: str) -> list:
 	"""Render outer drawings together, retaining source tables for native DOCX.
@@ -27,13 +36,26 @@ def prepare_fields(parts: list, renderer: object, image_store: dict,
 	elements = []
 	width = ef_tools.style_loader.load_styles()['page']['image_max_width']
 	for root in roots:
+		# Preserve authored side-by-side drawing panels as one image. Standalone
+		# tables still take the native-DOCX fallback below.
+		for element in root.xpath('.//*'):
+			if _is_flex_visual_group(element):
+				element.set('data-ef-flex-visual-group', '')
 		for element in root.xpath('.//table | .//math | .//canvas'):
-			if element.xpath('ancestor::table | ancestor::math | ancestor::canvas'):
+			if element.xpath(
+					'ancestor::table | ancestor::math | ancestor::canvas | '
+					'ancestor::*[@data-ef-flex-visual-group]'):
 				continue
 			key = str(len(elements) + 1)
 			element.set('data-ef-capture', key)
 			selector = f'[data-ef-capture="{key}"]'
 			targets[selector] = None if element.tag == 'table' else width
+			elements.append((element, key, selector))
+		for element in root.xpath('.//*[@data-ef-flex-visual-group]'):
+			key = str(len(elements) + 1)
+			element.set('data-ef-capture', key)
+			selector = f'[data-ef-capture="{key}"]'
+			targets[selector] = width
 			elements.append((element, key, selector))
 	if targets:
 		if renderer is None:
@@ -46,6 +68,8 @@ def prepare_fields(parts: list, renderer: object, image_store: dict,
 			if element.tag == 'table':
 				element.set('data-ef-image', key)
 			else:
+				# ASVS 1.3.5: authored CSS remains only in the disposable capture,
+				# never in the printable rich-text output.
 				image = lxml.html.Element('img')
 				image.set('src', ef_tools.bbq_html.RENDERED_IMAGE_PREFIX + key)
 				image.tail = element.tail

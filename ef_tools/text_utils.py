@@ -56,7 +56,7 @@ assert strip_number_prefix("No prefix here") == "No prefix here"
 # matches the supported inline tags and span wrappers. Color spans are
 # handled separately below so the active tag can carry its hex value.
 _RICH_TEXT_TAG_PATTERN = re.compile(
-	r'(<br\s*/?>|</?(?:sub|sup|b|strong|i|em|code|tt)>|</?span\b[^>]*>)',
+	r'(<br\s*/?>|</?(?:sub|sup|b|strong|i|em|code|tt|small)>|</?span\b[^>]*>)',
 	re.IGNORECASE,
 )
 
@@ -195,7 +195,7 @@ assert parse_rich_text("<em>y</em>") == [
 #============================================
 # pattern to strip supported inline tags and color spans, preserving inner text
 _INLINE_TAG_STRIP_PATTERN = re.compile(
-	r'</?(?:sub|sup|b|strong|i|em|code|tt)>|</?span\b[^>]*>',
+	r'</?(?:sub|sup|b|strong|i|em|code|tt|small)>|</?span\b[^>]*>',
 	re.IGNORECASE,
 )
 # pattern to collapse runs of whitespace to a single space

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-10-30
+
+### Additions and New Features
+
+- Add compact paper rendering, printable NUM/FIB/FIB_PLUS handout support, and an unordered
+  tetrad handout builder that progresses from two-gene linkage to three-gene mapping.
+
+### Behavior or Interface Changes
+
+- Compact rendering is now the default DOCX behavior; `--no-compact` retains recognized hints
+  and regular supporting-prose size.
+- Capture authored flex groups containing multiple drawing tables as one visual, preserving
+  side-by-side panels while standalone tables retain the native-DOCX fallback.
+
 ## 2026-10-13
 
 ### Additions and New Features

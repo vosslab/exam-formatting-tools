@@ -90,6 +90,7 @@ Inline HTML tags are supported for formatting within statement and choice text:
 | `<em>`, `</em>` | Italic (alias for `<i>`) | `<em>emphasis</em>` |
 | `<code>`, `</code>` | Atkinson Hyperlegible Mono | `<code>ATGC</code>` |
 | `<tt>`, `</tt>` | Atkinson Hyperlegible Mono (legacy alias) | `<tt>ATGC</tt>` |
+| `<small>`, `</small>` | 8pt supporting prose | `<small>Background context</small>` |
 | `<span style="color: #rrggbb;">`, `</span>` | Hex text color | `<span style="color: #ba372a;">FALSE</span>` |
 
 Engines writing exam YAML should preserve these inline HTML tags verbatim in statement text blocks and choice text. HTML entities (e.g., `&deg;`) should also be preserved as-is; the builder decodes them at render time. Color spans preserve only a three- or six-digit hexadecimal `color` declaration in canonical lowercase `#rrggbb` form; importers normalize bptools' bare hex values and discard unrelated span CSS.

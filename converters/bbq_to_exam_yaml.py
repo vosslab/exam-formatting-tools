@@ -49,19 +49,21 @@ def parse_args() -> argparse.Namespace:
 		default='Exam',
 		help="Exam title (default: Exam)"
 	)
+	parser.add_argument('--handout', dest='handout', action='store_true',
+		help='Include NUM, FIB, and FIB_PLUS questions with paper answer blanks.')
 	args = parser.parse_args()
 	return args
 
 
 #============================================
-def parse_bbq_file(input_path: str, math_renderer: object = None) -> list:
+def parse_bbq_file(input_path: str, math_renderer: object = None, handout: bool = False) -> list:
 	"""Parse every printable bbq line in a file into records."""
 	records = []
 	with open(input_path, 'r') as handle:
 		for line in handle:
 			record = ef_tools.bbq_parse.parse_bbq_line(
 				line, math_renderer=math_renderer,
-				base_url=pathlib.Path(input_path).resolve().as_uri())
+				base_url=pathlib.Path(input_path).resolve().as_uri(), handout=handout)
 			if record is not None:
 				records.append(record)
 	return records
@@ -141,7 +143,7 @@ def main() -> None:
 	ef_tools.cli_checks.require_extensions(output_file, ('.yml', '.yaml'), 'output')
 
 	with ef_tools.html_renderer.HtmlRenderer() as renderer:
-		records = parse_bbq_file(args.input_file, math_renderer=renderer)
+		records = parse_bbq_file(args.input_file, math_renderer=renderer, handout=args.handout)
 		render_record_tables(records, output_file, renderer)
 	exam_dict = build_exam_dict(records, args.exam_title)
 	write_outputs(exam_dict, records, output_file, os.path.basename(args.input_file))

@@ -14,6 +14,11 @@ MC_LINE = "MC\t<p>c555_9c1d</p> <p>What is 2+2?</p>\t3\tIncorrect\t4\tCorrect\t5
 MA_LINE = "MA\t<p>Prime numbers?</p>\t2\tCorrect\t3\tCorrect\t4\tIncorrect"
 MAT_LINE = "MAT\t<p>Match capitals</p>\tUSA\tWashington\tFrance\tParis\tJapan\tTokyo\tPeru\tLima"
 ORD_LINE = "ORD\t<p>Order the steps</p>\tStep 1\tStep 2\tStep 3"
+NUM_LINE = "NUM\t<p>n111</p><p>Calculate distance.</p>\t12.00000000\t0.10000000"
+FIB_PLUS_LINE = (
+	"FIB_PLUS\t<p>f222</p><p>Distance [AB] and order [order].</p>"
+	"\tAB\t12\t\torder\tabc\tcba\t"
+)
 GEL_TABLE = "<table><tr><td bgcolor='#E0E0E0' style='border: 1px solid gray;'>gel</td></tr><tr><td>lane</td></tr></table>"
 
 
@@ -63,6 +68,18 @@ def test_matching_and_ordering_keys_survive_choice_shuffle() -> None:
 
 
 #============================================
+def test_handout_keeps_numeric_and_multi_blank_questions_with_paper_lines() -> None:
+	"""Handouts print answer blanks while exam/quiz parsing still skips them."""
+	assert ef_tools.bbq_parse.parse_bbq_line(NUM_LINE) is None
+	numeric = ef_tools.bbq_parse.parse_bbq_line(NUM_LINE, handout=True)
+	assert numeric['question']['answer_line'].startswith('Answer:')
+	assert numeric['answer']['answer_text'] == '12.00000000'
+	multi = ef_tools.bbq_parse.parse_bbq_line(FIB_PLUS_LINE, handout=True)
+	assert '____________________' in multi['question']['statement'][0]['text']
+	assert 'order=abc / cba' in multi['answer']['answer_text']
+
+
+#============================================
 @pytest.mark.parametrize('extension', ['png', 'svg'])
 def test_tables_in_statement_choice_and_prompt_become_images(
 		tmp_path: object, extension: str) -> None:
@@ -103,6 +120,25 @@ def test_renderer_receives_shared_statement_script_for_choice_canvas(tmp_path: o
 		record, renderer, str(tmp_path / 'quiz_files'), 'ab12')
 	assert os.path.isfile(tmp_path / choice['image'])
 	assert 'script' not in str(record['question'])
+
+
+#============================================
+def test_flex_drawing_panels_are_captured_once_in_authored_order() -> None:
+	"""A flex drawing group remains side by side instead of becoming stacked tables."""
+	first = '<table><tr><td>first panel</td></tr></table>'
+	second = '<table><tr><td>second panel</td></tr></table>'
+	line = (
+		'MC\t<p>flex12</p><p>Compare the panels.</p>'
+		'<div style="display: flex; gap: 16px;"><div>' + first + '</div><div>'
+		+ second + '</div></div>\tYes\tCorrect\tNo\tIncorrect')
+	renderer = FakeRenderer()
+	record = ef_tools.bbq_parse.parse_bbq_line(line, math_renderer=renderer)
+	html, targets, _base_url, _label = renderer.calls[0]
+	assert len(targets) == 1
+	assert html.index('first panel') < html.index('second panel')
+	assert 'display: flex' in html
+	assert 'html_table' not in str(record['question']['statement'])
+	assert record['question']['statement'][1]['image'] == 'rendered:1'
 
 
 #============================================

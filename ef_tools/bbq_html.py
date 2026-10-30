@@ -26,7 +26,7 @@ import ef_tools.statement_content
 
 
 # tags whose content is re-emitted wrapped in the same bare tag
-INLINE_KEEP_TAGS = ('sub', 'sup', 'b', 'strong', 'i', 'em', 'code', 'tt')
+INLINE_KEEP_TAGS = ('sub', 'sup', 'b', 'strong', 'i', 'em', 'code', 'tt', 'small')
 # tags that only add a paragraph boundary around their content
 BLOCK_TAGS = ('p', 'div', 'ul', 'ol')
 # section headings become their own bold line
@@ -34,7 +34,7 @@ HEADING_TAGS = ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
 # empty tags that become a line break
 BREAK_TAGS = ('br', 'hr')
 # tags dropped entirely, keeping their text
-UNWRAP_TAGS = ('span', 'font', 'a', 'u', 'small', 'big')
+UNWRAP_TAGS = ('span', 'font', 'a', 'u', 'big')
 RENDERED_IMAGE_PREFIX = 'rendered:'
 
 # whitespace normalization

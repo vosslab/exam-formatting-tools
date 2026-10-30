@@ -439,6 +439,8 @@ def add_rich_text_runs(para: object, text: str,
 			run.font.subscript = True
 		if 'sup' in tags:
 			run.font.superscript = True
+		if 'small' in tags:
+			run.font.size = docx.shared.Pt(8)
 		for tag in tags:
 			if tag.startswith('color:'):
 				run.font.color.rgb = parse_hex_color(tag.split(':', 1)[1])
