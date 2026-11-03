@@ -2,9 +2,7 @@
 
 On this macOS host, LibreOffice crashes when launched inside the sandbox. Run every command
 that can invoke LibreOffice outside the sandbox (`sandbox_permissions="require_escalated"`),
-using the provided repository scripts. This includes PDF builds/exports, conversion tests,
-and ODP imports: the importer can launch LibreOffice indirectly to convert metafiles to SVG.
-Do not retry a sandboxed LibreOffice crash or assume an import is LibreOffice-free.
+using the provided repository scripts. This includes PDF builds/exports and conversion tests.
 
 ## Temporary files
 Use `_temp/` at the repository root for temporary scripts, renders, and review artifacts.
