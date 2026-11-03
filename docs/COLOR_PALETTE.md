@@ -28,6 +28,21 @@ Names below preserve that source's labels.
 | Magenta | `#C80085` |
 | Pink | `#CC0066` |
 
+## Statistical terminology
+
+Follow `~/nsh/PROBLEMS/biology-problems/problems/matching_sets/biostatistics/chi-square_terms.yml`
+for statistical term colors. Always write level of significance (&alpha;) and null hypothesis
+(H<sub>0</sub>) with their names.
+
+| Term | Color |
+| --- | --- |
+| Level of significance (&alpha;) | `#8601af` |
+| Null hypothesis (H<sub>0</sub>) | `#0247fe` |
+| Chi-square statistic (&chi;<sup>2</sup>) | `#935d00` |
+| Critical value | `#4424D6` |
+| p-value | `#C21460` |
+| Degrees of freedom | `#687f19` |
+
 ## Procedure sequences
 
 Use well-separated colors from the fixed palette in rainbow order for new colored step sequences.
@@ -37,6 +52,11 @@ own method's colors. Preserve meaningful source colors when converting existing 
 recoloring is requested.
 
 ## Three-point testcross pairs
+
+Quiz 3 gene identities inherit each generated question's palette. Preserve its clue colors
+and repeat them in positional `+` symbols, question references, and gene-order choices.
+In answer genotypes, recessive letters use black text with the corresponding table cell's
+background fill. These varying gene identities are separate from the fixed pairwise roles below.
 
 Reserve green for the two original parental rows and lime green for other offspring with a
 parental combination for the selected gene pair. Color each pair's recombinant rows, summary

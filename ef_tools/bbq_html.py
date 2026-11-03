@@ -42,14 +42,14 @@ _SPACE_RUN_RE = re.compile(r'[ \t]+')
 _BLANK_LINE_RE = re.compile(r'\n\s*\n+')
 _SPACE_AROUND_NEWLINE_RE = re.compile(r' *\n *')
 #============================================
-def _text_color(element: lxml.html.HtmlElement) -> str | None:
-	"""Return a normalized hex text color from supported inline style.
-
-	Only ``span`` and ``strong`` are allowed to carry the printable color
-	declaration. Other CSS (including anti-cheat font sizing) remains
-	presentation metadata and is intentionally discarded.
-	"""
-	return ef_tools.text_utils.text_color_from_style(element.get('style', ''))
+def _color_style(element: lxml.html.HtmlElement) -> str | None:
+	"""Preserve printable hex foreground and background colors only."""
+	declarations = []
+	for name in ("color", "background-color"):
+		value = ef_tools.text_utils.text_color_from_style(element.get("style", ""), name)
+		if value:
+			declarations.append(f"{name}: {value};")
+	return " ".join(declarations) or None
 
 
 #============================================
@@ -199,7 +199,7 @@ def _emit(element: lxml.html.HtmlElement, parts: list) -> None:
 		if not is_rendered_image_ref(element.get('src', '')):
 			raise ValueError('unsupported image markup in answer choice')
 		return
-	text_color = _text_color(element) if tag in ('span', 'strong') else None
+	color_style = _color_style(element) if tag in ('span', 'strong') else None
 	if tag in HEADING_TAGS:
 		parts.append('\n<b>')
 	elif tag in BLOCK_TAGS:
@@ -210,10 +210,10 @@ def _emit(element: lxml.html.HtmlElement, parts: list) -> None:
 		parts.append('\n')
 	elif tag in INLINE_KEEP_TAGS:
 		parts.append(f'<{tag}>')
-		if text_color is not None:
-			parts.append(f'<span style="color: {text_color};">')
-	elif text_color is not None:
-		parts.append(f'<span style="color: {text_color};">')
+		if color_style is not None:
+			parts.append(f'<span style="{color_style}">')
+	elif color_style is not None:
+		parts.append(f'<span style="{color_style}">')
 	elif tag in UNWRAP_TAGS:
 		pass
 	else:
@@ -229,10 +229,10 @@ def _emit(element: lxml.html.HtmlElement, parts: list) -> None:
 	elif tag in BLOCK_TAGS:
 		parts.append('\n')
 	elif tag in INLINE_KEEP_TAGS:
-		if text_color is not None:
+		if color_style is not None:
 			parts.append('</span>')
 		parts.append(f'</{tag}>')
-	elif text_color is not None:
+	elif color_style is not None:
 		parts.append('</span>')
 
 
@@ -319,7 +319,7 @@ def _emit_statement(element: lxml.html.HtmlElement, statement: list,
 		_append_statement_text_block(statement, parts)
 		statement.append({'html_table': outer_html(element)})
 		return
-	text_color = _text_color(element) if tag in ('span', 'strong') else None
+	color_style = _color_style(element) if tag in ('span', 'strong') else None
 	active_wrappers = wrappers
 	if tag in HEADING_TAGS:
 		_append_wrapped_text(parts, '\n', wrappers)
@@ -332,10 +332,10 @@ def _emit_statement(element: lxml.html.HtmlElement, statement: list,
 		_append_wrapped_text(parts, '\n', wrappers)
 	elif tag in INLINE_KEEP_TAGS:
 		active_wrappers += ((f'<{tag}>', f'</{tag}>'),)
-		if text_color is not None:
-			active_wrappers += ((f'<span style="color: {text_color};">', '</span>'),)
-	elif text_color is not None:
-		active_wrappers += ((f'<span style="color: {text_color};">', '</span>'),)
+		if color_style is not None:
+			active_wrappers += ((f'<span style="{color_style}">', '</span>'),)
+	elif color_style is not None:
+		active_wrappers += ((f'<span style="{color_style}">', '</span>'),)
 	elif tag in UNWRAP_TAGS:
 		pass
 	else:

@@ -89,11 +89,11 @@ def normalize_hex_color(value: str) -> str | None:
 
 
 #============================================
-def text_color_from_style(style: str) -> str | None:
-	"""Read and normalize the CSS ``color`` declaration in an inline style."""
+def text_color_from_style(style: str, property_name: str = 'color') -> str | None:
+	"""Read and normalize a CSS hex color declaration in an inline style."""
 	for declaration in style.split(';'):
-		property_name, separator, value = declaration.partition(':')
-		if not separator or property_name.strip().lower() != 'color':
+		name, separator, value = declaration.partition(':')
+		if not separator or name.strip().lower() != property_name:
 			continue
 		return normalize_hex_color(value)
 	return None
@@ -118,7 +118,8 @@ def parse_rich_text(text: str) -> list:
 	Splits text on supported HTML tags and returns a list of
 	(text, tags) tuples where tags is a frozenset of active formatting
 	tag names. Supported tags: sub, sup, b, strong, i, em, code, tt, and
-	hex-color spans, represented as ``color:#RRGGBB`` in the active tag set.
+	hex-color spans, represented as ``color:#RRGGBB`` or
+	``background-color:#RRGGBB`` in the active tag set.
 	Tags strong and em are normalized to b and i; tt is normalized to code.
 
 	Does not handle nested tags of the same type or malformed HTML.
@@ -146,15 +147,16 @@ def parse_rich_text(text: str) -> list:
 			continue
 		if re.match(r'^</span\s*>$', part, re.IGNORECASE):
 			for tag in list(active_tags):
-				if tag.startswith('color:'):
+				if tag.startswith(('color:', 'background-color:')):
 					active_tags.discard(tag)
 			continue
 		if re.match(r'^<span\b', part, re.IGNORECASE):
 			style_match = _SPAN_STYLE_RE.search(part)
 			if style_match:
-				color = text_color_from_style(style_match.group(1))
-				if color:
-					active_tags.add(f'color:{color}')
+				for property_name in ('color', 'background-color'):
+					color = text_color_from_style(style_match.group(1), property_name)
+					if color:
+						active_tags.add(f'{property_name}:{color}')
 			continue
 		tag_match = re.match(r'^<(/?)(\w+)>$', part)
 		if tag_match:

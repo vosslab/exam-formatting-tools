@@ -16,6 +16,11 @@ origin belongs there too. Rules: [REPO_STYLE.md](REPO_STYLE.md).
 - Prefer flat shell scripts for assessment generation. Put reusable complexity in common tools.
 - My quizzes have a style and my exams have a style. Document those general conventions
   separately from the subject or individual assessment.
+- There are no calculators on quizzes or exams. Show the arithmetic and evaluated results
+  in calculation choices, as in my historical assessment artifacts.
+- Use en dashes for negative signs and subtraction in assessment calculations; hyphens are too small.
+- Always pair alpha with its name, level of significance, and write null hypothesis
+  (H0) rather than a standalone H0. Follow `chi-square_terms.yml` for statistical term colors.
 - Apply KISS aggressively. Add mechanisms and configuration only for demonstrated needs;
   prefer sensible fixed behavior for internal decisions.
 - Ground acceptance checks in actual requirements and known failures. Byte or pixel equality

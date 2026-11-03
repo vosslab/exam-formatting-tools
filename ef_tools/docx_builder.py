@@ -447,6 +447,11 @@ def add_rich_text_runs(para: object, text: str,
 		for tag in tags:
 			if tag.startswith('color:'):
 				run.font.color.rgb = parse_hex_color(tag.split(':', 1)[1])
+			elif tag.startswith('background-color:'):
+				shading = docx.oxml.OxmlElement('w:shd')
+				shading.set(docx.oxml.ns.qn('w:val'), 'clear')
+				shading.set(docx.oxml.ns.qn('w:fill'), tag.split(':', 1)[1].lstrip('#'))
+				run._element.get_or_add_rPr().append(shading)
 
 
 #============================================

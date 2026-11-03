@@ -12,12 +12,46 @@
 
 ### Fixes and Maintenance
 
+- Use en dashes for subtraction and negative values in Quiz 3 chi-square calculation choices.
+- Replace the oversized squared-without-division chi-square distractor with signed deviation
+  divided by observed, keeping the five row-to-total calculation paths consistent.
+- Remove absolute values from non-squared chi-square distractors, vary subtraction order,
+  and propagate signed row values consistently into their totals.
+- Derive Quiz 3 chi-square row choices and total choices from the same five calculation
+  paths, preserving displayed row values and A-E order across the calculation sequence.
+- Use raised numerators and lowered denominators for Quiz 3 recombination calculations;
+  remove the gene-order orientation hint and include reversed order choices with one correct answer.
+- Highlight recessive alleles in Quiz 3 answer genotypes using the backgrounds from
+  each generated clue table; preserve inline background colors through YAML and DOCX.
+- Pair statistical symbols with their names in Quiz 3 and use the semantic colors from
+  `chi-square_terms.yml`; preserve this terminology policy in shared guidance.
+- Give multipart quizzes unnumbered section setups with question-range headings, add a
+  separate progeny-probability question, and inherit each generated setup's gene palette.
+- Match Quiz 3 clue and answer gene colors using each generated question's palette;
+  retain each gene's identity through genotype and reversed gene-order choices.
+- Show worked arithmetic in Quiz 3 chi-square total, progeny probability, recombination
+  frequency, and double-crossover count choices. Use whole-number mapping distractors
+  with mathematically correct calculations; record the no-calculator rule in shared guidance.
+- Consolidate the current Quiz 3 into `generated/genetics_quiz3/`, remove superseded setup
+  outputs, and document one active output location for future builds.
+- Vary Quiz 3 chi-square sample sizes and derive expected counts, table totals, and the
+  sample-size distractor from each setup. Remove the forced 8:2:4:2 observation ratio.
 - Synchronized shared style guides, tests, and repository support files from the starter template.
 
 ### Developer Tests and Notes
 
+- Verify unnumbered shared setups retain actual question numbers and generated palettes
+  carry into answers: 120 focused checks pass; inspect the rebuilt 21-question PDF.
 - Check chi-square calculations and mapping answers against independent examples with
-  different parental phases and middle genes. PDF layout and final build validation pending.
+  different parental phases and middle genes: 100 focused/parser/documentation checks pass.
+- Compose 30 fresh setup pairs (600 keyed subquestions), and run the complete fresh-version
+  builder through DOCX and PDF export. Inspect today's PDF; leave pagination for instructor
+  polish. Use content-sized inline-flex table groups to preserve readable generator artwork.
+- Verify variable-total chi-square keys for rejection and non-rejection examples; 102 focused
+  checks pass. A 100-draw smoke run covers all eleven sample sizes and both conclusions.
+- Verify worked calculation choices and exact whole-number mapping arithmetic: 105 focused
+  checks pass. Build new shared setups without snapshot input, inspect the PDF, and replace
+  the active quiz in its single canonical output directory.
 
 ## 2026-10-30
 

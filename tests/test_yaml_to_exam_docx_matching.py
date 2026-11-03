@@ -11,6 +11,21 @@ import docx
 import yaml_to_exam_docx
 
 
+def test_shared_setup_does_not_take_question_number(tmp_path: object) -> None:
+	"""The range setup is unnumbered and the first answerable stem carries label 1."""
+	path = tmp_path / 'shared.docx'
+	exam = {'title': 'Shared setup', 'date': '2026-11-03', 'sections': [{
+		'chapter': 'Questions 1-2', 'setup': [{'text': 'Shared cross data.'}],
+		'questions': [{'statement': [{'text': 'What is the null hypothesis?'}],
+			'choices': ['A model', 'A different model']}]}]}
+	assert yaml_to_exam_docx.build_document(exam, str(path)) == 1
+	document = docx.Document(path)
+	setup = next(p for p in document.paragraphs if 'Shared cross data.' in p.text)
+	question = next(p for p in document.paragraphs if 'null hypothesis?' in p.text)
+	assert setup.text == 'Shared cross data.'
+	assert question.text.startswith('1. What is the null hypothesis?')
+
+
 #============================================
 def _matching_yaml() -> dict:
 	"""Synthetic exam_data with a single 3-prompt matching question."""

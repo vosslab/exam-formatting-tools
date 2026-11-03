@@ -7,6 +7,8 @@ settings are documented in [EXAM_STYLE.md](EXAM_STYLE.md#shared-docx-formatting)
 ## Content and scoring
 
 - Keep coverage focused on the material taught before the quiz.
+- Follow the shared [EXAM_STYLE.md](EXAM_STYLE.md#questions-and-answer-sheets) no-calculator
+  convention: show worked arithmetic and evaluated results in calculation choices.
 - Prefer medium difficulty when a question family offers difficulty levels.
 - Prefer MATCH over WOMC for equivalent content, including terminology questions.
 - Avoid repeating alternate formats of the same reasoning task.

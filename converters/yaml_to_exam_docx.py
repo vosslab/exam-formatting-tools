@@ -317,6 +317,8 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 			prev_element = 'chapter'
 		# questions
 		questions = section_data.get('questions', [])
+		if section_data.get('setup'):
+			questions = [{'statement': section_data['setup'], 'shared_setup': True}] + questions
 		for question in questions:
 			# inline chapter heading: a YAML question-list entry of the form
 			# `- chapter: "..."` is not a real question; render it as a
@@ -349,12 +351,15 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 			# blanks; choices_list is the lettered (A)/(B)/... options.
 			prompts_list = question.get('prompts_list', [])
 			choice_font = question.get('choice_font')
-			question_span = ef_tools.question_utils.question_span(question)
+			shared_setup = question.get('shared_setup', False)
+			question_span = 0 if shared_setup else ef_tools.question_utils.question_span(question)
 			question_total += question_span
 			if question_span > 1:
 				question_prefix = f"Q{question_number}-{question_number + question_span - 1}. "
 			else:
 				question_prefix = f"{question_number}. "
+			if shared_setup:
+				question_prefix = ''
 			# The statement list is the single ordered source for question prose,
 			# images, rendered source tables, and structured data tables.
 			statement = ef_tools.compact.statement(question.get('statement', []), compact)

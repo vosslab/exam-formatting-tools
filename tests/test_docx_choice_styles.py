@@ -19,6 +19,7 @@ import docx
 import file_utils
 import ef_tools.docx_images
 import ef_tools.docx_builder
+import ef_tools.bbq_html
 import ef_tools.docx_choice_builder
 import ef_tools.style_loader
 
@@ -164,6 +165,22 @@ def test_rich_text_color_span_sets_docx_run_color() -> None:
 		and run.bold is True
 		and str(run.font.color.rgb) == '9F342D'
 		for run in para.runs)
+
+
+#============================================
+def test_recessive_allele_background_survives_html_to_docx() -> None:
+	"""Quiz answer highlights retain exact generated fills without bleeding into +."""
+	doc = _make_styled_doc()
+	para = doc.add_paragraph()
+	markup = ef_tools.bbq_html.clean_inline_html(
+		'<span style="color: #000000; background-color: #ffe4d9;">j</span> '
+		'<span style="color: #8f4711;">+</span>')
+	ef_tools.docx_builder.add_rich_text_runs(para, markup)
+	mutant = next(run for run in para.runs if run.text == 'j')
+	wildtype = next(run for run in para.runs if run.text == '+')
+	assert mutant._element.xpath('./w:rPr/w:shd/@w:fill') == ['ffe4d9']
+	assert str(mutant.font.color.rgb) == '000000'
+	assert not wildtype._element.xpath('./w:rPr/w:shd')
 
 
 #============================================

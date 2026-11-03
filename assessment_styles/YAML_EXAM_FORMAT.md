@@ -23,6 +23,10 @@ To check whether an exam will fit a ZipGrade A-E bubble form, run [validate_zip_
 
 ## Sections
 
+An optional `setup` field contains an ordered statement-block list shared by the section's
+questions. It renders below the section heading without a question number or point value.
+Use a range heading such as `Questions 1-10`; the first actual question retains its own label.
+
 Each section groups questions under an optional heading. A section may have a major heading, a chapter heading, or both.
 
 | Field | Type | Required | Default | Description |

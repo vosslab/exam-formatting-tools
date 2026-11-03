@@ -28,6 +28,8 @@ answer-sheet capacity.
   DOCX formatting details.
 - [QUIZ_STYLE.md](QUIZ_STYLE.md): general quiz presentation and scoring conventions.
 - [GENETICS_EXAM1.md](GENETICS_EXAM1.md): selection, coverage, and decisions for Genetics Exam 1.
+- [GENETICS_QUIZ3.md](GENETICS_QUIZ3.md): generated shared setups, multipart progression,
+  saved versions, and next-year regeneration for Genetics Quiz 3.
 - [exam_styles.yaml](exam_styles.yaml): machine-readable formatting values used by the converters.
 
 Put reusable guidance and assessment-specific creation notes here. Keep general conventions in

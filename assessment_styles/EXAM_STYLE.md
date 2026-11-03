@@ -7,6 +7,8 @@ the machine-readable values.
 
 ## Questions and answer sheets
 
+- Quizzes and exams do not permit calculators. Show the arithmetic and its evaluated result
+  in calculation choices so students choose the correct setup without lengthy computation.
 - Use ZipGrade-compatible questions with at most five lettered choices: A, B, C, D, E.
   This limit includes matching answer banks and multiple-answer questions.
 - Prefer MATCH over WOMC when both assess the same content.
