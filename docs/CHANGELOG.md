@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-11-03
+
+### Additions and New Features
+
+- Add a Genetics Quiz 3 composition recipe with twenty questions sharing one generated
+  chi-square setup and one generated three-point testcross. Preserve the historical multipart
+  progression and current generator artwork, with no interference questions.
+- Save scientific setup snapshots, final YAML, and explained answer keys for reproducible
+  classroom versions; add a flat DOCX/PDF build recipe and next-year generation instructions.
+
+### Fixes and Maintenance
+
+- Synchronized shared style guides, tests, and repository support files from the starter template.
+
+### Developer Tests and Notes
+
+- Check chi-square calculations and mapping answers against independent examples with
+  different parental phases and middle genes. PDF layout and final build validation pending.
+
 ## 2026-10-30
 
 ### Additions and New Features
