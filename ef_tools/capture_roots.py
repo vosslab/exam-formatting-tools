@@ -11,6 +11,8 @@ def _has_ancestor(element: object, ancestors: list) -> bool:
 #============================================
 def _inline_display(element: object) -> str:
 	"""Return the element's inline display value, if explicitly declared."""
+	if not isinstance(element.tag, str):
+		return ''
 	display = ''
 	for declaration in element.get('style', '').split(';'):
 		name, separator, value = declaration.partition(':')

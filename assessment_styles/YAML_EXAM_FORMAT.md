@@ -233,33 +233,25 @@ so the student writes the letter of the item that belongs at each position.
 
 ### Auto-layout algorithm
 
-When `layout` is omitted, the builder selects a `Choices N` paragraph
-style based on a weighted **visible-width score** of the longest
-choice. The score is a sum of per-character weights (narrow glyphs
-like `i`, `l`, `.` count less than typical letters; wide glyphs like
-`M`, `W` count more). Crucially, HTML entities and inline tags are
-reduced to their visible text before scoring -- `&#8226;`,
-`&#8801;`, `<sub>2</sub>`, `<b>...</b>` each contribute their
-rendered glyphs, not their serialized YAML length.
+When `layout` is omitted, the builder measures each complete formatted answer,
+including its bold letter label, spaces, selected font, emphasis, and code runs.
+Pillow measures the installed font face resolved by fontconfig, including variable-font
+instances. Color markup contributes no width; sub/superscripts use full-size glyphs as
+an intentionally conservative bound.
 
-| Layout | Items per row | Max visible width | Tab-stop position |
-| --- | --- | --- | --- |
-| Choices 5 | 5 | 17 | 1.53in, 2.93in, 4.33in, 5.73in |
-| Choices 4 | 4 | 17 | 1.88in, 3.63in, 5.38in |
-| Choices 3 | 3 | 30 | 2.46in, 4.80in |
-| Choices 2 | 2 | 49 | 3.78in (two columns) |
+The builder compares each answer with its actual slot between tab stops or the right
+page margin, leaving a half-em gap. The geometry comes from the selected paper size
+and `layout_tab_stops` in [exam_styles.yaml](exam_styles.yaml).
+It tries the established balanced arrangements: two columns for two choices, three
+for three, four then two for four, and five then three for five or more.
+If none fit, it selects one choice per paragraph with the `Choices 2` style.
+The abstract `Choice` base style is never applied to a paragraph. Explicit `layout`
+values remain authoritative; they bypass automatic measurement.
 
-Width scores use approximate character weights and do not measure the
-installed DOCX font directly. The thresholds are configured in
-`layout_limits`. Tab-stop positions in `layout_tab_stops`
-(`assessment_styles/exam_styles.yaml`) are pre-offset by `choice_indent` (0.13in)
-because OOXML measures tab stops from the page left margin, not from
-the paragraph indent -- without the offset the first column gap would
-be shorter than the rest. When the longest choice's visible-width
-score exceeds the budget, the next wider layout is selected; if no
-layout fits, the builder falls back to a single-column vertical stack
-rendered with the `Choices 2` style. The abstract `Choice` base style
-is never applied to a paragraph.
+This measures text choices; image choices retain their existing sizing path.
+The former `layout_limits` character budgets are no longer used. Tabs and named
+styles remain the editing interface in LibreOffice.
+
 
 Override with an explicit `layout` value when needed:
 

@@ -1,5 +1,45 @@
 # Release history
 
+## v26.11 - 2026-11-04
+
+### Highlights
+
+- Choice layouts now select a column arrangement from the measured width of each complete
+  formatted answer, including its label and inline font styling. Each answer must fit its actual
+  tab slot and page margin with a half-em gap.
+- Named DOCX styles now own choice labels, first-page boilerplate, score tabs, native-table text,
+  and FIB_PLUS writing spacing. Question styles supply separation between question blocks.
+- Choice labels use a 0.10-inch inset with shifted column tabs. Existing tab-based input and
+  balanced row arrangements remain available.
+- Every statement, choice, and matching picture insertion now explicitly sets zero image edge
+  distance, including SVG and unsized raster images.
+
+### Notable fixes
+
+- Inline capture layout ignores HTML comments, avoiding a genetics-midterm artwork failure caused
+  by a comment node without a style attribute.
+- The image-choice calibration helper now uses the ordered statement schema and correct label
+  origin.
+- Added [CHOICE_FORMATTING.md](CHOICE_FORMATTING.md), which documents formatted-answer
+  measurement, slot calculations, fallback arrangements, style editing, and rendering limits.
+
+### Compatibility notes
+
+- Generated artifacts remain DOCX-first for LibreOffice editing and PDF export. The pipeline does
+  not create an ODT unless an instructor explicitly chooses to save one.
+- Explicit choice-layout overrides remain supported; automatic selection replaces character
+  budgets with measured page geometry.
+
+### Validation
+
+- Rebuilt and inspected a 100-question genetics midterm. Formerly broken HLA-genotype and
+  offspring-calculation five-column rows now use intact 3+2 layouts, while short answers retain
+  dense rows.
+- A PDF-coordinate diagnostic found no split-label rows in 15 matched measured multi-choice rows,
+  compared with two in 24 matched baseline rows; visual review remains the primary check.
+- Full pytest recorded 2,088 passing checks. Two unrelated checks remain unavailable because the
+  Podman socket is absent and an unchanged Graphify helper has an unused variable.
+
 ## v26.09 - 2026-09-21
 
 ### Highlights

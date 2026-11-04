@@ -76,7 +76,7 @@ def build_exam_yaml(image_paths_by_cols: dict) -> dict:
 		image_paths = image_paths_by_cols[num_cols]
 		choices = [{'text': '', 'image': path} for path in image_paths]
 		question = {
-			'statement': f"Cols={num_cols}: identify the rightmost noise tile.",
+			'statement': [{'text': f"Cols={num_cols}: identify the rightmost noise tile."}],
 			'choices': choices,
 			'answer': 'A',
 		}
@@ -142,7 +142,8 @@ def load_tab_stops() -> dict:
 def load_choice_indent() -> float:
 	"""Read choice_indent in inches from the styles file."""
 	styles = ef_tools.style_loader.load_styles()
-	return styles['spacing']['choice_indent']
+	return (styles['spacing']['choice_indent']
+		+ styles['spacing']['choice_first_line_indent'])
 
 
 #============================================

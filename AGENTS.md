@@ -10,6 +10,7 @@ Use `_temp/` at the repository root for temporary scripts, renders, and review a
 # Repository rules
 
 - docs/REPO_STYLE.md
+- docs/HUMAN_GUIDANCE.md
 - docs/PYTHON_STYLE.md
 - docs/MARKDOWN_STYLE.md
 - docs/PYTEST_STYLE.md

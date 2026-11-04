@@ -1,31 +1,19 @@
 """Auto-layout algorithm and constants for multiple choice formatting.
 
-Determines optimal column layout for exam choices based on count and
-the visible-width score of each choice (see ef_tools.text_utils.
-choice_visible_width), avoiding orphan rows.
+Selects a tab layout using complete formatted answer widths and the actual
+page geometry, while retaining the established balanced row arrangements.
 """
 
-# Local repo modules
-import ef_tools.text_utils
-
-
-# Default visible-width budgets for auto-layout. The weighted score is
-# an approximation rather than a measurement of the installed DOCX font.
-# Legacy 'max_chars_*' names remain for compatibility with the style YAML.
+# Caption-only heuristic; text-choice layout uses measured widths.
 DEFAULT_MAX_CHARS_5 = 17
-# Four columns leave only about 17 visible-width units in the last column;
-# the lower budget prevents a long answer from wrapping below its label.
-DEFAULT_MAX_CHARS_4 = 17
-DEFAULT_MAX_CHARS_3 = 30
-DEFAULT_MAX_CHARS_2 = 42
 
 # default tab stop positions for each choices layout (in inches)
 CHOICES_TAB_STOPS = {
 	1: [],
-	2: [3.65],
-	3: [2.33, 4.67],
-	4: [1.75, 3.50, 5.25],
-	5: [1.40, 2.80, 4.20, 5.60],
+	2: [3.75],
+	3: [2.43, 4.77],
+	4: [1.85, 3.60, 5.35],
+	5: [1.50, 2.90, 4.30, 5.70],
 }
 
 # style name for each tab layout
@@ -95,81 +83,27 @@ def choice_image(choice: object) -> str:
 
 
 #============================================
-def auto_layout_for_choices(choices: list, layout_limits: dict = None) -> tuple:
-	"""Determine the best layout for choices based on count and text length.
+def auto_layout_for_choices(widths: list, styles: dict) -> tuple:
+	"""Choose the densest established row arrangement whose complete answers fit.
 
-	Returns a (tab_style, items_per_row) tuple. The tab_style selects which
-	set of tab stops to use (3, 4, or 5). The items_per_row controls how many
-	choices go on each line. These can differ: e.g., tab_style=4 with
-	items_per_row=2 gives a "Choices 2" layout using Choices 4 tab stops.
-
-	Layout rules to avoid orphan rows (1 item on last row):
-	- 2 items: Choices 2 tabs, 2 per row (even spacing)
-	- 3 items: Choices 3 (all on one row) if they fit; else vertical
-	- 4 items: Choices 4 if they fit; else 2+2 (Choices 2 tabs, 2 per row);
-	  never Choices 3 which gives 3+1 orphan
-	- 5 items: Choices 5 if they fit; Choices 3 gives 3+2 (no orphan);
-	  skip Choices 4 (4+1 orphan) and Choices 2 (2+2+1 orphan)
-
-	Args:
-		choices: List of choice text strings.
-		layout_limits: Optional dict with max_chars_5/4/3/2 keys from YAML.
-			Falls back to built-in defaults if None.
-
-	Returns:
-		Tuple of (tab_style, items_per_row).
+	Widths include labels and all formatted text, in points. Every answer is
+	checked against its own next tab or the right margin. A half-em gap keeps
+	neighboring answers visibly separate and avoids landing on a tab boundary.
 	"""
-	# load character limits from YAML dict or use defaults
-	if layout_limits is not None:
-		max_chars_5 = layout_limits['max_chars_5']
-		max_chars_4 = layout_limits['max_chars_4']
-		max_chars_3 = layout_limits['max_chars_3']
-		max_chars_2 = layout_limits['max_chars_2']
-	else:
-		max_chars_5 = DEFAULT_MAX_CHARS_5
-		max_chars_4 = DEFAULT_MAX_CHARS_4
-		max_chars_3 = DEFAULT_MAX_CHARS_3
-		max_chars_2 = DEFAULT_MAX_CHARS_2
-
-	count = len(choices)
+	count = len(widths)
 	if count < 1:
 		return (5, 5)
-	# score by DOCX-visible width, not raw YAML/HTML string length;
-	# the max_chars_* names are legacy -- the values are width budgets
-	max_width = max(ef_tools.text_utils.choice_visible_width(c) for c in choices)
-
-	if count == 2:
-		# 2 items: dedicated Choices 2 layout
-		if max_width <= max_chars_2:
-			return (2, 2)
-		# very long: vertical stack
-		return (1, 1)
-
-	if count == 3:
-		# prefer all 3 on one row
-		if max_width <= max_chars_3:
-			return (3, 3)
-		# too long: vertical stack
-		return (1, 1)
-
-	if count == 4:
-		# prefer 4 on one row
-		if max_width <= max_chars_4:
-			return (4, 4)
-		# doesn't fit 4/row: use 2+2 layout (NOT Choices 3 which gives 3+1 orphan)
-		if max_width <= max_chars_2:
-			return (2, 2)
-		# very long: vertical stack
-		return (1, 1)
-
-	# 5+ choices
-	if max_width <= max_chars_5:
-		# all 5 on one row
-		return (5, 5)
-	if max_width <= max_chars_3:
-		# Choices 3 gives 3+2 (no orphan) -- skip Choices 4 which gives 4+1
-		# orphan. The three-column width budget prevents long choices from
-		# wrapping underneath a neighboring choice.
-		return (3, 3)
-	# very long: vertical stack
+	candidates = {1: [], 2: [2], 3: [3], 4: [4, 2]}.get(count, [5, 3])
+	page = styles['page']
+	right = (page['width'] - 2 * page['margin']) * 72
+	spacing = styles['spacing']
+	origin = (spacing['choice_indent'] + spacing['choice_first_line_indent']) * 72
+	gap = styles['sizes']['choice'] / 2
+	for columns in candidates:
+		stops = styles['layout_tab_stops'][columns]
+		starts = [origin] + [stop * 72 for stop in stops]
+		ends = starts[1:] + [right]
+		if all(width + gap <= ends[index % columns] - starts[index % columns]
+				for index, width in enumerate(widths)):
+			return (columns, columns)
 	return (1, 1)

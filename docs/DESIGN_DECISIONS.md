@@ -21,3 +21,17 @@ authoritative code or contract document, rather than a person.
 
 **Owner.** <the authoritative code or contract doc>
 ```
+
+### Named document styles own reusable layout
+
+**Decision.** Choice styles inherit compact spacing and an inset label origin from Choice;
+question styles own question separation. Repeated boilerplate, labels, tables, and writing spacing
+use named styles. Content-dependent markup, pagination, and image geometry remain explicit.
+
+**Why.** Manual choice-style changes in LibreOffice should preserve typography and spacing.
+
+**Consequence.** Emitters select styles instead of overriding reusable paragraph layout.
+All picture insertion paths explicitly zero edge distances. PDF export stays DOCX-based.
+
+**Owner.** [../ef_tools/docx_builder.py](../ef_tools/docx_builder.py) and
+[../assessment_styles/exam_styles.yaml](../assessment_styles/exam_styles.yaml).

@@ -1,5 +1,62 @@
 # Changelog
 
+## 2026-11-04
+
+### Behavior or Interface Changes
+
+- Select text-choice column styles by measuring complete formatted answers in the installed
+  regular, bold, italic, condensed, and monospace faces, including letter labels and spaces.
+  Check each answer against its actual tab slot and paper margin with a half-em gap.
+- Replace configurable character budgets with actual page geometry. Keep explicit layout
+  overrides and the existing tab-based, balanced row arrangements. Declare fontconfig for
+  font resolution, including variable-font named instances; use the existing Pillow dependency.
+- Make choice spacing inherited from named styles, with a 0.10-inch choice-label inset
+  and shifted column tabs. Question styles supply separation between question blocks.
+- Use named styles for choice labels, first-page boilerplate, score tabs, native-table text,
+  and FIB_PLUS writing spacing. Preserve scientific markup and content-dependent pagination.
+- Explicitly zero image edge distances for every statement, choice, and matching insertion,
+  including SVG and unsized raster pictures. Keep DOCX-based LibreOffice PDF export.
+
+### Fixes and Maintenance
+
+- Keep reusable guides independent of the current quiz: lead with generic YAML conversion,
+  task-CSV, and handout workflows; route changing assessment recipes to their existing notes
+  and dated validation results to the changelog.
+- Refresh the full documentation set: README, architecture/file map, installation/usage,
+  related projects, release summaries, roadmap, troubleshooting, development, FAQ, and formats.
+  Correct stale PNG-only descriptions, handout exclusions, output overwrite claims, and the
+  direct LibreOffice DOCX-to-PDF workflow. Preserve the dedicated choice-formatting reference.
+- Refresh the README screenshot with the current measured-layout midterm in WebP; retain the
+  older gel artwork as a labeled reference and remove superseded PNG screenshots.
+- Add the canonical human-guidance pointer to AGENTS.md. Verify the centrally maintained
+  author/style documents exactly match the starter template without editing them.
+- Add `docs/CHOICE_FORMATTING.md` as the dedicated reference for formatted-answer measurement,
+  per-column slot calculations, fallback arrangements, style editing, and rendering limits;
+  link it from usage and architecture documentation.
+- Ignore HTML comments while examining inline capture layout; the genetics midterm's
+  generated artwork exposed a comment node without a style attribute.
+- Correct the image-choice calibration helper's ordered statement schema and label origin.
+- Document named-style ownership and the LibreOffice workflow in shared guidance.
+
+### Developer Tests and Notes
+
+- Verify the generic README YAML-to-DOCX-to-PDF quick start without sibling question banks;
+  inspect the sample exported by LibreOffice. Documentation checks pass: 305 Markdown-link,
+  README-opening, and ASCII checks, plus a clean whitespace diff.
+- Rebuild the identical 100-question midterm with measured layout and inspect its 19-page
+  overview and representative pages. Previously broken HLA-genotype and offspring-calculation
+  five-column rows now use intact 3+2 layouts; short answers still use dense rows.
+- A one-time PDF-coordinate check finds zero split-label rows among 15 matched measured
+  multi-choice rows, versus two among 24 matched baseline rows. Text extraction leaves some
+  rows unmatched, so this diagnostic supplements visual review rather than proving all rows.
+- Generate one 100-question genetics midterm with zero skipped tasks for layout review.
+  Inspect its 19-page PDF overview and representative full-size pages; LibreOffice also exports
+  a Choices 3-to-2 edit and temporary ODT round trip. All 66 ODT pictures have zero side margins.
+- Full pytest: 2088 pass; two unrelated checks fail because the Podman socket is unavailable
+  and the unchanged Graphify helper assigns an unused variable. Focused style checks pass.
+- LibreOffice headless export and saved XML were checked; interactive Writer UI editing was
+  not automated. Remove the temporary ODT after inspecting its export.
+
 ## 2026-11-03
 
 ### Additions and New Features

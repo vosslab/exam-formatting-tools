@@ -288,12 +288,8 @@ def rendered_height_inches(image_path: str, kwargs: dict) -> float:
 def zero_inline_image_margins(run: object) -> None:
 	"""Set distT/distB/distL/distR=0 on every <wp:inline> in this run.
 
-	Inline images in OOXML carry top/bottom/left/right distance attributes
-	that act as outer padding around the picture. python-docx's add_picture
-	leaves them at default values (often 114300 EMU = 0.125"), which chews
-	visible space around each picture in a tight tab-separated row. Zeroing
-	them lets the image hug its run's edges so the per-column budget can
-	hold a wider visible image at the same docx column width.
+	Explicit zero distances avoid relying on importer defaults. Standalone
+	statement pictures and pictures beside text share this insertion rule.
 	"""
 	WP = 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing'
 	for inline in run.element.iter('{%s}inline' % WP):
@@ -336,8 +332,11 @@ def set_run_baseline_center(run: object, height_inches: float,
 def add_picture(run: object, image_path: str, **kwargs: object) -> object:
 	"""Insert generated SVG or a conventional raster picture."""
 	if str(image_path).lower().endswith('.svg'):
-		return ef_tools.svg_media.add_picture(run, image_path, **kwargs)
-	return run.add_picture(image_path, **kwargs)
+		picture = ef_tools.svg_media.add_picture(run, image_path, **kwargs)
+	else:
+		picture = run.add_picture(image_path, **kwargs)
+	zero_inline_image_margins(run)
+	return picture
 
 
 #============================================
@@ -349,7 +348,6 @@ def place_inline_picture(run: object, image_path: str, kwargs: dict) -> None:
 	centers on its text line.
 	"""
 	add_picture(run, image_path, **kwargs)
-	zero_inline_image_margins(run)
 	set_run_baseline_center(run, rendered_height_inches(image_path, kwargs))
 
 

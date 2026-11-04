@@ -199,11 +199,8 @@ def _add_cell_text(cell: object, text: str, header: bool) -> None:
 	first = cell.paragraphs[0]
 	for index, paragraph_text in enumerate(paragraphs):
 		paragraph = first if index == 0 else cell.add_paragraph()
-		paragraph.paragraph_format.space_after = docx.shared.Pt(0)
+		paragraph.style = 'Table Heading' if header else 'Table Text'
 		ef_tools.docx_builder.add_rich_text_runs(paragraph, paragraph_text)
-		if header:
-			for run in paragraph.runs:
-				run.font.bold = True
 
 
 #============================================
@@ -248,9 +245,8 @@ def add_native_table_choices_stacked(doc: object, choices: list) -> None:
 	for index, choice in enumerate(choices):
 		para = doc.add_paragraph()
 		para.style = doc.styles[style_name]
-		para.paragraph_format.space_after = docx.shared.Pt(0)
 		label = para.add_run(f"({chr(ord('A') + index)})")
-		label.bold = True
+		label.style = 'Choice Label'
 		choice_text = ef_tools.layout.choice_text(choice)
 		if choice_text:
 			para.add_run(" ")

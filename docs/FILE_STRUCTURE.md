@@ -54,23 +54,29 @@ remains for standalone utilities independent of repository-local packages.
 
 ### `builders/`
 
-Course build recipes use `build_<course>_<assessment>.sh` names. They are flat shell commands
-run from the repository root. They select task CSVs, call shared converters, and export through
-[docx_to_pdf.sh](../converters/docx_to_pdf.sh). Shared formatting lives in `ef_tools/` and is
-selected through common converter options. The root retains `source_me.sh` for environment setup.
+Builders are either task-CSV wrappers or custom composition scripts. Both write canonical YAML,
+then call the shared DOCX renderer and optional [docx_to_pdf.sh](../converters/docx_to_pdf.sh)
+export. The root retains `source_me.sh` for environment setup. Current assessment-specific
+selection and presentation decisions belong in [../assessment_styles/](../assessment_styles/).
+
+[../builders/make_genetics_quiz3.py](../builders/make_genetics_quiz3.py) is an example custom
+composition script; it is an alternative to task-CSV input, not a separate document pipeline.
 
 ### `task_files/`
 
 Task CSVs select the question generators for each course and assessment. Dedicated build scripts
 refer to these files explicitly; `bbq_settings.yml` resolves their source paths and aliases.
 Keep curated assessment selections here; reference full BPW catalogs directly under
-`~/nsh/PROBLEMS/biology-problems-website/task_files/`.
+`~/nsh/PROBLEMS/biology-problems-website/task_files/`. Handout selections use the same directory
+and are rendered by the common pipeline with `document_type: handout`.
 
 ### `ef_tools/`
 
 Modules are single-purpose and imported directly. Add a matching test named `tests/test_<module>.py` when a new stable behavior warrants permanent coverage.
 
 DOCX assembly and shared text formatting live in `docx_builder.py`; answer choices and matching prompts live in `docx_choice_builder.py`; image sizing and native table conversion each have their own modules.
+[../ef_tools/choice_measurement.py](../ef_tools/choice_measurement.py) measures formatted text choices, while
+[../ef_tools/layout.py](../ef_tools/layout.py) tests each measurement against the configured tab slot and chooses a named choice style.
 
 ### `tests/`
 
@@ -88,10 +94,15 @@ Maintainer scripts include changelog rotation and release preparation, version h
 The following outputs are ignored by Git and should not be used as committed fixtures:
 
 - `ARTIFACTS/` for local reference DOCX/ODT samples.
-- `output_smoke/` and `output_quiz/` for smoke and task-CSV runs.
-- `*.docx`, generated YAML, and `*.odt` for local exam outputs.
-- `images/` and `<stem>_files/` directories for extracted or rendered media.
-- `report_*.txt`, `.pytest_cache/`, `__pycache__/`, and LibreOffice lock files.
+- `output*/` and `generated/` for local course, handout, and smoke runs.
+- `*.docx`, `*.yaml`, and `*.odt` for local artifacts, except the tracked style YAML under `assessment_styles/`.
+- Root `images/`, `report_*.txt`, and LibreOffice lock files.
+
+Converters may create `<stem>_files/` media directories beside YAML. Put those outputs under
+an ignored `generated/` or `output*/` directory unless the media is intentionally tracked. The
+repository does not use a blanket `<stem>_files/` ignore. Python cache contents are local
+byproducts; `.pytest_cache/` carries its own nested ignore file, while `__pycache__/` is not a
+repository `.gitignore` rule.
 
 Tracked configuration is the exception to the broad YAML ignore: [../assessment_styles/exam_styles.yaml](../assessment_styles/exam_styles.yaml) remains committed.
 
@@ -106,7 +117,8 @@ Tracked configuration is the exception to the broad YAML ignore: [../assessment_
 | [YAML_EXAM_FORMAT.md](../assessment_styles/YAML_EXAM_FORMAT.md) | Canonical exam YAML schema |
 | [EXAM_STYLE.md](../assessment_styles/EXAM_STYLE.md) | Exam presentation, ZipGrade rules, and shared DOCX formatting |
 | [QUIZ_STYLE.md](../assessment_styles/QUIZ_STYLE.md) | Subject-independent quiz presentation and scoring conventions |
-| [GENETICS_EXAM1.md](../assessment_styles/GENETICS_EXAM1.md) | Assessment-specific question selection and coverage decisions |
+| [CHOICE_FORMATTING.md](CHOICE_FORMATTING.md) | Named choice styles, formatted-answer measurement, tab slots, and LibreOffice editing |
+| [assessment_styles/README.md](../assessment_styles/README.md) | Assessment-specific selection, coverage, and presentation records |
 | [CODE_ARCHITECTURE.md](CODE_ARCHITECTURE.md) | Components and data flow |
 | [WORKFLOW_LOGIC_AUDIT.md](WORKFLOW_LOGIC_AUDIT.md) | Converter ownership, output publication, and follow-up priorities |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Symptoms, causes, and recovery steps |

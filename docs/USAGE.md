@@ -4,43 +4,27 @@ All commands assume the bootstrap pattern `source source_me.sh && python3 ...`.
 
 ## Pipeline
 
-The pipeline is `<source format> -> exam YAML -> DOCX`. Every launcher
+The normal printable pipeline is `<source format> -> exam YAML -> DOCX -> PDF`. Open the generated DOCX directly in LibreOffice Writer and export its PDF with the supplied script; no raw ODT or ODT-modification stage is part of the workflow. Every launcher
 validates input/output extensions and reports the question count on success.
 `-o/--output` is optional; when omitted, the output is `<input-stem>` with
 the target extension in the current working directory.
 
-## Course builds
+## Assessment recipes
 
-Course-specific build scripts live in `builders/`. Run them with Bash from the repository root.
-Each is a flat sequence of common commands with explicit titles, task CSVs, and output paths.
-Builds generate new random questions; edit the
-generated YAML and use the converter directly to preserve an existing question selection.
-
-| Build script | Task selection | Outputs |
-| --- | --- | --- |
-| [build_genetics_exam1.sh](../builders/build_genetics_exam1.sh) | [genetics_exam1.csv](../task_files/genetics_exam1.csv) | `output_genetics_exam1/genetics_exam1.*` |
-| [build_genetics_quiz1.sh](../builders/build_genetics_quiz1.sh) | [genetics_quiz1.csv](../task_files/genetics_quiz1.csv) | `quiz1/quiz1.*` and `quiz1.pdf` |
-| [build_genetics_quiz2.sh](../builders/build_genetics_quiz2.sh) | [genetics_quiz2.csv](../task_files/genetics_quiz2.csv) | `quiz2/quiz2.*` and `quiz2.pdf` |
-| [build_biostats_quiz1.sh](../builders/build_biostats_quiz1.sh) | [biostats_quiz1.csv](../task_files/biostats_quiz1.csv) | `output_biostats_quiz1/biostats_quiz1.*` |
-| [build_biochem_exam1_study_guide.sh](../builders/build_biochem_exam1_study_guide.sh) | [biochem_exam1.csv](../task_files/biochem_exam1.csv) | `bchem1/bchem1.*` and `bchem1.pdf` |
-
-```bash
-bash builders/build_genetics_exam1.sh
-```
-
-The Exam 1 build uses `--exam` and validates the resulting YAML against ZipGrade's A-E limit
-before creating the DOCX and PDF. Read the generator's skipped-task report when building;
-compatibility validation checks the questions produced, not coverage of the original task list.
-Each build also writes a sibling `*-key.txt` answer key.
-
-Shared presentation rules live in [EXAM_STYLE.md](../assessment_styles/EXAM_STYLE.md) and [QUIZ_STYLE.md](../assessment_styles/QUIZ_STYLE.md).
-Assessment-specific coverage stays in the task CSV and selection notes, such as
-[GENETICS_EXAM1.md](../assessment_styles/GENETICS_EXAM1.md).
+Course recipes live in [../builders/](../builders/) and their current assessment notes live in
+[../assessment_styles/](../assessment_styles/). They are examples, not the stable interface:
+inspect a recipe before use because it may generate new randomized questions or reset its output
+directory. Save manual YAML or DOCX edits outside that directory, then use the generic converters
+below to reproduce a chosen YAML selection. Shared presentation rules are in
+[EXAM_STYLE.md](../assessment_styles/EXAM_STYLE.md) and [QUIZ_STYLE.md](../assessment_styles/QUIZ_STYLE.md).
 
 ## Build a DOCX exam from YAML
 
 ```bash
-source source_me.sh && python3 converters/yaml_to_exam_docx.py -i exam_data.yml
+mkdir -p _temp/example
+source source_me.sh && python3 converters/yaml_to_exam_docx.py \
+    -i exam.yml -o _temp/example/exam.docx
+bash converters/docx_to_pdf.sh _temp/example/exam.docx _temp/example
 ```
 
 The converter defaults to US Letter. Use `--paper-size a4` for A4 or
@@ -52,20 +36,15 @@ Paper output uses compact formatting by default: recognized hint sections are
 removed, recognized background text is 8pt, and bold lead-ins share a paragraph
 with their prose. Use `--no-compact` to retain the unmodified rendering.
 
-Genetics Exam 1 defaults to A4:
+To change only the paper size of an edited YAML, create a new DOCX with the desired size:
 
 ```bash
-bash builders/build_genetics_exam1.sh
-bash builders/build_genetics_exam1.sh letter
+source source_me.sh && python3 converters/yaml_to_exam_docx.py \
+    -i exam.yml --paper-size a4 -o _temp/example/exam_a4.docx
 ```
-
-These commands run the full exam build. To change only the paper size of an edited
-exam, run the DOCX converter on its existing YAML with `--paper-size` and a new output
-filename, then convert that DOCX to PDF.
 
 Use `--keep-questions-together` to keep each question's stem, figures, and answer bank together
 when they fit on one page. Use `--page-break-sections` to start later sections on new pages.
-The Genetics Exam 1 and biostatistics quiz recipes select these options where needed.
 
 For a backup DOCX that converts preserved simple bptools HTML drawing tables
 to native Word tables, add `--native-tables`. Unsupported or nested tables use
@@ -73,21 +52,22 @@ the normal captured image representation instead:
 
 ```bash
 source source_me.sh && python3 converters/yaml_to_exam_docx.py \
-    -i exam_data.yml --native-tables -o /tmp/exam_native_tables.docx
+    -i exam.yml --native-tables -o _temp/example/exam_native_tables.docx
 ```
 
 The YAML schema is documented in [YAML_EXAM_FORMAT.md](../assessment_styles/YAML_EXAM_FORMAT.md).
 Style definitions come from [assessment_styles/exam_styles.yaml](../assessment_styles/exam_styles.yaml).
+See [CHOICE_FORMATTING.md](CHOICE_FORMATTING.md) for answer measurement, tab-slot selection,
+manual editing, and image-choice behavior.
 
 Note: `yaml_to_exam_docx.py` refuses to overwrite an existing output file
-(it raises `FileExistsError`). To regenerate a shipped DOCX, write the new
-output to `/tmp/` first and then `cp` it into place:
+(it raises `FileExistsError`). For a review copy, create a path under the
+repository-root `_temp/` directory; after inspecting it in LibreOffice, replace a
+canonical artifact deliberately if needed:
 
 ```bash
 source source_me.sh && python3 converters/yaml_to_exam_docx.py \
-    -i Final_Exam/Final_Exam_2A_2B_combined.yml \
-    -o /tmp/_regen_combined.docx
-cp /tmp/_regen_combined.docx Final_Exam/Final_Exam_2A_2B_combined.docx
+    -i exam.yml -o _temp/example/exam_review.docx
 ```
 
 Image-based answer choices are laid out horizontally using paragraph tab stops
@@ -99,9 +79,10 @@ by default; the optional native-table backup is described in
 The shared [docx_to_pdf.sh](../converters/docx_to_pdf.sh) command exports through the existing
 macOS LibreOffice installation with 70 percent JPEG quality and PDF 1.7. It takes a DOCX path,
 an output directory, and an optional image DPI (default 100). It replaces that document's PDF.
+Run it outside a sandbox on this macOS host, where LibreOffice must launch normally.
 
 ```bash
-bash converters/docx_to_pdf.sh output_exam/exam.docx output_exam 150
+bash converters/docx_to_pdf.sh _temp/example/exam.docx _temp/example 150
 ```
 
 ## Validate ZipGrade compatibility
@@ -146,7 +127,8 @@ Blackboard cleaned HTML to YAML (one or more files; first input's stem
 drives the default output name):
 
 ```bash
-source source_me.sh && python3 converters/html_to_exam_yaml.py -i Cleaned_Final_Exam_2A.html
+source source_me.sh && python3 converters/html_to_exam_yaml.py \
+    -i questions.html -o _temp/example/questions.yml
 ```
 
 Matching questions are emitted as `prompts_list` plus `choices_list`; see [YAML_EXAM_FORMAT.md](../assessment_styles/YAML_EXAM_FORMAT.md) for the schema.
@@ -160,7 +142,8 @@ or repair invalid HTML. No additional command-line options are needed.
 bptools bbq text (`bbq-*-questions.txt`) to YAML plus an answer key:
 
 ```bash
-source source_me.sh && python3 converters/bbq_to_exam_yaml.py -i bbq-chargaff-questions.txt
+source source_me.sh && python3 converters/bbq_to_exam_yaml.py \
+    -i questions.txt -o _temp/example/questions.yml
 ```
 
 MC and MA keep their choices; MAT becomes `prompts_list` plus a shuffled
@@ -187,7 +170,7 @@ The PDF export settings are separate and may downsample raster content.
 
 ## Build a quiz or exam from a bptools task CSV
 
-`bbq_tasks_to_exam_yaml.py` reads the website task CSV format
+`bbq_tasks_to_exam_yaml.py` reads the task CSV format
 (`subject,topic,script,flags,input,notes`), with optional local `choice_font`
 and `layout` columns for typography and choice-column count (`{bp_root}`/`YMATCH`-style aliases
 come from the repo's [bbq_settings.yml](../bbq_settings.yml), whose paths
@@ -202,30 +185,18 @@ unusable candidate (skipped bbq type, or exam-mode rejection) triggers a
 fresh run, up to three attempts, then the task is reported as `SKIPPED` on
 stderr and left out.
 
-`layout` accepts 1-5; leave it blank for automatic layout. For example, `1` puts each choice
-on its own line. The value becomes the existing question-level YAML `layout` field.
-Pass `--points 9.5` to write an explicit `total_points` value for the score line; without it,
-the DOCX builder uses the numbered answer count.
-
-```csv
-subject,topic,script,flags,input,notes,choice_font
-genetics,dna_structure,{bp_root}/molecular_biology-problems/chargaff_dna_percent.py,,,,IBM Plex Sans Condensed
-genetics,dna_structure,YMCS,,{bp_mcs}/biochemistry/dna_structure.yml,,
-genetics,mendelian,YMATCH,,{bp_match}/inheritance/genetics_terminology.yml,,
-genetics,dna_profiling,{bp_root}/dna_profiling-problems/who_father_html.py,--easy,,,
-```
-
-Use `YMATCH` for the matching version or `YWHICH` for the "Which One?" MC
-version of a YAML source. The website's own `YMATCH` alias may continue
-generating both formats.
+`layout` accepts 1-5; leave it blank for automatic layout. `1` puts each choice on its own
+line. Pass `--points 9.5` to write an explicit `total_points` value; otherwise the DOCX builder
+uses the numbered answer count. See the repository's [../task_files/](../task_files/) and
+[../bbq_settings.yml](../bbq_settings.yml) for the maintained task and alias contracts.
 
 Quiz (default: any MC/MA/MAT/ORD, any number of choices):
 
 ```bash
-source source_me.sh && python3 converters/bbq_tasks_to_exam_yaml.py -q -t "Genetics Quiz 1" \
-    -i task_files/genetics_quiz1.csv \
-    -o output_quiz/genetics_quiz1.yml
-source source_me.sh && python3 converters/yaml_to_exam_docx.py -i output_quiz/genetics_quiz1.yml
+source source_me.sh && python3 converters/bbq_tasks_to_exam_yaml.py -q -t "Quiz title" \
+    -i tasks.csv -o _temp/example/quiz.yml
+source source_me.sh && python3 converters/yaml_to_exam_docx.py \
+    -i _temp/example/quiz.yml -o _temp/example/quiz.docx
 ```
 
 Handout mode also prints NUM, FIB, and FIB_PLUS items with answer blanks and
@@ -233,14 +204,9 @@ keeps their values in the sibling key:
 
 ```bash
 source source_me.sh && python3 converters/bbq_tasks_to_exam_yaml.py --handout \
-    -i task_files/tetrad_handout.csv -o generated/tetrad_handout/tetrad_handout.yaml
-```
-
-The checked-in fruit-fly testcross recipe follows the same progression from
-two-gene configuration through two- and three-gene distances to a full map:
-
-```bash
-bash builders/build_testcross_handout.sh
+    -i tasks.csv -o _temp/example/handout.yml
+source source_me.sh && python3 converters/yaml_to_exam_docx.py \
+    -i _temp/example/handout.yml -o _temp/example/handout.docx
 ```
 
 Exam (`-e`): only questions that pass the ZipGrade A-E rules are kept;
@@ -288,3 +254,7 @@ source source_me.sh && python3 -m pytest \
     tests/test_import_requirements.py \
     tests/test_ascii_compliance.py -q
 ```
+
+## Known gaps
+
+- TODO: after installing on another platform, verify that the documented LibreOffice export path and the supported system-package commands apply there.

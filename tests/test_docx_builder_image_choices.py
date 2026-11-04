@@ -470,3 +470,13 @@ def test_drawing_sizer_declines_to_unify_row_heights(tmp_path: object) -> None:
 			png_path, dpi=(192, 192))
 		choices.append({"text": "", "image": str(png_path)})
 	assert ef_tools.docx_images.DrawingSizer(0.7).row_height(choices) is None
+
+
+#============================================
+def test_direct_picture_insertion_zeroes_distances(tmp_path: object) -> None:
+	"""Statement and unsized images must receive the same zero margins as choices."""
+	doc = _make_styled_doc()
+	image_path = _write_pngs(tmp_path, 1)[0]
+	ef_tools.docx_images.add_picture(doc.add_paragraph().add_run(), image_path)
+	assert all(doc.inline_shapes[0]._inline.get(name) == '0'
+		for name in ('distT', 'distB', 'distL', 'distR'))

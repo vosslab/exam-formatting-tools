@@ -26,11 +26,11 @@ The single-purpose entry points live in `converters/`. They validate input and o
 | [yaml_to_exam_docx.py](../converters/yaml_to_exam_docx.py) | Exam YAML -> printable document | DOCX |
 | [docx_to_pdf.sh](../converters/docx_to_pdf.sh) | DOCX -> LibreOffice PDF export | PDF |
 
-Course-specific `builders/build_*.sh` scripts are flat command sequences run from the repository root.
-The task CSV in `task_files/` selects questions and optional choice layout; the common importer can write an
-explicit point total. DOCX pagination is handled during rendering by the common builder.
-Shared presentation conventions live in [EXAM_STYLE.md](../assessment_styles/EXAM_STYLE.md) and
-[QUIZ_STYLE.md](../assessment_styles/QUIZ_STYLE.md); assessment selection notes have a separate scope.
+Assessment builders use one of two paths: a flat `builders/build_*.sh` task-CSV wrapper, or a
+custom composition script that writes canonical YAML before invoking the common DOCX renderer.
+Task CSVs select questions and optional choice layout; custom scripts compose records directly.
+Both paths keep pagination in the common renderer. Shared presentation conventions and
+assessment-specific notes live in [../assessment_styles/](../assessment_styles/).
 
 `converters/` is the application-facing CLI directory and may import `ef_tools/`.
 Reusable code belongs in `ef_tools/`; it does not import converter entry points.
@@ -47,9 +47,10 @@ The `ef_tools/` package contains reusable parsing, validation, rendering, and la
 - [../ef_tools/html_parse.py](../ef_tools/html_parse.py) owns Blackboard HTML selectors, inline-tag handling, and choice-prefix parsing.
 - [../ef_tools/docx_builder.py](../ef_tools/docx_builder.py) creates document styles, shared rich-text runs, question paragraphs, tables, and page headers.
 - [../ef_tools/docx_choice_builder.py](../ef_tools/docx_choice_builder.py) renders text and image choices plus matching prompts; it uses shared rich-text and image helpers from the other render modules.
+- [../ef_tools/choice_measurement.py](../ef_tools/choice_measurement.py) resolves configured font faces with Fontconfig and uses Pillow to measure each complete formatted text choice, including its bold label.
 - [../ef_tools/docx_images.py](../ef_tools/docx_images.py) owns image sizing, fit checks, and inline placement.
 - [../ef_tools/docx_table_builder.py](../ef_tools/docx_table_builder.py) converts supported preserved HTML tables into native Word tables for the opt-in `--native-tables` path.
-- [../ef_tools/layout.py](../ef_tools/layout.py) scores visible choice width and selects the `Choices 2` through `Choices 5` paragraph style.
+- [../ef_tools/layout.py](../ef_tools/layout.py) checks measured answer widths against page and tab geometry and selects the `Choices 2` through `Choices 5` paragraph style.
 - [../ef_tools/question_utils.py](../ef_tools/question_utils.py) owns question-block spans, numbering totals, and question-style selection.
 - [../ef_tools/html_renderer.py](../ef_tools/html_renderer.py) prints individual Chromium elements to PDF and converts them to SVG with Poppler. It owns readiness, crop geometry, and per-element 600-DPI PNG recovery when SVG export fails.
 - [../ef_tools/svg_media.py](../ef_tools/svg_media.py) reads generated SVG dimensions and embeds SVG directly into DOCX for LibreOffice. Assets use the existing YAML image field without a persisted raster companion.
@@ -63,7 +64,14 @@ The `ef_tools/` package contains reusable parsing, validation, rendering, and la
 
 ### Style configuration
 
-[../assessment_styles/exam_styles.yaml](../assessment_styles/exam_styles.yaml) is the data source for page margins, fonts, spacing, colors, tab stops, image dimensions, and choice-layout limits. The DOCX builder reads this configuration instead of duplicating layout constants.
+[../assessment_styles/exam_styles.yaml](../assessment_styles/exam_styles.yaml) is the data source for page margins, fonts, spacing, colors, tab stops, image dimensions, and choice tab geometry. The DOCX builder reads this configuration instead of duplicating layout constants.
+
+### Assessment entry points
+
+`builders/` holds flat task-CSV wrappers and custom composition scripts. For example,
+[../builders/make_genetics_quiz3.py](../builders/make_genetics_quiz3.py) demonstrates a custom
+script that writes canonical YAML from shared generated data. Its subject-specific choices belong
+in [../assessment_styles/](../assessment_styles/), not in this architecture guide.
 
 ## Data flow
 
@@ -89,6 +97,8 @@ Filtered or original YAML
 Printable DOCX
 ```
 
+When a PDF is needed, [../converters/docx_to_pdf.sh](../converters/docx_to_pdf.sh) exports that DOCX with LibreOffice. The normal workflow opens the DOCX directly in LibreOffice Writer; it does not create or modify an ODT intermediate.
+
 The task-CSV path adds external biology content and table rendering:
 
 ```text
@@ -105,6 +115,11 @@ Exam YAML + answer key + <stem>_files/*.{svg,png}
     v
 Printable DOCX
 ```
+
+Custom composition scripts follow the same final route: compose canonical YAML, then invoke the
+common DOCX renderer and optional PDF export. Handout task-CSV runs set `document_type: handout`,
+so the same renderer produces the handout header and printable answer blanks without a separate
+pipeline.
 
 Matching blocks use one number per prompt. `question_span()` is the shared owner used by DOCX rendering, ZipGrade checks, question totals, and answer-key formatting. Prompt and choice objects may carry images, so pedigrees and sequence strips remain visible in print.
 
@@ -127,3 +142,13 @@ Matching blocks use one number per prompt. `question_span()` is the shared owner
 - `tests/test_html_to_docx_pipeline.py` exercises a self-contained Blackboard HTML-to-YAML-to-DOCX transition with synthetic text, images, and color. It runs in the fast pytest lane without the sibling biology-problems checkout or a browser.
 - `tests/test_bbq_task_exam_pipeline.py` exercises a synthetic task CSV through alias resolution, BBQ parsing, exam YAML, answer-key generation, and DOCX output without running external generators.
 - The DOCX renderer consumes ordered statement blocks directly; `tests/test_yaml_to_exam_docx_matching.py` protects mixed text/image order, while the HTML pipeline test checks media placement and color in the emitted document.
+- `tests/test_choice_measurement.py` and `tests/test_layout.py` cover formatted-answer measurement and slot-by-slot tab geometry. [CHOICE_FORMATTING.md](CHOICE_FORMATTING.md) describes the same contract for maintainers and LibreOffice editors.
+
+Text-choice measurement, tab-slot calculations, style ownership, and manual editing are
+documented in [CHOICE_FORMATTING.md](CHOICE_FORMATTING.md). Font measurement is owned by
+[../ef_tools/choice_measurement.py](../ef_tools/choice_measurement.py); geometry-based layout
+selection is owned by [../ef_tools/layout.py](../ef_tools/layout.py).
+
+## Known gaps
+
+- Recheck representative output in LibreOffice and its exported PDF after changing installed fonts, the configured tab geometry, or the DOCX rendering library; the measurement model deliberately does not claim pixel identity with LibreOffice.

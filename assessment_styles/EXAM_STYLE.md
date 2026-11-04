@@ -94,19 +94,19 @@ Matching Prompt is 11pt normal text with a 0.2 inch left indent and a -0.2 inch 
 
 ### Choice styles
 
-Choice paragraphs use 10pt text with a 0.16 inch left indent and a -0.16 inch first-line
-indent. Labels start at the margin; wrapped lines hang beneath the answer text.
+Choice paragraphs use 10pt text with a 0.26 inch left indent and a -0.16 inch first-line
+indent. Labels start 0.10 inches inside the question edge; wrapped lines hang beneath the answer text.
 The concrete `Choices 2` through `Choices 5` styles inherit the base Choice style and
 receive these Letter tab stops from `layout_tab_stops` (adapted proportionally for A4):
 
 | Columns | Tab stops in inches |
 | ---: | --- |
-| 2 | 3.65 |
-| 3 | 2.33, 4.67 |
-| 4 | 1.75, 3.50, 5.25 |
-| 5 | 1.40, 2.80, 4.20, 5.60 |
+| 2 | 3.75 |
+| 3 | 2.43, 4.77 |
+| 4 | 1.85, 3.60, 5.35 |
+| 5 | 1.50, 2.90, 4.30, 5.70 |
 
-The layout algorithm scores visible text width and selects a concrete `Choices N` style. Long five-choice sets fall back to one choice per paragraph before text can wrap underneath a neighboring choice. Choice paragraphs have a small configured space before them to separate answer options from the question stem. Text and image choices use paragraph tab stops by default; the optional `--native-tables` mode uses the dedicated table backend for preserved simple HTML tables.
+The layout algorithm measures complete formatted answers in the installed font and compares them with the actual tab slots and right margin, reserving a half-em gap. It selects a concrete `Choices N` style. Long five-choice sets fall back to one choice per paragraph before text can wrap underneath a neighboring choice. Choice styles share zero spacing before and after; question styles supply separation. Changing a Choices style changes its tabs while retaining shared typography. Existing tabs and paragraph breaks still require manual rearrangement. Text and image choices use paragraph tab stops by default; the optional `--native-tables` mode uses the dedicated table backend for preserved simple HTML tables.
 
 ### Images and tables
 
@@ -144,3 +144,18 @@ quiz recipe uses section breaks. Other recipes keep their existing pagination.
 ### Source of truth
 
 Edit [exam_styles.yaml](exam_styles.yaml) for stable layout values. Keep document styles and shared text helpers in [../ef_tools/docx_builder.py](../ef_tools/docx_builder.py), answer and matching renderers in [../ef_tools/docx_choice_builder.py](../ef_tools/docx_choice_builder.py), image sizing and placement in [../ef_tools/docx_images.py](../ef_tools/docx_images.py), choice-width decisions in [../ef_tools/layout.py](../ef_tools/layout.py), and the exam field contract in [YAML_EXAM_FORMAT.md](YAML_EXAM_FORMAT.md). Use [../tests/test_docx_choice_styles.py](../tests/test_docx_choice_styles.py) and the focused builder tests for demonstrated style invariants.
+
+
+### Style ownership in LibreOffice
+
+Paragraph styles own reusable spacing, tabs, indentation, and writing-line spacing.
+Choice Label and Exam Boilerplate character styles supply repeated label and first-page typography.
+Table Text and Table Heading control native-table paragraphs. Question Heading Writing and
+Question Follow Writing supply double spacing only for FIB_PLUS paragraphs containing writing blanks.
+Scientific markup, explicit choice fonts, image baseline offsets, and question pagination remain
+content-dependent formatting. The calibrated code-face handling remains explicit for LibreOffice.
+Every inserted SVG or raster image has explicit zero edge distances; artwork-internal whitespace
+is separate from image object margins.
+
+Open the generated DOCX directly in LibreOffice Writer. PDF export does not require an ODT
+intermediate or an ODT modification stage.

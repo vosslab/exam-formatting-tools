@@ -259,7 +259,7 @@ def choice_visible_width(choice: str | dict) -> float:
 	The score is a weighted sum of the DOCX-visible characters of the
 	choice. Narrow glyphs (i, l, .) weigh less than typical letters;
 	wide glyphs (M, W) weigh more. The score is explicitly approximate
-	and is used to decide column layout in auto_layout_for_choices.
+	and is used only for image-caption stacking; text layouts use font metrics.
 
 	Image-only choices score 0.0 because they contribute no text width
 	to the choice paragraph (image rendering uses a separate column).

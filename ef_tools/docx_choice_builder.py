@@ -166,10 +166,9 @@ def _add_captioned_image_choices_stacked(doc: docx.Document, choices: list,
 	for index, choice in enumerate(choices):
 		para = doc.add_paragraph()
 		para.style = doc.styles[style_name]
-		para.paragraph_format.space_after = docx.shared.Pt(0)
 		letter = chr(ord('A') + index)
 		prefix = para.add_run(f"({letter})")
-		prefix.bold = True
+		prefix.style = 'Choice Label'
 		meaningful_alt = _is_meaningful_alt(choice)
 		image_path = ef_tools.layout.choice_image(choice)
 		if image_path:
@@ -183,8 +182,6 @@ def _add_captioned_image_choices_stacked(doc: docx.Document, choices: list,
 		if meaningful_alt:
 			caption = doc.add_paragraph()
 			caption.style = doc.styles[style_name]
-			caption.paragraph_format.space_before = docx.shared.Pt(0)
-			caption.paragraph_format.space_after = docx.shared.Pt(0)
 			ef_tools.docx_builder.add_rich_text_runs(
 				caption, ef_tools.layout.choice_text(choice))
 
@@ -198,13 +195,9 @@ def _add_wide_image_choices_stacked(doc: docx.Document, choices: list,
 		para = doc.add_paragraph()
 		para.style = doc.styles[style_name]
 		meaningful_alt = _is_meaningful_alt(choice)
-		if index > 0:
-			para.paragraph_format.space_before = docx.shared.Pt(0)
-		if index < len(choices) - 1 or meaningful_alt:
-			para.paragraph_format.space_after = docx.shared.Pt(0)
 		letter = chr(ord('A') + index)
 		prefix = para.add_run(f"({letter})")
-		prefix.bold = True
+		prefix.style = 'Choice Label'
 		image_path = ef_tools.layout.choice_image(choice)
 		if image_path:
 			image_run = para.add_run()
@@ -218,10 +211,8 @@ def _add_wide_image_choices_stacked(doc: docx.Document, choices: list,
 		if meaningful_alt:
 			caption = doc.add_paragraph()
 			caption.style = doc.styles[style_name]
-			caption.paragraph_format.space_before = docx.shared.Pt(0)
-			caption.paragraph_format.space_after = docx.shared.Pt(0)
 			caption_prefix = caption.add_run(f"({letter}) ")
-			caption_prefix.bold = True
+			caption_prefix.style = 'Choice Label'
 			ef_tools.docx_builder.add_rich_text_runs(
 				caption, ef_tools.layout.choice_text(choice))
 
@@ -289,7 +280,6 @@ def add_image_choices_tabbed(doc: docx.Document, choices: list,
 	# from the first label's origin so inter-column gaps render evenly.
 	combined_para = doc.add_paragraph()
 	combined_para.style = doc.styles[style_name]
-	combined_para.paragraph_format.space_after = docx.shared.Pt(0)
 	# unify height across the row: a fitted sizer reports the smallest height
 	# any image in the row would take, and every image is forced to it, which
 	# keeps the row visually level when source aspect ratios differ. A drawing
@@ -306,7 +296,7 @@ def add_image_choices_tabbed(doc: docx.Document, choices: list,
 		# caption text on the same line, separator space.
 		prefix_text = f"({letter})" if image_path else f"({letter}) "
 		prefix = combined_para.add_run(prefix_text)
-		prefix.bold = True
+		prefix.style = 'Choice Label'
 		if image_path:
 			image_run = combined_para.add_run()
 			if row_height is not None:
@@ -330,7 +320,6 @@ def add_image_choices_tabbed(doc: docx.Document, choices: list,
 	if any(_is_meaningful_alt(choice) for choice in choices):
 		alt_para = doc.add_paragraph()
 		alt_para.style = doc.styles[style_name]
-		alt_para.paragraph_format.space_before = docx.shared.Pt(0)
 		for index, choice in enumerate(choices):
 			if index > 0:
 				alt_para.add_run("\t")
@@ -376,13 +365,6 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 	for row_index, row_choices in enumerate(rows):
 		para = doc.add_paragraph()
 		para.style = doc.styles[style_name]
-		# rows after the first should sit flush against the prior row;
-		# all rows except the last drop trailing space so the choices
-		# group reads as one unit visually
-		if row_index > 0:
-			para.paragraph_format.space_before = docx.shared.Pt(0)
-		if row_index < len(rows) - 1:
-			para.paragraph_format.space_after = docx.shared.Pt(0)
 		for col_index, choice in enumerate(row_choices):
 			# global letter index across all rows
 			letter = chr(ord('A') + row_index * row_size + col_index)
@@ -391,7 +373,7 @@ def add_choices_paragraph(doc: docx.Document, choices: list,
 				para.add_run("\t")
 			# bold letter prefix (only run-level override needed)
 			bold_run = para.add_run(f"({letter}) ")
-			bold_run.bold = True
+			bold_run.style = 'Choice Label'
 			if font_family:
 				bold_run.font.name = font_family
 			# choice content inherits font size from style

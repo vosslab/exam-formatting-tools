@@ -1,5 +1,16 @@
 # News
 
+## v26.11 - 2026-11-04
+
+### Highlights
+
+- Make DOCX paragraph styles authoritative, so changing a style in LibreOffice preserves the
+  intended exam layout.
+- Select tabbed answer-choice columns from measured formatted width to keep long responses in
+  their actual slots.
+- Remove image side spacing and add the [CHOICE_FORMATTING.md](CHOICE_FORMATTING.md) reference
+  for editing and troubleshooting layouts.
+
 ## v26.09 - 2026-09-21
 
 ### Highlights

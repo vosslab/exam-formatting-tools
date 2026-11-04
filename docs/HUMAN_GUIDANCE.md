@@ -34,3 +34,12 @@ origin belongs there too. Rules: [REPO_STYLE.md](REPO_STYLE.md).
   points. My ZipGrade form has only 100 question bubble rows.
 - I prefer to keep point values out of headings for assignments, exams, and quizzes.
 - Human Guidance is for durable, reusable preferences, not one-off task instructions.
+
+- I use LibreOffice Writer to open generated DOCX files; DOCX is an intermediate because its
+  Python tooling is better. Additional ODT artifacts are unnecessary unless an actual problem
+  requires ODT modification.
+- Reusable document formatting should live in named styles so I can change choice layouts manually.
+  A 0.10-inch inset for choices is enough; use the genetics midterm for varied layout review.
+
+- Keep reusable guides generic: document stable conversion and editing workflows rather than a
+  current quiz. Put assessment-specific recipes in their notes and dated results in the changelog.

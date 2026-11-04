@@ -178,6 +178,7 @@ def test_non_flex_layout_preserves_individual_table_fallbacks() -> None:
 	"""Only exact inline flex layout groups tables into one browser image."""
 	line = (
 		'MC\t<p>grid12</p><div style="display: grid;">'
+		'<!-- capture traversal must ignore comments -->'
 		'<table><tr><td>first</td></tr></table>'
 		'<table><tr><td>second</td></tr></table>'
 		'</div>\tYes\tCorrect')

@@ -1,121 +1,47 @@
-"""Test layout module."""
+"""Choice selection checks measured widths against real tab slots."""
+
+import pytest
 
 import ef_tools.layout
+import ef_tools.style_loader
 
 
 #============================================
-def test_auto_layout_five_short_choices() -> None:
-	"""Test 5 short choices fit in 5-column layout."""
-	choices = ["a", "b", "c", "d", "e"]
-	result = ef_tools.layout.auto_layout_for_choices(choices)
-	assert result == (5, 5)
+@pytest.mark.parametrize('widths,expected', [
+	([40] * 5, (5, 5)),
+	([110] * 5, (3, 3)),
+	([200] * 5, (1, 1)),
+	([125] * 4, (2, 2)),
+	([300] * 2, (1, 1)),
+])
+def test_measured_layout_retains_balanced_rows(widths: list, expected: tuple) -> None:
+	"""Unsafe dense layouts fall back to balanced rows or a vertical stack."""
+	styles = ef_tools.style_loader.for_paper_size(ef_tools.style_loader.load_styles(), 'letter')
+	assert ef_tools.layout.auto_layout_for_choices(widths, styles) == expected
 
 
 #============================================
-def test_auto_layout_two_choices() -> None:
-	"""Test 2 choices use 2-column layout."""
-	choices = ["yes", "no"]
-	result = ef_tools.layout.auto_layout_for_choices(choices)
-	assert result == (2, 2)
+def test_each_column_and_last_column_are_checked() -> None:
+	"""The rightmost slot and each answer's actual position determine fit."""
+	styles = ef_tools.style_loader.for_paper_size(ef_tools.style_loader.load_styles(), 'letter')
+	styles['layout_tab_stops'][3] = [1.0, 6.0]
+	assert ef_tools.layout.auto_layout_for_choices([50, 200, 80], styles) == (3, 3)
+	assert ef_tools.layout.auto_layout_for_choices([200, 50, 80], styles) == (1, 1)
+	assert ef_tools.layout.auto_layout_for_choices([50, 50, 100], styles) == (1, 1)
 
 
 #============================================
-def test_auto_layout_four_medium_choices_anti_orphan() -> None:
-	"""Test 4 medium choices use 2+2 layout to avoid orphan."""
-	# 30 typical ASCII chars at 0.8 width = 24, just over max_chars_4 (23)
-	choices = ["a" * 30, "b" * 30, "c" * 30, "d" * 30]
-	result = ef_tools.layout.auto_layout_for_choices(choices)
-	assert result == (2, 2)
-
-
-#============================================
-def test_auto_layout_four_long_choices_avoid_last_column_wrap() -> None:
-	"""Four choices with a long option use a balanced 2+2 layout."""
-	choices = ["short", "short", "Duchenne muscular dystrophy", "short"]
-	result = ef_tools.layout.auto_layout_for_choices(choices)
-	assert result == (2, 2)
-
-
-#============================================
-def test_auto_layout_very_long_choices() -> None:
-	"""Test very long choices get vertical stack."""
-	# 65 typical ASCII chars at 0.8 width = 52, over max_chars_2 (49)
-	choices = ["a" * 65, "b" * 65]
-	result = ef_tools.layout.auto_layout_for_choices(choices)
-	assert result == (1, 1)
-
-
-#============================================
-def test_auto_layout_five_medium_choices_anti_orphan() -> None:
-	"""Test 5 medium choices use 3+2 layout to avoid orphan."""
-	# 23 typical ASCII chars at 0.8 width = 18.4, over max_chars_5 (17)
-	choices = ["a" * 23, "b" * 23, "c" * 23, "d" * 23, "e" * 23]
-	result = ef_tools.layout.auto_layout_for_choices(choices)
-	assert result == (3, 3)
-
-
-#============================================
-def test_auto_layout_five_long_choices_stack_before_wrapping() -> None:
-	"""Long five-choice answers use one row per choice rather than overlap."""
-	choices = [character * 51 for character in "abcde"]
-	result = ef_tools.layout.auto_layout_for_choices(choices)
-	assert result == (1, 1)
-
-
-#============================================
-def test_chemistry_matching_choices_use_multi_column() -> None:
-	"""HTML entities and inline tags are scored as visible glyphs.
-
-	The 4-item list from Final_Exam/final_exam_combined.yml regressed
-	to bare Choice (vertical stack) when measurement counted raw YAML
-	string length. With visible-width scoring the layout drops only to
-	2+2, never to vertical stack.
-	"""
-	# pin thresholds so the test is stable if repo defaults change
-	limits = {
-		"max_chars_5": 17,
-		"max_chars_4": 23,
-		"max_chars_3": 30,
-		"max_chars_2": 49,
-	}
-	choices = [
-		"C - O (in carbon monoxide, CO)",
-		"Mg 2+ &#8226; 2&#215; Cl - (magnesium chloride)",
-		"C &#8801; C (in acetylene, C 2 H 2 )",
-		"N-H | | | | N (bond represented by the vertical lines)",
-	]
-	result = ef_tools.layout.auto_layout_for_choices(choices, limits)
-	# the longest item really is over the 4-column width budget, so the
-	# algorithm correctly drops to 2+2 -- the regression was a collapse
-	# all the way to (1, 1) with the bare Choice base style
-	assert result == (2, 2)
-
-
-#============================================
-def test_short_chemistry_choices_use_four_columns() -> None:
-	"""Short chemistry choices with HTML entities fit four columns.
-
-	The visible-width scoring counts &#8226; and &#8801; as single
-	glyphs, so a 4-item list of short formulas resolves to Choices 4.
-	"""
-	limits = {
-		"max_chars_5": 17,
-		"max_chars_4": 23,
-		"max_chars_3": 30,
-		"max_chars_2": 49,
-	}
-	choices = [
-		"H<sub>2</sub>O",
-		"CO<sub>2</sub>",
-		"C &#8226; C",
-		"C &#8801; C",
-	]
-	result = ef_tools.layout.auto_layout_for_choices(choices, limits)
-	assert result == (4, 4)
+def test_paper_width_and_gap_change_fit() -> None:
+	"""A borderline Letter layout cannot silently overrun narrower A4 slots."""
+	styles = ef_tools.style_loader.load_styles()
+	letter = ef_tools.style_loader.for_paper_size(styles, 'letter')
+	a4 = ef_tools.style_loader.for_paper_size(styles, 'a4')
+	assert ef_tools.layout.auto_layout_for_choices([248, 248], letter) == (2, 2)
+	assert ef_tools.layout.auto_layout_for_choices([248, 248], a4) == (1, 1)
 
 
 #============================================
 def test_choices_style_name_never_returns_choice() -> None:
 	"""Every legal tab_style maps to a concrete Choices N style."""
 	for tab_style in range(1, 6):
-		assert ef_tools.layout.choices_style_name(tab_style) != "Choice"
+		assert ef_tools.layout.choices_style_name(tab_style) != 'Choice'

@@ -1,25 +1,38 @@
 # Roadmap
 
-This roadmap records evidence-backed follow-up work for the source-to-YAML-to-DOCX exam pipeline. Current commands and supported behavior live in [USAGE.md](USAGE.md); unresolved symptoms belong in [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+This roadmap records the current printable-assessment workflow and evidence-backed verification
+work. Supported commands live in [USAGE.md](USAGE.md); known failure symptoms and remedies live
+in [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
-## Current state
+## Current capabilities
 
-- General-purpose commands in `converters/` cover BBQ task CSV, BBQ text, DOCX, Blackboard HTML,
-  Oklahoma, ZipGrade validation, YAML-to-DOCX conversion, and PDF export. Dedicated assessment
-  recipes live in `builders/`.
-- Matching prompts and choices can carry images, including rendered table drawings, pedigrees, and sequence strips.
-- The DOCX builder reads layout values from [../assessment_styles/exam_styles.yaml](../assessment_styles/exam_styles.yaml).
-- The 2026-09-23 changelog records the ordered-statement contract, task-CSV workflow, and automated HTML/task-CSV-to-DOCX checks.
-- The fast pytest lane covers synthetic HTML-to-YAML-to-DOCX and task-CSV-to-YAML-to-DOCX transitions, including color, media paths, authored order, alias selection, and answer-key output.
+- Converters accept task CSV, BBQ text, DOCX, Blackboard HTML, and Oklahoma sources through one
+  ordered exam-YAML contract; assessment-specific recipes live in `builders/`.
+- Exam, quiz, and handout modes preserve visual content and image-capable matching prompts.
+  Handout mode adds printable NUM, FIB, and FIB_PLUS answer blanks.
+- The renderer prefers SVG for supported visuals and keeps PNG for canvas captures or SVG export
+  failures. Drawing scale remains independent of raster capture resolution.
+- Named styles own reusable DOCX layout. Text-choice selection measures formatted answers
+  against tab geometry; see [CHOICE_FORMATTING.md](CHOICE_FORMATTING.md).
+- LibreOffice opens the generated DOCX for instructor editing and exports PDF without an ODT
+  processing stage. Specialized composition builders can retain scientific setup snapshots.
 
-## Automated completion gates
+## Verification priorities
 
-- Run `source source_me.sh && python3 -m pytest tests/` for the self-contained contract and rendering checks.
-- Run `source source_me.sh && python3 tests/e2e/e2e_bbq_tasks_quiz.py` when the sibling biology-problems repository is available; its real-generator run adds evidence but is not a human sign-off gate.
-- Keep the image-choice measurement script as a debug harness. Layout behavior that affects generated DOCX remains covered by automated geometry tests.
+- Keep generated content fixed when comparing formatting changes. Use a varied, fixed assessment
+  for layout review, including both text-heavy and image-heavy questions.
+- Investigate demonstrated bad choice rows using their font, paper size, layout override, and
+  exact YAML before changing the width algorithm. Avoid speculative layout machinery.
+- Run focused behavior checks after code edits and the repository pytest lane before closeout.
+  Use real-generator E2E checks when changing the task-generation boundary.
+- Inspect the LibreOffice-exported PDF for visual changes. Font metrics and DOCX geometry checks
+  do not establish final wrapping or page layout on their own.
+- Retain manual post-render page polishing; automatic page fitting is not a current objective.
 
-## Out of scope
+## Scope boundaries
 
-- Direct ODT output is not part of the current printable pipeline.
-- A one-shot HTML-to-DOCX path is not planned; use `html_to_exam_yaml.py` followed by `yaml_to_exam_docx.py`.
-- Automatic trimming of six-choice questions is not planned because the YAML format does not store enough answer-key information to choose a distractor safely.
+- Keep the inspectable YAML handoff; there is no planned direct HTML-to-DOCX shortcut.
+- Add an ODT modification step only if a concrete LibreOffice compatibility problem requires it.
+- Preserve explicit instructor layout/font choices and the tab-based editing interface.
+- Keep content-generation changes in their owning sibling repository. Do not silently remove
+  distractors to make a question fit ZipGrade.

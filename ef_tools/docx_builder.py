@@ -180,6 +180,36 @@ def setup_styles(doc: docx.Document, styles: dict) -> None:
 	qf.paragraph_format.space_after = docx.shared.Inches(spacing['question_space_after'])
 	qf.paragraph_format.keep_with_next = True
 
+	for base in (qh, qf):
+		writing = doc.styles.add_style(
+			base.name + ' Writing', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
+		writing.base_style = base
+		writing.paragraph_format.line_spacing = 2.0
+
+	label = doc.styles.add_style('Choice Label', docx.enum.style.WD_STYLE_TYPE.CHARACTER)
+	label.font.bold = True
+	boilerplate = doc.styles.add_style(
+		'Exam Boilerplate', docx.enum.style.WD_STYLE_TYPE.CHARACTER)
+	boilerplate.font.size = docx.shared.Pt(sizes['normal'])
+	boilerplate.font.bold = False
+	boilerplate.font.italic = False
+	for style in (h1, doc.styles.add_style(
+			'Exam Score', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)):
+		if style.name == 'Exam Score':
+			style.base_style = normal
+		style.paragraph_format.tab_stops.add_tab_stop(
+			docx.shared.Inches(styles['page']['heading_block_tab']))
+	for name in ('Table Text', 'Table Heading'):
+		style = doc.styles.add_style(name, docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
+		style.base_style = normal
+		style.paragraph_format.space_after = docx.shared.Pt(0)
+		if name == 'Table Heading':
+			style.font.bold = True
+	centered = doc.styles.add_style(
+		'Table Heading Centered', docx.enum.style.WD_STYLE_TYPE.PARAGRAPH)
+	centered.base_style = doc.styles['Table Heading']
+	centered.paragraph_format.alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.CENTER
+
 	# A temporary style carries the configured monospace font; rich-text runs
 	# copy its settings directly, then the style is removed before saving.
 	code_style = doc.styles.add_style(
@@ -234,7 +264,7 @@ def setup_styles(doc: docx.Document, styles: dict) -> None:
 		choice_base.paragraph_format.first_line_indent = docx.shared.Inches(choice_first_line)
 	choice_base.paragraph_format.space_before = docx.shared.Pt(
 		spacing['choice_space_before_pt'])
-	choice_base.paragraph_format.space_after = docx.shared.Pt(spacing['normal_space_after_pt'])
+	choice_base.paragraph_format.space_after = docx.shared.Pt(0)
 	choice_base.paragraph_format.keep_with_next = False
 
 	# Header: small font for page headers with center and right tab stops
@@ -503,17 +533,15 @@ def add_rich_text_paragraphs(doc: object, style_name: str, text: str,
 
 
 #============================================
-def _add_boilerplate_run(para: object, text: str, font_size_pt: float) -> None:
+def _add_boilerplate_run(para: object, text: str) -> None:
 	"""Add one first-page boilerplate run at body size.
 
 	The title paragraph carries the Heading 1 style, so a run added to it
 	inherits 18pt bold. The name and score lines sit on those same lines but
-	are body text, so each run overrides size and weight explicitly.
+	use the body-size Exam Boilerplate character style.
 	"""
 	run = para.add_run(text)
-	run.font.size = docx.shared.Pt(font_size_pt)
-	run.bold = False
-	run.italic = False
+	run.style = 'Exam Boilerplate'
 
 
 #============================================
@@ -531,8 +559,6 @@ def add_first_page_heading(doc: docx.Document, title: str, name_line: str,
 		score_line: The per-section score rule.
 		styles: Loaded style definitions.
 	"""
-	block_tab = styles['page']['heading_block_tab']
-	body_size = styles['sizes']['normal']
 	# Heading 1 rather than add_heading so the custom font overrides Word's
 	# built-in theme font.
 	title_para = doc.add_paragraph()
@@ -540,15 +566,11 @@ def add_first_page_heading(doc: docx.Document, title: str, name_line: str,
 	add_rich_text_runs(title_para, title)
 	if document_type == 'handout':
 		return
-	title_para.paragraph_format.tab_stops.add_tab_stop(
-		docx.shared.Inches(block_tab), docx.enum.text.WD_TAB_ALIGNMENT.LEFT)
-	_add_boilerplate_run(title_para, "\t" + name_line, body_size)
+	_add_boilerplate_run(title_para, "\t" + name_line)
 	# The score line continues the same block, so it hugs the line above it.
 	score_para = doc.add_paragraph()
-	score_para.paragraph_format.tab_stops.add_tab_stop(
-		docx.shared.Inches(block_tab), docx.enum.text.WD_TAB_ALIGNMENT.LEFT)
-	score_para.paragraph_format.space_before = docx.shared.Pt(0)
-	_add_boilerplate_run(score_para, "\t" + score_line, body_size)
+	score_para.style = 'Exam Score'
+	_add_boilerplate_run(score_para, "\t" + score_line)
 
 
 #============================================
@@ -575,11 +597,7 @@ def add_table(doc: docx.Document, columns: list, rows: list,
 		cell_para = cell.paragraphs[0]
 		# add header text with rich text support (decodes HTML entities)
 		add_rich_text_runs(cell_para, col_text)
-		# set bold on all runs in the header cell
-		for run in cell_para.runs:
-			run.font.bold = True
-		if center_header:
-			cell_para.alignment = docx.enum.text.WD_PARAGRAPH_ALIGNMENT.CENTER
+		cell_para.style = 'Table Heading Centered' if center_header else 'Table Heading'
 		# background color via XML shading
 		shading = docx.oxml.OxmlElement('w:shd')
 		shading.set(docx.oxml.ns.qn('w:fill'), header_bg)
@@ -589,4 +607,5 @@ def add_table(doc: docx.Document, columns: list, rows: list,
 	for ri, row_data in enumerate(rows):
 		for ci, cell_text in enumerate(row_data):
 			cell_para = table.rows[ri + 1].cells[ci].paragraphs[0]
+			cell_para.style = 'Table Text'
 			add_rich_text_runs(cell_para, cell_text)

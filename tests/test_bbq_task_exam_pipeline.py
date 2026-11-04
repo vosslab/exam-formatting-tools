@@ -168,5 +168,6 @@ def test_fib_plus_writing_paragraph_is_double_spaced_only(tmp_path: pathlib.Path
 	doc = docx.Document(str(output_path))
 	fib_paragraph = next(p for p in doc.paragraphs if 'Determine AB' in p.text)
 	num_paragraph = next(p for p in doc.paragraphs if 'Determine CD' in p.text)
-	assert fib_paragraph.paragraph_format.line_spacing == 2.0
+	assert fib_paragraph.paragraph_format.line_spacing is None
+	assert fib_paragraph.style.paragraph_format.line_spacing == 2.0
 	assert num_paragraph.paragraph_format.line_spacing is None

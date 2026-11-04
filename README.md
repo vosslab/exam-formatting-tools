@@ -1,6 +1,6 @@
 # Exam formatting tools
 
-A Python CLI pipeline for biology instructors who turn Blackboard, BBQ, DOCX, Oklahoma, and task-CSV question banks into printable exams with shared YAML and image-aware matching output.
+A Python CLI pipeline that turns biology question banks into editable DOCX exams, quizzes, and handouts, with named LibreOffice styles, measured answer-choice layouts, and direct PDF export.
 
 ## From question bank to exam day
 
@@ -16,28 +16,47 @@ The pipeline is especially useful when an exam includes visual evidence. Table d
 - Produce a separate answer key for BBQ and task-CSV workflows.
 - Check ZipGrade compatibility without silently deleting a distractor or changing authored content.
 
-## Proof from a real run
+## Evidence and validation
 
-The latest recorded website-task acceptance run processed 87 tasks into 82 question blocks and 119 numbered rows across seven topic chapters, with 68 rendered statement or choice images and no raw HTML in the DOCX paragraphs. The current E2E lane covers the same source-to-YAML-to-DOCX shape with quiz and exam modes.
+The converter keeps authored questions in inspectable YAML, applies named DOCX styles, measures complete formatted choices against their tab slots, and sends the resulting document directly through LibreOffice. The test suite covers parsing, YAML, and DOCX behavior; review the final PDF visually in LibreOffice because fast tests do not exercise the actual PDF export.
+
+Time-specific changes and validation results belong in [docs/CHANGELOG.md](docs/CHANGELOG.md) and [docs/RELEASE_HISTORY.md](docs/RELEASE_HISTORY.md), rather than tying this guide to one current assessment.
 
 ## Screenshots
 
 <!-- screenshots:begin (managed by screenshot-docs) -->
-![First full page of a generated Genetics Quiz 1 DOCX](docs/screenshots/genetics_quiz1_page1.png)
+![Example genetics assessment with matching prompts, multiple-choice rows, and named styles](docs/screenshots/genetics_midterm_page1.webp)
 
-![Rendered gel-electrophoresis problem asset from the generated exam](docs/screenshots/generated_exam_gel.png)
+![Rendered gel-electrophoresis problem asset from a generated exam](docs/screenshots/reference_generated_exam_gel.webp)
 <!-- screenshots:end -->
 
 ## Quick start
 
-Install the dependencies in [docs/INSTALL.md](docs/INSTALL.md), then convert a cleaned Blackboard HTML export and render its YAML as a DOCX:
+Install the dependencies in [docs/INSTALL.md](docs/INSTALL.md), then create and render a minimal assessment without a sibling question-bank checkout:
 
 ```bash
-source source_me.sh && python3 converters/html_to_exam_yaml.py -i Cleaned_Final_Exam_2A.html
-source source_me.sh && python3 converters/yaml_to_exam_docx.py -i Cleaned_Final_Exam_2A.yml
+source source_me.sh
+mkdir -p _temp/docset_example
+cat > _temp/docset_example/example.yaml <<'YAML'
+title: Example assessment
+sections:
+  - questions:
+      - statement:
+          - text: Which value is largest?
+        choices:
+          - "2"
+          - "4"
+          - "8"
+          - "16"
+YAML
+python3 converters/yaml_to_exam_docx.py \
+    -i _temp/docset_example/example.yaml \
+    -o _temp/docset_example/example.docx
+bash converters/docx_to_pdf.sh \
+    _temp/docset_example/example.docx _temp/docset_example 150
 ```
 
-The commands write `Cleaned_Final_Exam_2A.yml` and `Cleaned_Final_Exam_2A.docx` in the current directory. Output paths are optional; when omitted, each launcher uses the input stem with the target extension.
+This writes `example.docx` and `example.pdf` beneath `_temp/docset_example/`. Open the DOCX directly in LibreOffice Writer for any final edits; the PDF path does not create or modify an ODT intermediate. Choose a new `_temp/` directory or remove these two generated files before rerunning the example.
 
 ## A typical instructor workflow
 
@@ -46,18 +65,19 @@ Choose the starting point that matches the content you already maintain:
 | Starting point | Launcher | Result |
 | --- | --- | --- |
 | Cleaned Blackboard HTML | `html_to_exam_yaml.py` | YAML with question media |
-| bptools BBQ text | `bbq_to_exam_yaml.py` | YAML, answer key, and table PNGs |
+| bptools BBQ text | `bbq_to_exam_yaml.py` | YAML, answer key, and SVG/PNG table media |
 | Website task CSV | `bbq_tasks_to_exam_yaml.py` | One generated question per task |
 | Existing exam DOCX | `docx_to_exam_yaml.py` | Reusable YAML source |
 | Exam YAML | `yaml_to_exam_docx.py` | Printable styled DOCX |
 
-For a quiz, the task-CSV converter uses the repository copy of [bbq_settings.yml](bbq_settings.yml) by default:
+For a quiz generated from your own `tasks.csv`, follow the task-CSV contract in [docs/USAGE.md](docs/USAGE.md) and use the repository copy of [bbq_settings.yml](bbq_settings.yml):
 
 ```bash
-source source_me.sh && python3 converters/bbq_tasks_to_exam_yaml.py -q -t "Genetics Quiz 1" \
-    -i task_files/genetics_quiz1.csv \
-    -o output_quiz/genetics_quiz1.yml
-source source_me.sh && python3 converters/yaml_to_exam_docx.py -i output_quiz/genetics_quiz1.yml
+source source_me.sh && python3 converters/bbq_tasks_to_exam_yaml.py -q -t "Example quiz" \
+    -i tasks.csv \
+    -o output_example/assessment.yaml
+source source_me.sh && python3 converters/yaml_to_exam_docx.py \
+    -i output_example/assessment.yaml
 ```
 
 Each resolved task contributes one question when a usable candidate is generated. Exam mode keeps only questions that satisfy the ZipGrade A-E rules; skipped tasks are reported on stderr. See [docs/USAGE.md](docs/USAGE.md) for answer keys, alternative input formats, and filtering details.
@@ -69,6 +89,7 @@ Each resolved task contributes one question when a usable candidate is generated
 - [docs/FILE_FORMATS.md](docs/FILE_FORMATS.md): accepted inputs and generated artifacts.
 - [assessment_styles/YAML_EXAM_FORMAT.md](assessment_styles/YAML_EXAM_FORMAT.md): fields, matching blocks, images, and layout rules.
 - [assessment_styles/EXAM_STYLE.md](assessment_styles/EXAM_STYLE.md): exam conventions and shared DOCX formatting.
+- [docs/CHOICE_FORMATTING.md](docs/CHOICE_FORMATTING.md): named choice styles, measured tab slots, manual edits, and image-choice limits.
 - [assessment_styles/QUIZ_STYLE.md](assessment_styles/QUIZ_STYLE.md): quiz conventions.
 - [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md): output, browser, media, and ZipGrade failures.
 - [docs/FAQ.md](docs/FAQ.md): short answers about YAML, matching rows, images, and mode filtering.
@@ -84,7 +105,7 @@ Each resolved task contributes one question when a usable candidate is generated
 
 ## Status and limitations
 
-DOCX is the supported printable output. The supported HTML workflow is the two-step `html_to_exam_yaml.py` followed by `yaml_to_exam_docx.py`; the legacy direct HTML-to-DOCX and ODT paths are not part of the current pipeline. Browser visuals use local Playwright/Chromium. Task-CSV question generation still uses the sibling checkouts described in [docs/INSTALL.md](docs/INSTALL.md).
+DOCX is the supported editable output. The supported HTML workflow is the two-step `html_to_exam_yaml.py` followed by `yaml_to_exam_docx.py`; LibreOffice opens that DOCX directly and exports PDF without an ODT stage. Named styles own reusable spacing, indentation, and tabs, while text-choice selection measures the complete formatted answer against its tab slot. Browser visuals use local Playwright/Chromium. Task-CSV question generation still uses the sibling checkouts described in [docs/INSTALL.md](docs/INSTALL.md).
 
 ## License
 

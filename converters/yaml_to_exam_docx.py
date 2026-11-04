@@ -18,6 +18,7 @@ import docx.shared
 import docx.enum.text
 
 # Local Repo Modules
+import ef_tools.choice_measurement
 import ef_tools.layout
 import ef_tools.zip_grade
 import ef_tools.text_utils
@@ -125,7 +126,7 @@ def apply_zip_grade_filter(exam_data: dict, source_path: str) -> dict:
 
 
 #============================================
-def resolve_choice_layout(question: dict, items: list, layout_limits: object) -> tuple:
+def resolve_choice_layout(question: dict, items: list, styles: dict) -> tuple:
 	"""Pick (tab_style, items_per_row) for a list of choice items.
 
 	An integer `layout` on the question bypasses auto-sizing; otherwise
@@ -136,7 +137,8 @@ def resolve_choice_layout(question: dict, items: list, layout_limits: object) ->
 	if layout_override is not None:
 		return layout_override, layout_override
 	tab_style, items_per_row = ef_tools.layout.auto_layout_for_choices(
-		items, layout_limits=layout_limits)
+		ef_tools.choice_measurement.choice_widths(items, styles, question.get('choice_font')),
+		styles)
 	return tab_style, items_per_row
 
 
@@ -289,8 +291,6 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 		styles['page']['choice_strip_max_width'],
 		styles['page']['choice_image_max_height'])
 	choice_strip_min_aspect = styles['page']['choice_strip_min_aspect']
-	# load layout limits for choice auto-sizing
-	layout_limits = styles.get('layout_limits', None)
 	# load style flags for table header alignment
 	flags = styles['style_flags']
 
@@ -385,7 +385,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 					if fib_plus_writing and ef_tools.bbq_parse.HANDOUT_BLANK in text:
 						for paragraph in doc.paragraphs[paragraph_start:]:
 							if ef_tools.bbq_parse.HANDOUT_BLANK in paragraph.text:
-								paragraph.paragraph_format.line_spacing = 2.0
+								paragraph.style = doc.styles[paragraph.style.name + ' Writing']
 					prev_element = 'question'
 					continue
 				if not heading_written:
@@ -435,7 +435,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 				prev_element = 'choices'
 			elif choices_list:
 				tab_style, items_per_row = resolve_choice_layout(
-					question, choices_list, layout_limits)
+					question, choices_list, styles)
 				ef_tools.docx_choice_builder.add_choices_paragraph(
 					doc, choices_list, tab_style, items_per_row,
 					sizer=choice_sizer, font_family=choice_font)
@@ -465,7 +465,7 @@ def build_document(exam_data: dict, output_path: str, base_dir: str = '.',
 					prev_element = 'choices'
 				else:
 					tab_style, items_per_row = resolve_choice_layout(
-						question, choices, layout_limits)
+						question, choices, styles)
 					ef_tools.docx_choice_builder.add_choices_paragraph(
 						doc, choices, tab_style, items_per_row,
 						sizer=choice_sizer, font_family=choice_font)

@@ -65,9 +65,9 @@ def test_text_choices_use_concrete_choices_n_style() -> None:
 	)
 	style_name = doc.paragraphs[-1].style.name
 	assert _CHOICES_N_PATTERN.match(style_name), style_name
-	assert doc.styles['Choice'].paragraph_format.space_before == docx.shared.Pt(4)
+	assert doc.styles['Choice'].paragraph_format.space_before == docx.shared.Pt(0)
 	formatting = doc.styles['Choice'].paragraph_format
-	assert formatting.left_indent.twips == docx.shared.Inches(0.16).twips
+	assert formatting.left_indent.twips == docx.shared.Inches(0.26).twips
 	assert formatting.first_line_indent.twips == docx.shared.Inches(-0.16).twips
 
 
@@ -255,3 +255,21 @@ def test_matching_choices_list_uses_multi_column_style(tmp_path: object) -> None
 	assert choices_paragraph is not None
 	style_name = choices_paragraph.style.name
 	assert _CHOICES_N_PATTERN.match(style_name), style_name
+
+
+#============================================
+def test_switching_choice_styles_preserves_inherited_spacing() -> None:
+	"""Manual column changes must not expose row-specific spacing overrides."""
+	doc = _make_styled_doc()
+	ef_tools.docx_choice_builder.add_choices_paragraph(
+		doc, ['one', 'two', 'three', 'four', 'five'], 3, 3)
+	for paragraph in doc.paragraphs:
+		for name in ('Choices 3', 'Choices 2', 'Choices 5'):
+			paragraph.style = name
+			assert paragraph.paragraph_format.space_before is None
+			assert paragraph.paragraph_format.space_after is None
+			assert not paragraph.paragraph_format.tab_stops
+			assert paragraph.style.base_style.paragraph_format.space_before == 0
+			assert paragraph.style.base_style.paragraph_format.space_after == 0
+			formatting = paragraph.style.base_style.paragraph_format
+			assert formatting.left_indent + formatting.first_line_indent > 0
