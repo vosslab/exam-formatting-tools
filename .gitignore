@@ -35,6 +35,3 @@ images/
 .~lock.*
 # generated quiz/exam runs
 output_quiz/
-# Generated matching-bank splits; keep the JSON mappings tracked.
-/task_files/matching_sets/*_a.yml
-/task_files/matching_sets/*_b.yml

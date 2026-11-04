@@ -15,7 +15,7 @@ useful groups and polishing the original prompts and descriptions remain editori
   overrides. Keep mappings under `task_files/matching_sets/` with the assessment recipes.
 - **Generated split YAML:** local inputs for the existing matching generator. Regenerate after
   source or mapping changes; running the tool replaces previous outputs.
-  Generated `_a.yml` and `_b.yml` files in this directory are ignored by Git; track the JSON maps.
+  Outputs go under `generated/matching_sets/`, ignored by Git; track only the JSON maps.
 - **Generated assessment YAML and key:** the selected, shuffled questions for a classroom version.
   Save these together when you want to preserve that version while changing its print layout.
 
@@ -125,9 +125,8 @@ source source_me.sh && python3 tools/split_matching_yaml.py \
   -i task_files/matching_sets/hypothesis_testing_terms_split.json
 ```
 
-Outputs go beside the JSON mapping by default. Use `-o _temp/matching_split_review` to write
-review copies elsewhere. Existing generated files are replaced; the original source YAML cannot
-be an output. Correct wording in the original, then regenerate instead of merging split-file edits.
+Outputs always go under `generated/matching_sets/`, replacing existing generated files.
+Correct wording in the original, then regenerate instead of merging split-file edits.
 
 The Quiz 2 and Genetics Exam 1 build recipes regenerate their splits before generating questions.
 Mapping errors stop the build before any questions are drawn.
@@ -135,7 +134,7 @@ Mapping errors stop the build before any questions are drawn.
 ## Generate and review the assessment
 
 Add one `YMATCH` task row per split source file, following [USAGE.md](USAGE.md). Use
-`{exam_root}/task_files/matching_sets/NAME.yml` in the `input` cell: relative inputs otherwise
+`{exam_root}/generated/matching_sets/NAME.yml` in the `input` cell: relative inputs otherwise
 resolve against BPQ's problems directory. Set `--num-choices` to the file's full term count when
 every term should appear, keeping it consistent with the JSON item-count override.
 

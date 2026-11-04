@@ -3,7 +3,6 @@
 
 # Standard Library
 import argparse
-import copy
 import json
 import pathlib
 
@@ -46,8 +45,8 @@ def split_bank(bank: dict, splits: list) -> dict:
 		unknown = set(overrides) - OVERRIDE_FIELDS
 		if unknown:
 			raise ValueError(f'{name}: unsupported metadata overrides: {sorted(unknown)}')
-		result = copy.deepcopy(bank)
-		result['matching pairs'] = {key: copy.deepcopy(pairs[key]) for key in keys}
+		result = dict(bank)
+		result['matching pairs'] = {key: pairs[key] for key in keys}
 		result.update(overrides)
 		count = result.get('items to match per question', 5)
 		if type(count) is not int or not 1 <= count <= len(keys):
@@ -67,7 +66,6 @@ def split_bank(bank: dict, splits: list) -> dict:
 def main() -> None:
 	parser = argparse.ArgumentParser(description=__doc__)
 	parser.add_argument('-i', '--input', required=True, type=pathlib.Path, help='JSON split mapping')
-	parser.add_argument('-o', '--output-dir', type=pathlib.Path, help='Default: mapping directory')
 	args = parser.parse_args()
 	mapping_path = args.input.resolve()
 	mapping = json.loads(mapping_path.read_text(encoding='utf-8'))
@@ -78,16 +76,13 @@ def main() -> None:
 	# ASVS 1.5.2: YAML input cannot construct arbitrary Python objects.
 	bank = yaml.safe_load(source.read_text(encoding='utf-8'))
 	outputs = split_bank(bank, mapping['splits'])
-	output_dir = args.output_dir if args.output_dir is not None else mapping_path.parent
+	output_dir = pathlib.Path('generated/matching_sets')
 	header = '# Generated matching bank; edit the original YAML or JSON mapping, not this file.\n'
 	header += f'# Split mapping: {mapping_path.name}\n'
 	header += f'# Source relative to mapping: {mapping["source"]}\n'
 	if 'source_revision' in mapping:
 		header += f'# BPQ comparison baseline: {mapping["source_revision"]}\n'
 	header += '# Regenerate from the mapping after updating the original.\n'
-	for name in outputs:
-		if (output_dir / name).resolve() == source:
-			raise ValueError(f'{output_dir / name}: output would replace the original YAML')
 	output_dir.mkdir(parents=True, exist_ok=True)
 	for name, result in outputs.items():
 		content = header + yaml.safe_dump(result, sort_keys=False, allow_unicode=False, width=100)

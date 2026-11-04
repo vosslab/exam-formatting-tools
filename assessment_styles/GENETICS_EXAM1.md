@@ -38,7 +38,7 @@ All Chapter 7 chi-square questions are excluded because they are not on this exa
 - Use medium difficulty where available, retaining different reasoning tasks within a family.
 - Keep four shared-scenario count questions consecutive: each parent's gametes, offspring
   genotypes, then offspring phenotypes. Each question repeats its own heading and table.
-  The builder creates `output_genetics_exam1/large_cross.json` once and reuses it; remove
+  The builder creates `generated/genetics_exam1_large_cross.json` once and reuses it; remove
   that JSON explicitly to generate new parents. Both names and genotypes are preserved.
 
 ## Overlap decisions
@@ -122,12 +122,9 @@ Specific consolidation decisions:
 - Include both end-type and overhang-type questions.
 - Retain both ABO mother and offspring questions; use five agglutination choices.
 - Exclude probability of progeny as later-course content and include two random fly questions.
-<<<<<<< HEAD
-  Both fly tasks use --random to sample parental crosses independently of question number.
+  Both fly tasks use `--random` to sample parental crosses independently of question number.
   The shared task runner also requests ten candidates per task and randomly selects one,
   so cycling generators such as blood-type agglutination do not always supply question 1.
-=======
->>>>>>> d08e63e (Reduce Genetics Exam 1 genetic-disorders matching from four... (+4 more))
 - Retain separate linear fragment, linear strand, and circular digest tasks at medium level.
 - Three-marker HLA replaces the two-marker variant; medium profiles replace easy/hard copies.
 - One full-pattern matching block covers five inheritance modes, including the autosomal
@@ -143,7 +140,7 @@ Specific consolidation decisions:
   The generator's default batch mode cycles through interactions for even coverage.
 
 The two broad terminology banks use disjoint YAML files generated locally in
-`task_files/matching_sets/`. The build recipe runs
+`generated/matching_sets/`. The build recipe runs
 [split_matching_yaml.py](../tools/split_matching_yaml.py) from JSON maps before drawing questions:
 
 - [genetics_terminology_split.json](../task_files/matching_sets/genetics_terminology_split.json)

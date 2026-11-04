@@ -59,6 +59,10 @@ then call the shared DOCX renderer and optional [docx_to_pdf.sh](../converters/d
 export. The root retains `source_me.sh` for environment setup. Current assessment-specific
 selection and presentation decisions belong in [../assessment_styles/](../assessment_styles/).
 
+Start new shell recipes from [TEMPLATE.sh](../builders/TEMPLATE.sh). Keep them as flat command
+sequences; put processing, validation, and reusable behavior in Python. Use distinctive assessment
+filenames directly under `generated/`, rather than creating a folder for every assessment.
+
 [../builders/make_genetics_quiz3.py](../builders/make_genetics_quiz3.py) is an example custom
 composition script; it is an alternative to task-CSV input, not a separate document pipeline.
 
@@ -70,7 +74,8 @@ Keep curated assessment selections here; reference full BPW catalogs directly un
 `~/nsh/PROBLEMS/biology-problems-website/task_files/`. Handout selections use the same directory
 and are rendered by the common pipeline with `document_type: handout`.
 
-`task_files/matching_sets/` holds JSON split mappings and their generated YAML outputs.
+`task_files/matching_sets/` holds JSON split mappings. Their YAML outputs go under
+`generated/matching_sets/`.
 Curate wording in the original BPQ banks and group membership or metadata in the JSON maps.
 [split_matching_yaml.py](../tools/split_matching_yaml.py) refreshes the outputs; assessment recipes
 run it before drawing questions. Review upstream changes using the source and comparison revision
@@ -100,17 +105,26 @@ Maintainer scripts include changelog rotation and release preparation, version h
 The following outputs are ignored by Git and should not be used as committed fixtures:
 
 - `ARTIFACTS/` for local reference DOCX/ODT samples.
-- `output*/` and `generated/` for local course, handout, and smoke runs.
+- `generated/ASSESSMENT.*` for assessment YAML, DOCX, PDF, keys, and setup snapshots, using
+  distinctive assessment prefixes.
+- `generated/matching_sets/` for matching banks created from local JSON maps.
+- Existing `output*/` directories for historical or smoke-test runs; new assessment builders use `generated/`.
 - `*.docx`, `*.yaml`, and `*.odt` for local artifacts, except the tracked style YAML under `assessment_styles/`.
 - Root `images/`, `report_*.txt`, and LibreOffice lock files.
 
 Converters may create `<stem>_files/` media directories beside YAML. Put those outputs under
-an ignored `generated/` or `output*/` directory unless the media is intentionally tracked. The
+`generated/`, alongside the assessment YAML, unless the media is intentionally tracked. The
 repository does not use a blanket `<stem>_files/` ignore. Python cache contents are local
 byproducts; `.pytest_cache/` carries its own nested ignore file, while `__pycache__/` is not a
 repository `.gitignore` rule.
 
 Tracked configuration is the exception to the broad YAML ignore: [../assessment_styles/exam_styles.yaml](../assessment_styles/exam_styles.yaml) remains committed.
+
+To clean generated assessment files, remove `generated/` or one assessment's prefixed files and
+its media folder. Shared folders such as `generated/matching_sets/` are appropriate; a separate
+folder for each assessment or handout is unnecessary.
+Build recipes recreate their outputs and required split banks. Save any manually edited documents
+or fixed classroom versions elsewhere before cleanup.
 
 ## Documentation map
 

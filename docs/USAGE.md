@@ -13,8 +13,8 @@ the target extension in the current working directory.
 
 Course recipes live in [../builders/](../builders/) and their current assessment notes live in
 [../assessment_styles/](../assessment_styles/). They are examples, not the stable interface:
-inspect a recipe before use because it may generate new randomized questions or reset its output
-directory. Save manual YAML or DOCX edits outside that directory, then use the generic converters
+inspect a recipe before use because it may generate new randomized questions or replace generated
+files. Save manual YAML or DOCX edits outside `generated/`, then use the generic converters
 below to reproduce a chosen YAML selection. Shared presentation rules are in
 [EXAM_STYLE.md](../assessment_styles/EXAM_STYLE.md) and [QUIZ_STYLE.md](../assessment_styles/QUIZ_STYLE.md).
 
@@ -170,7 +170,7 @@ The PDF export settings are separate and may downsample raster content.
 
 ## Build a quiz or exam from a bptools task CSV
 
-For shorter, curated matching blocks, follow
+For shorter matching blocks, follow
 [SPLITTING_MATCHING_BANKS.md](SPLITTING_MATCHING_BANKS.md) before generating the assessment.
 
 `bbq_tasks_to_exam_yaml.py` reads the task CSV format

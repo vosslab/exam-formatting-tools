@@ -455,7 +455,7 @@ def main() -> None:
 			output.with_name(output.stem + '-key.txt'),
 			output.parent / (output.stem + '_files')):
 		if path.exists():
-			raise FileExistsError(f'Existing quiz artifact: {path}; choose a new output folder')
+			raise FileExistsError(f'Existing quiz artifact: {path}; choose a new output filename')
 	chi, mapping = load_generators()
 	setup = json.loads(pathlib.Path(args.input).read_text()) if args.input else generate_setup(chi, mapping)
 	write_quiz(setup, output, args.date, chi)

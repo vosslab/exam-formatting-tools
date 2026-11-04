@@ -23,7 +23,7 @@ estimate.
 
 ## Generate next year's version
 
-The active quiz lives in `generated/genetics_quiz3/`. From the repository root:
+The active quiz uses `generated/genetics_quiz3.*` files. From the repository root:
 
 ```bash
 bash builders/build_genetics_quiz3.sh
@@ -44,13 +44,15 @@ DOCX/PDF converters:
 
 ```bash
 source source_me.sh && python3 builders/make_genetics_quiz3.py \
-    -o generated/genetics_quiz3/quiz3.yaml -d 2027-11-02
+    -o generated/genetics_quiz3.yaml -d 2027-11-02
 ```
 
-Outputs stay together: `quiz3.yaml`, `quiz3_setup.json`, `quiz3-key.txt`, `quiz3_files/`,
-`quiz3.docx`, and `quiz3.pdf`. The builder refuses to overwrite existing generation artifacts.
-When replacing the quiz, save any manual edits before removing the current output directory
-and rebuilding in the same location. Generated course files remain ignored by Git.
+Outputs stay together: `genetics_quiz3.yaml`, `genetics_quiz3_setup.json`, `genetics_quiz3-key.txt`,
+`genetics_quiz3_files/`, `genetics_quiz3.docx`, and `genetics_quiz3.pdf`. The builder refuses to overwrite existing generation artifacts.
+When replacing the quiz, save any manual edits before removing that version's prefixed files
+and media folder. To keep multiple versions, invoke the Python authoring step directly with a
+distinct `-o` filename, then run the DOCX/PDF converters for that filename. Generated course files
+remain ignored by Git.
 
 ## Reproduce a saved version
 
@@ -59,13 +61,13 @@ YAML preserves the final question and choice order. Rebuild from YAML to retain 
 
 ```bash
 source source_me.sh && python3 converters/yaml_to_exam_docx.py \
-    -i generated/genetics_quiz3/quiz3.yaml -o generated/genetics_quiz3/review.docx \
+    -i generated/genetics_quiz3.yaml -o generated/genetics_quiz3_review.docx \
     --page-break-sections --keep-questions-together
-bash converters/docx_to_pdf.sh generated/genetics_quiz3/review.docx generated/genetics_quiz3 300
+bash converters/docx_to_pdf.sh generated/genetics_quiz3_review.docx generated 300
 ```
 
-To recompose the parts from a saved setup, copy its JSON outside the output directory before
-replacing the current quiz, then pass `-i PATH/quiz3_setup.json` to the authoring script.
+To recompose the parts from a saved setup, save its JSON before
+replacing the current quiz, then pass `-i PATH/genetics_quiz3_setup.json` to the authoring script.
 Snapshot files are instructor-authored inputs: keep their
 scientific values and saved table markup together. Inspect each new PDF before classroom use.
 

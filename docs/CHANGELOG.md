@@ -4,6 +4,8 @@
 
 ### Additions and New Features
 
+- Add `builders/TEMPLATE.sh` as a flat sequence of shared generation, DOCX, and PDF commands,
+  with examples for optional matching splits and exam validation. Keep processing logic in Python.
 - Add `tools/split_matching_yaml.py` and JSON mappings for all three matching splits.
   Preserve source metadata and replacement rules by default; allow six explicit metadata
   overrides per output. Reject incomplete or overlapping partitions and regenerate split outputs
@@ -35,17 +37,22 @@
 
 ### Fixes and Maintenance
 
-- Ignore generated `task_files/matching_sets/*_a.yml` and `*_b.yml` files while keeping JSON
-  split mappings tracked. Replace documentation links to generated files with their mappings.
+- Standardize assessment builders on flat `generated/ASSESSMENT.*` files, including older genetics quizzes
+  and the biochemistry study guide. Keep PDFs beside their DOCX and YAML instead of the repo root.
+  Generate split matching banks under `generated/matching_sets/`, update task inputs and shared
+  scenario paths, and document the single cleanup location.
+- Keep generated split YAML ignored under `generated/matching_sets/` through the `/generated/`
+  ignore rule; track JSON mappings in `task_files/matching_sets/`. Link documentation to mappings.
 - Correct split-bank ownership: original BPQ YAML and local JSON mappings are editable sources;
   split YAML is replaceable output. Regenerate splits before Quiz 2 and Genetics Exam 1 builds,
-  protect the original YAML from output collisions, and remove guidance to curate split files.
-  Remove the write/preview mode flag; the tool always regenerates its outputs.
+  and remove guidance to curate split files. Remove the write/preview mode flag, alternate output
+  directory, and source-collision check; the tool always regenerates its fixed local outputs.
 - Make matching-bank ownership explicit in the splitting guide and human guidance: generated
   assessment splits stay local, full reusable banks stay in BPQ. Add a provenance-header
   example and commands to review both committed and uncommitted upstream changes before reuse.
-- Relocate all six assessment-specific split matching banks from BPQ to
-  `task_files/matching_sets/`; update Quiz 2 and Genetics Exam 1 task inputs to use `{exam_root}`.
+- Replace the six assessment-specific BPQ split banks with local JSON mappings under
+  `task_files/matching_sets/` and generated YAML under `generated/matching_sets/`;
+  update Quiz 2 and Genetics Exam 1 task inputs to use `{exam_root}`.
   Record BPQ source paths and comparison revisions and document upstream review before reuse.
 - Clarify the quiz convention for MC statement banks: one task row with default TRUE/FALSE
   selection; force a target or create paired rows only when explicitly requested.
@@ -70,9 +77,15 @@
 
 ### Developer Tests and Notes
 
-- Check JSON splitting with ten focused tests covering metadata defaults and overrides,
-  independent replacement rules, partition errors, regenerated outputs, and protection
-  of the original YAML.
+- Complete six independent audit passes focused on KISS and permanent-test value. Remove the
+  redundant duplicate-term case, internal deep-copy assertions, and source-collision test, along
+  with the unused deep-copy logic. Keep functional split coverage; add no permanent tests.
+  Fix stale output and ownership wording and resolve old merge markers in Genetics Exam 1 notes.
+- Verify all builder shell syntax, updated task-path resolution, and generated-file ignores
+  after consolidating output paths. Focused checks after audit cleanup: 344 pass. Flatten existing quizzes and
+  handouts without redrawing questions or exporting PDFs; verify all moved YAML image references.
+- Check JSON splitting with eight focused tests covering metadata defaults and overrides,
+  inherited replacement rules, partition errors, and regenerated outputs.
   Recreate all six banks into temporary directories and validate them with zero errors; retain
   the source's existing whitespace-token warning. Script, documentation, lint, dependency, and
   import-boundary checks pass.

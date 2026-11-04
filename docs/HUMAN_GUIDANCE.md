@@ -47,3 +47,7 @@ origin belongs there too. Rules: [REPO_STYLE.md](REPO_STYLE.md).
 - Curate matching wording only in the original BPQ YAML. Keep split membership and metadata
   overrides in local JSON mappings; regenerate the local split YAML rather than editing it.
   Check upstream updates before reuse. Follow [SPLITTING_MATCHING_BANKS.md](SPLITTING_MATCHING_BANKS.md).
+
+- Keep assessment files directly under `generated/`, using distinctive assessment filenames.
+  Shared folders such as `generated/matching_sets/` are fine; avoid a folder per assessment
+  or handout. Keep shell builders flat and let Python handle processing logic.

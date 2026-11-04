@@ -3,7 +3,7 @@
 source source_me.sh || exit 1
 set -e
 
-OUTPUT_DIR="generated/testcross_handout"
+OUTPUT_DIR="generated"
 mkdir -p "$OUTPUT_DIR"
 rm -f -- "$OUTPUT_DIR/testcross_handout.yaml" "$OUTPUT_DIR/testcross_handout-key.txt" \
 	"$OUTPUT_DIR/testcross_handout.docx"
