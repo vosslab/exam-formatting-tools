@@ -12,6 +12,8 @@ settings are documented in [EXAM_STYLE.md](EXAM_STYLE.md#shared-docx-formatting)
 - Prefer medium difficulty when a question family offers difficulty levels.
 - Prefer MATCH over WOMC for equivalent content, including terminology questions.
 - Avoid repeating alternate formats of the same reasoning task.
+- Use one task row per MC statement bank and let the generator select TRUE or FALSE from the
+  bank's allowed questions. Force a truth target or add paired rows only when explicitly requested.
 - Quizzes may use more than five choices. Apply [EXAM_STYLE.md](EXAM_STYLE.md)'s A-E limit when
   a quiz will use ZipGrade; ordinary `--quiz` mode does not enforce it.
 - Number each matching prompt individually, and show the block's question range.

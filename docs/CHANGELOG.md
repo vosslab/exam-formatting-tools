@@ -2,6 +2,22 @@
 
 ## 2026-11-04
 
+### Additions and New Features
+
+- Add `tools/split_matching_yaml.py` and JSON mappings for all three matching splits.
+  Preserve source metadata and replacement rules by default; allow six explicit metadata
+  overrides per output. Reject incomplete or overlapping partitions and regenerate split outputs
+  on every run. Curate wording only in the original YAML.
+- Add `docs/SPLITTING_MATCHING_BANKS.md` with the existing static-bank precedent, grouping and
+  copying steps, prompt and description polishing, source maintenance, and generated key and
+  print review. Link it from the task-CSV usage workflow.
+- Add a BIOL 318/418 Quiz 2 task CSV and flat build script using the requested biostatistics
+  banks: five statistical tests, hypothesis-testing terms in disjoint 3- and 4-term banks,
+  and one MC from each statement
+  bank. Use the generators' default TRUE/FALSE selection, respecting the decision bank's
+  disabled FALSE questions. The quiz has 14 numbered answers and uses the shared scoring rule
+  for 8 points.
+
 ### Behavior or Interface Changes
 
 - Select text-choice column styles by measuring complete formatted answers in the installed
@@ -19,6 +35,20 @@
 
 ### Fixes and Maintenance
 
+- Ignore generated `task_files/matching_sets/*_a.yml` and `*_b.yml` files while keeping JSON
+  split mappings tracked. Replace documentation links to generated files with their mappings.
+- Correct split-bank ownership: original BPQ YAML and local JSON mappings are editable sources;
+  split YAML is replaceable output. Regenerate splits before Quiz 2 and Genetics Exam 1 builds,
+  protect the original YAML from output collisions, and remove guidance to curate split files.
+  Remove the write/preview mode flag; the tool always regenerates its outputs.
+- Make matching-bank ownership explicit in the splitting guide and human guidance: generated
+  assessment splits stay local, full reusable banks stay in BPQ. Add a provenance-header
+  example and commands to review both committed and uncommitted upstream changes before reuse.
+- Relocate all six assessment-specific split matching banks from BPQ to
+  `task_files/matching_sets/`; update Quiz 2 and Genetics Exam 1 task inputs to use `{exam_root}`.
+  Record BPQ source paths and comparison revisions and document upstream review before reuse.
+- Clarify the quiz convention for MC statement banks: one task row with default TRUE/FALSE
+  selection; force a target or create paired rows only when explicitly requested.
 - Keep reusable guides independent of the current quiz: lead with generic YAML conversion,
   task-CSV, and handout workflows; route changing assessment recipes to their existing notes
   and dated validation results to the changelog.
@@ -40,6 +70,17 @@
 
 ### Developer Tests and Notes
 
+- Check JSON splitting with ten focused tests covering metadata defaults and overrides,
+  independent replacement rules, partition errors, regenerated outputs, and protection
+  of the original YAML.
+  Recreate all six banks into temporary directories and validate them with zero errors; retain
+  the source's existing whitespace-token warning. Script, documentation, lint, dependency, and
+  import-boundary checks pass.
+- Validate all six relocated matching banks with zero errors; retain the existing `gene `
+  token whitespace warning. Generate every relocated bank through its updated assessment task
+  and verify prompt counts. Task-import and Markdown-link checks: 99 pass.
+- Build Biostats Quiz 2 with zero skipped tasks; inspect both PDF pages and verify the
+  separate answer key. Focused task-import and executable-script checks: 232 pass.
 - Verify the generic README YAML-to-DOCX-to-PDF quick start without sibling question banks;
   inspect the sample exported by LibreOffice. Documentation checks pass: 305 Markdown-link,
   README-opening, and ASCII checks, plus a clean whitespace diff.

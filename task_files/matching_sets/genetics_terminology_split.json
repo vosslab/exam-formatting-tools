@@ -1,0 +1,26 @@
+{
+  "source": "../../../biology-problems/problems/matching_sets/inheritance/genetics_terminology.yml",
+  "source_revision": "603741d1d8dcbf623224c96362f89817929cf7e2",
+  "splits": [
+    {
+      "output": "genetics_terminology_a.yml",
+      "pairs": [
+        "haploid",
+        "diploid",
+        "gene ",
+        "genetics",
+        "genetic code"
+      ]
+    },
+    {
+      "output": "genetics_terminology_b.yml",
+      "pairs": [
+        "genomics",
+        "genome",
+        "locus",
+        "single nucleotide polymorphism (SNP)",
+        "homologous chromosomes"
+      ]
+    }
+  ]
+}

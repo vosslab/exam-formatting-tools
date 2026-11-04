@@ -70,6 +70,12 @@ Keep curated assessment selections here; reference full BPW catalogs directly un
 `~/nsh/PROBLEMS/biology-problems-website/task_files/`. Handout selections use the same directory
 and are rendered by the common pipeline with `document_type: handout`.
 
+`task_files/matching_sets/` holds JSON split mappings and their generated YAML outputs.
+Curate wording in the original BPQ banks and group membership or metadata in the JSON maps.
+[split_matching_yaml.py](../tools/split_matching_yaml.py) refreshes the outputs; assessment recipes
+run it before drawing questions. Review upstream changes using the source and comparison revision
+in each JSON map. See [SPLITTING_MATCHING_BANKS.md](SPLITTING_MATCHING_BANKS.md).
+
 ### `ef_tools/`
 
 Modules are single-purpose and imported directly. Add a matching test named `tests/test_<module>.py` when a new stable behavior warrants permanent coverage.

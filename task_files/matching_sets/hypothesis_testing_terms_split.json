@@ -1,0 +1,16 @@
+{
+  "source": "../../../biology-problems/problems/matching_sets/biostatistics/hypothesis_testing_terms.yml",
+  "source_revision": "603741d1d8dcbf623224c96362f89817929cf7e2",
+  "splits": [
+    {
+      "output": "hypothesis_testing_terms_a.yml",
+      "pairs": ["nullhyp", "althyp", "dof"],
+      "overrides": {"items to match per question": 3}
+    },
+    {
+      "output": "hypothesis_testing_terms_b.yml",
+      "pairs": ["critval", "teststat", "losa", "p-value"],
+      "overrides": {"items to match per question": 4}
+    }
+  ]
+}

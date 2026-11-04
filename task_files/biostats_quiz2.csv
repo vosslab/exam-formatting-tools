@@ -1,0 +1,6 @@
+subject,topic,script,flags,input,notes,layout
+biostatistics,Selecting statistical tests,YMATCH,--num-choices 5,{bp_match}/biostatistics/selecting_statistical_tests.yml,All five tests = 2.5 points,
+biostatistics,Selecting statistical tests,YMCS,,{bp_mcs}/biostatistics/z_test_vs_t_test.yml,One randomly selected TRUE or FALSE MC = 1 point,1
+biostatistics,Hypothesis testing,YMATCH,--num-choices 3,{exam_root}/task_files/matching_sets/hypothesis_testing_terms_a.yml,Hypotheses and degrees of freedom = 1.5 points,
+biostatistics,Hypothesis testing,YMATCH,--num-choices 4,{exam_root}/task_files/matching_sets/hypothesis_testing_terms_b.yml,Decision quantities = 2 points,
+biostatistics,Hypothesis testing,YMCS,,{bp_mcs}/biostatistics/hypothesis_testing_decisions.yml,One MC using the bank defaults = 1 point,1

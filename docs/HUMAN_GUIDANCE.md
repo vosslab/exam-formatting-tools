@@ -43,3 +43,7 @@ origin belongs there too. Rules: [REPO_STYLE.md](REPO_STYLE.md).
 
 - Keep reusable guides generic: document stable conversion and editing workflows rather than a
   current quiz. Put assessment-specific recipes in their notes and dated results in the changelog.
+
+- Curate matching wording only in the original BPQ YAML. Keep split membership and metadata
+  overrides in local JSON mappings; regenerate the local split YAML rather than editing it.
+  Check upstream updates before reuse. Follow [SPLITTING_MATCHING_BANKS.md](SPLITTING_MATCHING_BANKS.md).

@@ -8,6 +8,10 @@ case "$paper_size" in
   *) echo "Usage: bash builders/build_genetics_exam1.sh [a4|letter]" >&2; exit 2 ;;
 esac
 
+python3 tools/split_matching_yaml.py \
+  -i task_files/matching_sets/genetics_terminology_split.json
+python3 tools/split_matching_yaml.py \
+  -i task_files/matching_sets/mendelian_genetics_terms_split.json
 rm -fr output_genetics_exam1
 mkdir -p output_genetics_exam1
 # Keep the same parents across all four questions and subsequent rebuilds.

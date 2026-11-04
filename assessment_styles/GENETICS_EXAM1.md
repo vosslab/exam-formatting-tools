@@ -142,17 +142,24 @@ Specific consolidation decisions:
   the CSV. Repeated interaction types remain possible and are reviewed by the instructor.
   The generator's default batch mode cycles through interactions for even coverage.
 
-The two broad terminology banks are split into disjoint static YAML files, with no Python
-partitioning logic:
+The two broad terminology banks use disjoint YAML files generated locally in
+`task_files/matching_sets/`. The build recipe runs
+[split_matching_yaml.py](../tools/split_matching_yaml.py) from JSON maps before drawing questions:
 
-- `genetics_terminology_a.yml` and `genetics_terminology_b.yml`: five terms each.
-- `mendelian_genetics_terms_a.yml` and `mendelian_genetics_terms_b.yml`: five terms each.
+- [genetics_terminology_split.json](../task_files/matching_sets/genetics_terminology_split.json)
+  generates `genetics_terminology_a.yml` and `genetics_terminology_b.yml`: five terms each.
+- [mendelian_genetics_terms_split.json](../task_files/matching_sets/mendelian_genetics_terms_split.json)
+  generates `mendelian_genetics_terms_a.yml` and `mendelian_genetics_terms_b.yml`: five terms each.
 
 All original definition variants and formatting rules are retained; the original full banks
 remain available for homework. Each exam half uses every term, so all 20 terms appear
 without repetition within either bank. The instructor chose not to split the smaller
 meiosis bank: `meiosis_terms.yml --num-choices 4` samples four of its six terms,
 freeing a row for the added application questions.
+
+Before reuse, review changes to the BPQ originals using the source path and comparison revision
+in each JSON mapping. Curate wording in those originals and regenerate the splits. Follow
+[SPLITTING_MATCHING_BANKS.md](../docs/SPLITTING_MATCHING_BANKS.md).
 
 Coverage depth still varies. Chapter 3 has only four rows, and the test-cross term may
 be absent from the four-term cross-terminology sample. Any further additions must come

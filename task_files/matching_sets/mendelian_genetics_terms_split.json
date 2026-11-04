@@ -1,0 +1,26 @@
+{
+  "source": "../../../biology-problems/problems/matching_sets/inheritance/mendelian_genetics_terms.yml",
+  "source_revision": "603741d1d8dcbf623224c96362f89817929cf7e2",
+  "splits": [
+    {
+      "output": "mendelian_genetics_terms_a.yml",
+      "pairs": [
+        "character",
+        "trait",
+        "genotype",
+        "phenotype",
+        "alleles"
+      ]
+    },
+    {
+      "output": "mendelian_genetics_terms_b.yml",
+      "pairs": [
+        "gamete",
+        "heterozygous",
+        "homozygous",
+        "dominant",
+        "recessive"
+      ]
+    }
+  ]
+}

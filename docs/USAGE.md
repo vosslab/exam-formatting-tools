@@ -170,6 +170,9 @@ The PDF export settings are separate and may downsample raster content.
 
 ## Build a quiz or exam from a bptools task CSV
 
+For shorter, curated matching blocks, follow
+[SPLITTING_MATCHING_BANKS.md](SPLITTING_MATCHING_BANKS.md) before generating the assessment.
+
 `bbq_tasks_to_exam_yaml.py` reads the task CSV format
 (`subject,topic,script,flags,input,notes`), with optional local `choice_font`
 and `layout` columns for typography and choice-column count (`{bp_root}`/`YMATCH`-style aliases
