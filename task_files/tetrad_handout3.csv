@@ -1,0 +1,3 @@
+subject,topic,script,flags,input,notes
+genetics,Unordered tetrads,{bp_root}/inheritance-problems/gene_mapping/tetrad_unordered_three_gene-distances_plus.py,,,
+genetics,Unordered tetrads,{bp_root}/inheritance-problems/gene_mapping/tetrad_unordered_three_gene-distances_plus.py,,,

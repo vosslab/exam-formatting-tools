@@ -1,0 +1,41 @@
+1. B   c863_8112   which_macromolecule.py (simple_macromolecules)
+2. D   8c5d_8112   which_macromolecule.py (macromolecules)
+3. D   720c_5dd0   which_hydrophobic-simple.py
+Q4-7. 4=C 5=A 6=B 7=D   ccf9_a31b   yaml_match_to_bbq.py (macromolecules-biol301)
+Q8-11. 8=A 9=B 10=C 11=D   ccf9_9434   yaml_match_to_bbq.py (macromolecules)
+Q12-15. 12=A 13=B 14=C 15=D   c4c1_904f   yaml_match_to_bbq.py (biochemical_functional_groups)
+Q16-19. 16=C 17=B 18=D 19=A   42a3_bb61   yaml_match_to_bbq.py (bond_types)
+20. A,G   e56f_3ee7   chemical_group_pka_forms.py
+21. C   1311_fa73   functional_groups_bond_types.py
+22. A   1fd6_e110   Henderson-Hasselbalch.py
+23. D   1bf7_ed61   Henderson-Hasselbalch.py
+24. A   37fd_2e7f   Henderson-Hasselbalch.py
+25. D   5875_0515   Henderson-Hasselbalch.py
+26. C   d44c_63c9   optimal_buffering_range.py
+27. C   2710_4c1d   ph_h_concentration_ratio.py
+28. C   40c9_f719   pKa_buffer_state.py
+29. B   0513_93ac   pKa_buffer_state.py
+30. A   de8a_f577   pKa_buffer_state.py
+31. B   49d1_3686   alanine_protonation_states.py
+32. A   61a8_729c   alpha_amino_acid_identification.py
+33. A   c283_9ec1   histidine_protonation_states.py
+Q34-37. 34=D 35=C 36=B 37=A   948b_5629   match_amino_acid_structures.py
+38. B   c3e5_6474   polypeptide_mc_sequence.py
+39. A   1de4_010f   polypeptide_mc_sequence.py
+40. B   8570_e588   polypeptide_mc_sequence.py
+41. B   50d1_4789   which_amino_acid.py
+42. C   a32e_accc   ionic_bond_amino_acids.py
+Q43-47. 43=D 44=B 45=C 46=E 47=A   e294_eb26   yaml_match_to_bbq.py (amino_acids_properties)
+Q48-52. 48=D 49=C 50=A 51=B 52=E   e294_2610   yaml_match_to_bbq.py (amino_acids_properties-long_tables)
+53. D   92d7_d9b2   tetrapeptide_net_charge.py
+54. C   e993_ea50   alpha_helix_h-bonds.py
+55. B,F   1f3a_621d   alpha_helix_h-bonds.py
+Q56-59. 56=D 57=B 58=A 59=C   a88d_e095   yaml_match_to_bbq.py (levels_of_protein_structure)
+60. A   6d09_36d4   isoelectric_one_protein.py
+61. D   48b7_4084   isoelectric_two_proteins.py
+62. C   b8e4_a6c2   protein_gel_migration.py
+63. B   a2b2_d6c6   kaleidoscope_ladder_unknown_band.py
+Q64-67. 64=B 65=D 66=C 67=A   45a0_0755   yaml_match_to_bbq.py (cell_disruption)
+Q68-71. 68=D 69=B 70=C 71=A   fa7a_0b3b   yaml_match_to_bbq.py (column_chromatography)
+Q72-74. 72=C 73=B 74=A   2166_72c0   yaml_match_to_bbq.py (protein_v_dna_gels)
+75. B   d707_fb6a   titration_pI.py

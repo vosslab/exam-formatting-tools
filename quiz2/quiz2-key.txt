@@ -1,0 +1,17 @@
+Q1-4. 1=C 2=D 3=B 4=A   25e1_feec   yaml_match_to_bbq.py (mendel_cross_terminology)
+Q5-8. 5=A 6=C 7=B 8=D   1a2b_2676   yaml_match_to_bbq.py (mendel_four_principles)
+Q9-12. 9=A 10=D 11=B 12=C   c07b_dcae   yaml_match_to_bbq.py (mendelian_genetics_terms)
+Q13-16. 13=A 14=B 15=C 16=D   62d1_c106   yaml_match_to_bbq.py (monohybrid_cross_genotype)
+17. C   da20_f848   monohybrid_genotype_statements.py
+18. B   e00b_b34f   punnett_choice.py
+19. C   eac8_abb7   monohybrid_litter_inference.py
+20. A   8e57_4683   unique_gametes.py
+21. A   3ed6_e1f9   unique_cross_genotypes.py
+22. E   411a_319e   unique_cross_phenotypes.py
+23. D   3e7a_d4d7   lethal_allele_survival.py
+24. B,D   e9dd_2b97   blood_type_mother.py
+Q25-28. 25=D 26=C 27=A 28=B   b36d_b2ba   yaml_match_to_bbq.py (degrees_of_dominance)
+29. E   3235_934c   monohybrid_degrees_of_dominance.py
+30. C   0743_2647   dihybrid_cross_epistatic_gene_metabolics.py
+31. F   2878_cb80   epistasis_test_cross.py
+Q32-33. 32=A 33=B   0aaf_9699   write_pedigree_pattern_matching.py

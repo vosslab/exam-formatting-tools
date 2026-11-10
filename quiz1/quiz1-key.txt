@@ -1,0 +1,20 @@
+Q1-4. 1=D 2=A 3=C 4=B   ce62_f6f2   yaml_match_to_bbq.py (genetic_disorders)
+5. B,C,D,E   6617_bae1   beadle_tatum-metabolic_pathway.py
+6. B   1d60_dc32   yaml_mc_statements_to_bbq.py (dna_structure-biol_351)
+7. A   e677_f1ba   yaml_mc_statements_to_bbq.py (nucleotide_components)
+8. D   fdc5_253d   yaml_mc_statements_to_bbq.py (rna_v_dna)
+9. B   6faa_9133   chargaff_dna_percent.py
+10. B   bb74_b682   complementary_sequences.py
+11. B   413b_7659   complementary_sequences.py
+12. A   8e8b_f955   yaml_mc_statements_to_bbq.py (english_palindromes)
+Q13-16. 13=C 14=B 15=A 16=D   92e0_ffd3   palindrome_sequence_match.py
+17. E   254e_a9b4   overhang_type.py
+18. A   378c_abf9   overhang_type.py
+19. D   7d26_ee1d   overhang_sequence.py
+20. A,B,C,F   4469_6a01   linear_digest.py
+21. C,F   a66f_6a01   linear_digest.py
+22. B,D,F   60e1_d1e8   circular_digest.py
+23. A   d6ed_490a   blood_type_agglutination_test.py
+24. D   cd63_2a2d   hla_genotype.py
+25. C   3baf_69fa   who_father_html.py
+26. D   9d3f_baf7   who_killer_html.py
